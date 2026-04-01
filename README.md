@@ -234,6 +234,4 @@ Each problem needs:
 
 ---
 
-## License
 
-MIT
