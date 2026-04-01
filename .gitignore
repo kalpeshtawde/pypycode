@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Env
+.env
+*.env.local
+
+# Docker volumes
+pgdata/
+
+# IDE
+.vscode/
+.idea/
+
+# SSL certs (keep out of git)
+nginx/ssl/
