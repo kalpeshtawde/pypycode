@@ -25,6 +25,9 @@ export default function ProblemPage() {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
+  const [fontSize, setFontSize] = useState(15);
+  const [vimMode, setVimMode] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -78,7 +81,7 @@ export default function ProblemPage() {
   const statusDone = submission && !["pending", "running"].includes(submission.status);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-50">
+    <div className="flex h-[calc(100vh-64px)] bg-slate-50 relative">
       {/* Left: Problem panel */}
       <div className="w-[42%] flex flex-col border-r border-slate-200 overflow-hidden bg-slate-50">
         {/* Tabs */}
@@ -321,8 +324,8 @@ export default function ProblemPage() {
 
       {/* Right: Editor + output */}
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
-        {/* Editor toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
+        {/* Editor header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0 bg-slate-50">
           <span className="text-xs font-mono text-slate-600">Python 3.12</span>
           <button
             onClick={handleSubmit}
@@ -340,6 +343,145 @@ export default function ProblemPage() {
           </button>
         </div>
 
+        {/* Editor toolbar */}
+        <div 
+          className="shrink-0 flex items-center border-b"
+          style={{
+            height: '44px',
+            backgroundColor: '#F8FAFC',
+            borderBottomColor: '#E2E8F0',
+            padding: '0 20px',
+            gap: '20px'
+          }}
+        >
+          <style>{`
+            .font-size-slider {
+              width: 100px;
+              height: 4px;
+              background: #E2E8F0;
+              border-radius: 999px;
+              outline: none;
+              -webkit-appearance: none;
+              appearance: none;
+            }
+            .font-size-slider::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 14px;
+              height: 14px;
+              background: #1A6BFF;
+              border-radius: 50%;
+              cursor: pointer;
+            }
+            .font-size-slider::-moz-range-thumb {
+              width: 14px;
+              height: 14px;
+              background: #1A6BFF;
+              border-radius: 50%;
+              cursor: pointer;
+              border: none;
+            }
+            .vim-toggle-track {
+              width: 36px;
+              height: 20px;
+              border-radius: 999px;
+              background: #E2E8F0;
+              cursor: pointer;
+              transition: background 200ms ease;
+              position: relative;
+              display: inline-flex;
+              align-items: center;
+            }
+            .vim-toggle-track.active {
+              background: #1A6BFF;
+            }
+            .vim-toggle-thumb {
+              width: 16px;
+              height: 16px;
+              background: white;
+              border-radius: 50%;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+              position: absolute;
+              left: 2px;
+              transition: left 200ms ease;
+            }
+            .vim-toggle-track.active .vim-toggle-thumb {
+              left: 18px;
+            }
+          `}</style>
+
+          {/* Font Size Slider */}
+          <div className="flex items-center gap-2">
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+              Font Size
+            </label>
+            <input
+              type="range"
+              min="12"
+              max="24"
+              step="1"
+              value={fontSize}
+              onChange={(e) => setFontSize(Number(e.target.value))}
+              className="font-size-slider"
+            />
+            <div
+              style={{
+                backgroundColor: '#EEF3FF',
+                color: '#1A6BFF',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 7px',
+                borderRadius: '999px',
+                minWidth: '35px',
+                textAlign: 'center'
+              }}
+            >
+              {fontSize}px
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            width: '1px',
+            height: '20px',
+            backgroundColor: '#E2E8F0',
+            margin: '0 4px'
+          }} />
+
+          {/* Vim Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+              Vim
+            </label>
+            <button
+              onClick={() => {
+                setVimMode(!vimMode);
+                const message = !vimMode ? 'Vim mode enabled' : 'Vim mode disabled';
+                setToastMessage(message);
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              className={`vim-toggle-track ${vimMode ? 'active' : ''}`}
+              title="Toggle Vim mode"
+            >
+              <div className="vim-toggle-thumb" />
+            </button>
+            {vimMode && (
+              <div
+                style={{
+                  backgroundColor: '#1A6BFF',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}
+              >
+                VIM
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Monaco Editor */}
         <div className="flex-1 overflow-hidden bg-slate-50">
           <Editor
@@ -349,7 +491,7 @@ export default function ProblemPage() {
             onChange={(v) => setCode(v ?? "")}
             theme="vs"
             options={{
-              fontSize: 14,
+              fontSize: fontSize,
               fontFamily: "'JetBrains Mono', monospace",
               fontLigatures: true,
               minimap: { enabled: false },
@@ -359,6 +501,7 @@ export default function ProblemPage() {
               renderLineHighlight: "gutter",
               cursorStyle: "line",
               tabSize: 4,
+              wordWrap: "on",
             }}
           />
         </div>
@@ -386,6 +529,38 @@ export default function ProblemPage() {
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            backgroundColor: '#0F172A',
+            color: 'white',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            animation: 'slideUp 300ms ease forwards',
+            zIndex: 1000
+          }}
+        >
+          <style>{`
+            @keyframes slideUp {
+              from {
+                transform: translateY(20px);
+                opacity: 0;
+              }
+              to {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+          `}</style>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }
