@@ -10,37 +10,36 @@ function ProblemCell({ problem }: { problem: Problem }) {
   const isSolved = solvedProblems.includes(problem.id);
   
   const difficultyColors = {
-    easy: { light: '#C6F6D5', medium: '#9AE6B4', dark: '#68D391' },
-    medium: { light: '#FEF3C7', medium: '#FCD34D', dark: '#FBBF24' },
-    hard: { light: '#FECACA', medium: '#FCA5A5', dark: '#F87171' }
+    easy: '#10B981',
+    medium: '#F59E0B',
+    hard: '#EF4444'
   };
 
-  const colors = difficultyColors[problem.difficulty];
-  const cellColor = isSolved ? colors.dark : '#EAEAEA';
+  const cellColor = isSolved ? difficultyColors[problem.difficulty] : '#E5E7EB';
 
   return (
     <Link
       to={`/problems/${problem.slug}`}
       title={`${problem.title} (${problem.difficulty})`}
       style={{
-        width: '16px',
-        height: '16px',
-        borderRadius: '3px',
+        width: '24px',
+        height: '24px',
+        borderRadius: '4px',
         background: cellColor,
-        border: '1px solid #E2E8F0',
+        border: '1px solid #D1D5DB',
         cursor: 'pointer',
         transition: 'all 150ms ease',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        fontSize: '10px',
-        fontWeight: 800,
+        fontSize: '12px',
+        fontWeight: 700,
         color: 'white'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.25)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.15)';
+        e.currentTarget.style.transform = 'scale(1.15)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.2)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'scale(1)';
@@ -303,51 +302,58 @@ export default function ProblemsPage() {
             paddingTop: '20px',
             borderTop: '1px solid #F1F5F9',
             display: 'flex',
-            gap: '16px',
+            gap: '20px',
             alignItems: 'center',
-            fontSize: '12px',
-            color: '#94A3B8'
+            fontSize: '13px',
+            color: '#64748B'
           }}>
-            <span>Legend:</span>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '2px',
-                background: '#EAEAEA',
-                border: '1px solid #E2E8F0'
-              }} />
-              <span>Unsolved</span>
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                background: '#10B981',
+                border: '1px solid #D1D5DB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 700
+              }}>
+                ✓
+              </div>
+              <span style={{ fontWeight: 500 }}>Solved</span>
             </div>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '2px',
-                background: '#68D391',
-                border: '1px solid #E2E8F0'
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                background: '#F59E0B',
+                border: '1px solid #D1D5DB'
               }} />
-              <span>Easy</span>
+              <span style={{ fontWeight: 500 }}>Medium</span>
             </div>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '2px',
-                background: '#FBBF24',
-                border: '1px solid #E2E8F0'
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                background: '#EF4444',
+                border: '1px solid #D1D5DB'
               }} />
-              <span>Medium</span>
+              <span style={{ fontWeight: 500 }}>Hard</span>
             </div>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '2px',
-                background: '#F87171',
-                border: '1px solid #E2E8F0'
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                background: '#E5E7EB',
+                border: '1px solid #D1D5DB'
               }} />
-              <span>Hard</span>
+              <span style={{ fontWeight: 500 }}>Unsolved</span>
             </div>
           </div>
         </div>
