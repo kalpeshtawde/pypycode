@@ -69,12 +69,6 @@ export default function ProblemsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-16">
-      {/* Header */}
-      <div className="mb-10">
-        <h1 className="font-display text-4xl font-semibold text-white mb-2">Problems</h1>
-        <p className="text-slate-500">Python-only. Solve them all.</p>
-      </div>
-
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-8">
         {DIFFS.map((d) => (
