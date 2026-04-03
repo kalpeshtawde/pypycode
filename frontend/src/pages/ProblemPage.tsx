@@ -141,43 +141,155 @@ export default function ProblemPage() {
                 </div>
               </div>
 
-              {/* Description */}
-              <div 
-                className="prose prose-sm max-w-none prose-p:before:content-none prose-p:after:content-none"
-                style={{
-                  fontSize: '15px',
-                  lineHeight: '1.8',
-                  color: '#475569'
-                }}
-              >
-                <style>{`
-                  .prose p {
-                    font-size: 15px !important;
-                    line-height: 1.8 !important;
-                    color: #475569 !important;
-                  }
-                  .prose strong {
-                    color: #0F172A !important;
-                    font-weight: 600 !important;
-                  }
-                  .prose code {
-                    background-color: #EEF3FF !important;
-                    color: #1A6BFF !important;
-                    font-weight: 600 !important;
-                    border-radius: 5px !important;
-                    padding: 2px 7px !important;
-                    border: 1px solid rgba(26, 107, 255, 0.15) !important;
-                    font-family: inherit !important;
-                  }
-                  .prose code::before {
-                    content: '' !important;
-                  }
-                  .prose code::after {
-                    content: '' !important;
-                  }
-                `}</style>
-                <ReactMarkdown>{problem.description}</ReactMarkdown>
+              {/* Problem Statement */}
+              <div style={{ marginBottom: '32px' }}>
+                <div className="flex items-center gap-2.5" style={{ marginBottom: '16px' }}>
+                  <div 
+                    style={{
+                      width: '3px',
+                      height: '20px',
+                      backgroundColor: '#10B981',
+                      borderRadius: '2px'
+                    }}
+                  />
+                  <h2 style={{
+                    fontWeight: 700,
+                    fontSize: '18px',
+                    color: '#0F172A',
+                    margin: 0
+                  }}>
+                    Problem Statement
+                  </h2>
+                </div>
+                <div 
+                  className="prose prose-sm max-w-none prose-p:before:content-none prose-p:after:content-none"
+                  style={{
+                    fontSize: '17px',
+                    lineHeight: '1.8',
+                    color: '#475569',
+                    backgroundColor: '#F8FAFC',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0'
+                  }}
+                >
+                  <style>{`
+                    .prose p {
+                      font-size: 17px !important;
+                      line-height: 1.8 !important;
+                      color: #475569 !important;
+                      margin-bottom: 12px !important;
+                    }
+                    .prose p:last-child {
+                      margin-bottom: 0 !important;
+                    }
+                    .prose strong {
+                      color: #0F172A !important;
+                      font-weight: 600 !important;
+                    }
+                    .prose code {
+                      background-color: #EEF3FF !important;
+                      color: #1A6BFF !important;
+                      font-weight: 600 !important;
+                      border-radius: 5px !important;
+                      padding: 2px 7px !important;
+                      border: 1px solid rgba(26, 107, 255, 0.15) !important;
+                      font-family: inherit !important;
+                    }
+                    .prose code::before {
+                      content: '' !important;
+                    }
+                    .prose code::after {
+                      content: '' !important;
+                    }
+                  `}</style>
+                  <ReactMarkdown>
+                    {problem.description.split('\n').reduce((acc: string, line: string, idx: number, arr: string[]) => {
+                      const constraintIdx = arr.findIndex((l: string) => l.toLowerCase().includes('constraint'));
+                      if (constraintIdx !== -1 && idx >= constraintIdx) return acc;
+                      return acc + (acc && line ? '\n' : '') + line;
+                    }, '')}
+                  </ReactMarkdown>
+                </div>
               </div>
+
+              {/* Constraints */}
+              {(() => {
+                const lines = problem.description.split('\n');
+                const constraintsStartIdx = lines.findIndex((line: string) => line.toLowerCase().includes('constraint'));
+                
+                let constraintLines: string[] = [];
+                if (constraintsStartIdx !== -1) {
+                  for (let i = constraintsStartIdx + 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.trim() === '') continue;
+                    if (line.match(/^#+\s/)) break;
+                    constraintLines.push(line);
+                  }
+                }
+                
+                const constraints = constraintLines
+                  .filter((line: string) => line.trim() && (line.includes('`') || line.startsWith('•') || line.startsWith('-')))
+                  .map((line: string) => {
+                    const match = line.match(/`([^`]+)`/g);
+                    return match ? match.map((m: string) => m.replace(/`/g, '')) : [line.replace(/^[•\-]\s*/, '').trim()];
+                  })
+                  .flat()
+                  .filter((c: string, i: number, arr: string[]) => arr.indexOf(c) === i);
+
+                return constraints.length > 0 ? (
+                  <div style={{ marginBottom: '32px' }}>
+                    <div className="flex items-center gap-2.5" style={{ marginBottom: '16px' }}>
+                      <div 
+                        style={{
+                          width: '3px',
+                          height: '20px',
+                          backgroundColor: '#F59E0B',
+                          borderRadius: '2px'
+                        }}
+                      />
+                      <h2 style={{
+                        fontWeight: 700,
+                        fontSize: '18px',
+                        color: '#0F172A',
+                        margin: 0
+                      }}>
+                        Constraints
+                      </h2>
+                    </div>
+                    <div style={{
+                      backgroundColor: '#FFFBEB',
+                      border: '1px solid #FEE3B1',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '12px'
+                    }}>
+                      {constraints.map((constraint: string, i: number) => (
+                        <div 
+                          key={i}
+                          style={{
+                            backgroundColor: 'white',
+                            border: '1px solid #FCD34D',
+                            borderRadius: '8px',
+                            padding: '12px 14px',
+                            fontSize: '14px',
+                            color: '#475569',
+                            fontFamily: 'monospace',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <span style={{ color: '#F59E0B', fontWeight: 700 }}>•</span>
+                          <span>{constraint}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Examples */}
               <div className="mt-10 space-y-6">
