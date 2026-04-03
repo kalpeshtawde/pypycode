@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../hooks/useAuth";
 import { useEffect } from "react";
 import { api } from "../utils/api";
+import Footer from "./Footer";
 
 export default function Layout() {
   const { token, user, setAuth, logout } = useAuthStore();
@@ -158,11 +159,7 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 py-8 px-6 text-center bg-slate-50">
-        <p className="text-slate-600 text-xs font-body">
-          PyPyCode — Python-only coding challenges. Built with Flask + React.
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

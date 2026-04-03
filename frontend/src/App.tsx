@@ -5,6 +5,9 @@ import ProblemsPage from "./pages/ProblemsPage";
 import ProblemPage from "./pages/ProblemPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import AuthPage from "./pages/AuthPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import AboutPage from "./pages/AboutPage";
 
 export default function App() {
   return (
@@ -17,6 +20,9 @@ export default function App() {
           <Route path="problems/:slug" element={<ProblemPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="auth" element={<AuthPage />} />
+          <Route path="terms" element={<TermsPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="about" element={<AboutPage />} />
         </Route>
       </Routes>
     </>
