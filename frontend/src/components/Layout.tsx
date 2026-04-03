@@ -17,22 +17,22 @@ export default function Layout() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `text-sm font-body transition-colors duration-150 ${
-      isActive ? "text-accent" : "text-slate-400 hover:text-white"
+      isActive ? "text-accent" : "text-slate-600 hover:text-slate-900"
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-surface-border bg-navy-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-slate-50/80 backdrop-blur-xl">
         <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-8">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2 shrink-0">
             <span className="w-7 h-7 rounded-md bg-accent flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M2 2h4v4H2zM8 2h4v4H8zM2 8h4v4H2zM8 8h4v4H8z" fill="#0b1424"/>
+                <path d="M2 2h4v4H2zM8 2h4v4H8zM2 8h4v4H2zM8 8h4v4H8z" fill="white"/>
               </svg>
             </span>
-            <span className="font-display text-lg font-semibold tracking-tight text-white">
+            <span className="font-display text-lg font-semibold tracking-tight text-slate-900">
               PyPy<span className="text-accent">Code</span>
             </span>
           </NavLink>
@@ -47,7 +47,7 @@ export default function Layout() {
           <div className="flex items-center gap-3 ml-auto">
             {user ? (
               <>
-                <span className="text-sm text-slate-400 hidden sm:block">
+                <span className="text-sm text-slate-600 hidden sm:block">
                   <span className="text-accent font-mono">@</span>{user.username}
                 </span>
                 <button onClick={() => { logout(); navigate("/"); }} className="btn-ghost text-xs py-1.5 px-3">
@@ -69,7 +69,7 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-surface-border py-8 px-6 text-center">
+      <footer className="border-t border-slate-200 py-8 px-6 text-center bg-slate-50">
         <p className="text-slate-600 text-xs font-body">
           PyPyCode — Python-only coding challenges. Built with Flask + React.
         </p>

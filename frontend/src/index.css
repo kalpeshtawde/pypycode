@@ -18,12 +18,12 @@
   }
 
   body {
-    @apply bg-navy-950 text-slate-100 font-body antialiased;
+    @apply bg-slate-50 text-slate-900 font-body antialiased;
     min-height: 100vh;
   }
 
   h1, h2, h3 {
-    @apply font-display;
+    @apply font-display text-slate-900;
   }
 
   ::selection {
@@ -35,26 +35,26 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-navy-900;
+    @apply bg-slate-100;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-navy-600 rounded-full;
+    @apply bg-slate-400 rounded-full;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-navy-950 font-body font-medium text-sm
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white font-body font-medium text-sm
            hover:bg-accent-dim active:scale-95 transition-all duration-150;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-surface-border text-slate-300 font-body text-sm
-           hover:border-accent/40 hover:text-white transition-all duration-150;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-body text-sm
+           hover:border-slate-400 hover:text-slate-900 transition-all duration-150;
   }
 
   .card {
-    @apply bg-surface rounded-xl border border-surface-border;
+    @apply bg-white rounded-xl border border-slate-200;
   }
 
   .badge-easy   { @apply text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono; }

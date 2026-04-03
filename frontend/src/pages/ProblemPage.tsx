@@ -78,19 +78,19 @@ export default function ProblemPage() {
   const statusDone = submission && !["pending", "running"].includes(submission.status);
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-64px)] bg-slate-50">
       {/* Left: Problem panel */}
-      <div className="w-[42%] flex flex-col border-r border-surface-border overflow-hidden">
+      <div className="w-[42%] flex flex-col border-r border-slate-200 overflow-hidden bg-slate-50">
         {/* Tabs */}
-        <div className="flex border-b border-surface-border shrink-0">
+        <div className="flex border-b border-slate-200 shrink-0 bg-slate-50">
           {(["description", "submissions"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-3 text-sm font-body capitalize transition-colors border-b-2 ${
                 activeTab === tab
-                  ? "border-accent text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-300"
+                  ? "border-accent text-slate-900"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
               {tab}
@@ -102,44 +102,213 @@ export default function ProblemPage() {
           {activeTab === "description" ? (
             <>
               {/* Title + badge */}
-              <div className="flex items-start gap-3 mb-6">
-                <div>
-                  <h1 className="font-display text-2xl font-semibold text-white mb-2">{problem.title}</h1>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`badge-${problem.difficulty}`}>{problem.difficulty}</span>
-                    {problem.tags.map((t) => (
-                      <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-navy-800
-                                               text-slate-500 font-mono border border-surface-border">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+              <div className="mb-8">
+                <h1 className="text-5xl font-black text-slate-900 mb-4" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                  {problem.title}
+                </h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span 
+                    className="inline-flex items-center px-3.5 py-1.5 rounded-full text-white font-bold text-sm"
+                    style={{
+                      background: 'linear-gradient(135deg, #34D399, #10B981)',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      padding: '5px 14px'
+                    }}
+                  >
+                    ✦ {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
+                  </span>
+                  {problem.tags.map((t) => (
+                    <span 
+                      key={t} 
+                      className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
+                      style={{
+                        backgroundColor: '#EEF3FF',
+                        color: '#1A6BFF',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        padding: '5px 13px',
+                        border: '1px solid rgba(26, 107, 255, 0.18)'
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
                 </div>
               </div>
 
               {/* Description */}
-              <div className="prose prose-invert prose-sm max-w-none
-                              prose-p:text-slate-400 prose-p:leading-relaxed
-                              prose-strong:text-slate-200 prose-code:text-accent
-                              prose-code:bg-navy-800 prose-code:px-1 prose-code:rounded
-                              prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none">
+              <div 
+                className="prose prose-sm max-w-none prose-p:before:content-none prose-p:after:content-none"
+                style={{
+                  fontSize: '15px',
+                  lineHeight: '1.8',
+                  color: '#475569'
+                }}
+              >
+                <style>{`
+                  .prose p {
+                    font-size: 15px !important;
+                    line-height: 1.8 !important;
+                    color: #475569 !important;
+                  }
+                  .prose strong {
+                    color: #0F172A !important;
+                    font-weight: 600 !important;
+                  }
+                  .prose code {
+                    background-color: #EEF3FF !important;
+                    color: #1A6BFF !important;
+                    font-weight: 600 !important;
+                    border-radius: 5px !important;
+                    padding: 2px 7px !important;
+                    border: 1px solid rgba(26, 107, 255, 0.15) !important;
+                    font-family: inherit !important;
+                  }
+                  .prose code::before {
+                    content: '' !important;
+                  }
+                  .prose code::after {
+                    content: '' !important;
+                  }
+                `}</style>
                 <ReactMarkdown>{problem.description}</ReactMarkdown>
               </div>
 
               {/* Examples */}
-              <div className="mt-8 space-y-4">
-                <h3 className="font-display text-sm font-semibold text-slate-300 uppercase tracking-widest">Examples</h3>
+              <div className="mt-10 space-y-6">
+                <div className="flex items-center gap-2.5" style={{ marginBottom: '24px' }}>
+                  <div 
+                    style={{
+                      width: '3px',
+                      height: '18px',
+                      backgroundColor: '#1A6BFF',
+                      borderRadius: '2px'
+                    }}
+                  />
+                  <h3 style={{
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    color: '#0F172A',
+                    margin: 0
+                  }}>
+                    Examples
+                  </h3>
+                </div>
+
                 {problem.examples.map((ex, i) => (
-                  <div key={i} className="bg-navy-900 rounded-lg p-4 border border-surface-border space-y-2 text-sm font-mono">
-                    <div><span className="text-slate-500">Input: </span><span className="text-slate-300">{ex.input}</span></div>
-                    <div><span className="text-slate-500">Output: </span><span className="text-accent">{ex.output}</span></div>
-                    {ex.explanation && <div className="text-slate-500 text-xs pt-1">{ex.explanation}</div>}
+                  <div 
+                    key={i} 
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: '16px',
+                      border: '1px solid #E2E8F0',
+                      boxShadow: '0 4px 24px rgba(15, 23, 42, 0.07)',
+                      padding: '22px'
+                    }}
+                  >
+                    {/* Example number circle and label */}
+                    <div className="flex items-center gap-3 mb-5">
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, #1A6BFF, #6366F1)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 800,
+                          fontSize: '16px'
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+                      <span style={{
+                        fontWeight: 600,
+                        fontSize: '13px',
+                        color: '#94A3B8'
+                      }}>
+                        Example
+                      </span>
+                    </div>
+
+                    {/* Input section */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        fontSize: '11px',
+                        color: '#94A3B8',
+                        fontWeight: 600,
+                        marginBottom: '8px'
+                      }}>
+                        Input
+                      </div>
+                      <div style={{
+                        backgroundColor: '#EEF3FF',
+                        borderLeft: '3px solid #1A6BFF',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        color: '#0F172A',
+                        fontFamily: 'inherit',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
+                        {ex.input}
+                      </div>
+                    </div>
+
+                    {/* Output section */}
+                    <div style={{ marginBottom: ex.explanation ? '16px' : 0 }}>
+                      <div style={{
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        fontSize: '11px',
+                        color: '#94A3B8',
+                        fontWeight: 600,
+                        marginBottom: '8px'
+                      }}>
+                        Output
+                      </div>
+                      <div style={{
+                        backgroundColor: '#ECFDF5',
+                        borderLeft: '3px solid #10B981',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        color: '#0F172A',
+                        fontFamily: 'inherit',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
+                        {ex.output}
+                      </div>
+                    </div>
+
+                    {/* Explanation */}
+                    {ex.explanation && (
+                      <div style={{
+                        fontStyle: 'italic',
+                        fontSize: '13px',
+                        color: '#94A3B8',
+                        marginTop: '12px',
+                        paddingTop: '12px',
+                        borderTop: '1px solid #E2E8F0'
+                      }}>
+                        <span style={{ color: '#1A6BFF' }}>✦ </span>
+                        {ex.explanation}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="text-center py-16 text-slate-600 font-mono text-sm">
+            <div className="text-center py-16 text-slate-500 font-mono text-sm">
               {!token ? (
                 <p>Sign in to see your submissions.</p>
               ) : (
@@ -151,10 +320,10 @@ export default function ProblemPage() {
       </div>
 
       {/* Right: Editor + output */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Editor toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-surface-border shrink-0 bg-navy-900">
-          <span className="text-xs font-mono text-slate-500">Python 3.12</span>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
+          <span className="text-xs font-mono text-slate-600">Python 3.12</span>
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -172,13 +341,13 @@ export default function ProblemPage() {
         </div>
 
         {/* Monaco Editor */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden bg-slate-50">
           <Editor
             height="100%"
             defaultLanguage="python"
             value={code}
             onChange={(v) => setCode(v ?? "")}
-            theme="vs-dark"
+            theme="vs"
             options={{
               fontSize: 14,
               fontFamily: "'JetBrains Mono', monospace",
@@ -196,21 +365,21 @@ export default function ProblemPage() {
 
         {/* Result panel */}
         {submission && (
-          <div className={`shrink-0 border-t border-surface-border p-4 text-sm
-                          ${statusOk ? "bg-emerald-950/30" : statusDone ? "bg-red-950/20" : "bg-navy-900"}`}>
+          <div className={`shrink-0 border-t border-slate-200 p-4 text-sm
+                          ${statusOk ? "bg-emerald-50" : statusDone ? "bg-red-50" : "bg-slate-50"}`}>
             <div className="flex items-center gap-3 mb-2">
               <span className={`font-semibold font-mono status-${submission.status}`}>
                 {statusOk ? "✓ " : statusDone ? "✗ " : ""}{STATUS_LABEL[submission.status] ?? submission.status}
               </span>
               {statusDone && (
-                <span className="text-slate-500 font-mono text-xs">
+                <span className="text-slate-600 font-mono text-xs">
                   {submission.passedTests}/{submission.totalTests} tests passed
                   {submission.runtimeMs ? ` · ${Math.round(submission.runtimeMs)}ms` : ""}
                 </span>
               )}
             </div>
             {submission.errorOutput && (
-              <pre className="text-xs font-mono text-red-400 bg-red-950/20 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
+              <pre className="text-xs font-mono text-red-700 bg-red-50 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
                 {submission.errorOutput}
               </pre>
             )}
