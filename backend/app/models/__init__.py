@@ -8,7 +8,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(256), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=True)
+    google_id = db.Column(db.String(256), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="user")
 
@@ -16,6 +17,8 @@ class User(db.Model):
         self.password_hash = bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
 
     def check_password(self, pw: str) -> bool:
+        if not self.password_hash:
+            return False
         return bcrypt.checkpw(pw.encode(), self.password_hash.encode())
 
 
