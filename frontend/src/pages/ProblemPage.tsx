@@ -37,6 +37,31 @@ export default function ProblemPage() {
     });
   }, [slug]);
 
+  useEffect(() => {
+    if (!slug || !token) return;
+    api.get<Array<{ id: number; status: string; passedTests: number; totalTests: number; runtimeMs: number | null; memoryKb: number | null; code: string; createdAt: string }>>(
+      `/submissions/problem/${slug}`,
+      token
+    )
+      .then((submissions) => {
+        if (submissions.length > 0) {
+          const latestSubmission = submissions[0];
+          setSubmission({
+            id: latestSubmission.id,
+            status: latestSubmission.status as any,
+            passedTests: latestSubmission.passedTests,
+            totalTests: latestSubmission.totalTests,
+            runtimeMs: latestSubmission.runtimeMs,
+            memoryKb: latestSubmission.memoryKb,
+            errorOutput: null,
+            createdAt: latestSubmission.createdAt,
+          });
+          setCode(latestSubmission.code);
+        }
+      })
+      .catch(() => {});
+  }, [slug, token]);
+
   const poll = useCallback((id: number) => {
     const interval = setInterval(async () => {
       try {
@@ -621,10 +646,13 @@ export default function ProblemPage() {
         {/* Result panel */}
         {submission && (
           <div className={`shrink-0 border-t border-slate-200 p-4 text-sm
-                          ${statusOk ? "bg-emerald-50" : statusDone ? "bg-red-50" : "bg-slate-50"}`}>
+                          ${statusOk ? "bg-emerald-50" : statusDone ? "bg-yellow-50" : "bg-slate-50"}`}>
             <div className="flex items-center gap-3 mb-2">
-              <span className={`font-semibold font-mono status-${submission.status}`}>
-                {statusOk ? "✓ " : statusDone ? "✗ " : ""}{STATUS_LABEL[submission.status] ?? submission.status}
+              {statusOk && (
+                <span className="text-emerald-600 font-bold text-lg">✓</span>
+              )}
+              <span className={`font-semibold font-mono ${statusOk ? "text-emerald-600" : statusDone ? "text-yellow-600" : "text-slate-600"}`}>
+                {STATUS_LABEL[submission.status] ?? submission.status}
               </span>
               {statusDone && (
                 <span className="text-slate-600 font-mono text-xs">

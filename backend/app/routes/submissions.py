@@ -48,6 +48,45 @@ def get_submission(sub_id):
     )
 
 
+@submissions_bp.get("/all")
+@jwt_required()
+def get_all_submissions():
+    user_id = get_jwt_identity()
+    subs = (
+        Submission.query.filter_by(user_id=user_id)
+        .order_by(Submission.created_at.desc())
+        .all()
+    )
+    return jsonify([
+        {
+            "id": s.id,
+            "problemId": s.problem_id,
+            "status": s.status,
+            "createdAt": s.created_at.isoformat(),
+        }
+        for s in subs
+    ])
+
+
+@submissions_bp.get("/accepted")
+@jwt_required()
+def get_accepted_submissions():
+    user_id = get_jwt_identity()
+    subs = (
+        Submission.query.filter_by(user_id=user_id, status="accepted")
+        .all()
+    )
+    return jsonify([
+        {
+            "id": s.id,
+            "problemId": s.problem_id,
+            "status": s.status,
+            "createdAt": s.created_at.isoformat(),
+        }
+        for s in subs
+    ])
+
+
 @submissions_bp.get("/problem/<slug>")
 @jwt_required()
 def submissions_for_problem(slug):
@@ -66,6 +105,7 @@ def submissions_for_problem(slug):
             "passedTests": s.passed_tests,
             "totalTests": s.total_tests,
             "runtimeMs": s.runtime_ms,
+            "code": s.code,
             "createdAt": s.created_at.isoformat(),
         }
         for s in subs

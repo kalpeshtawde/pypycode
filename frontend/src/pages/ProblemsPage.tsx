@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
+import { useAuthStore } from "../hooks/useAuth";
 import type { Problem } from "../types";
 
 const DIFFS = ["all", "easy", "medium", "hard"] as const;
-const solvedProblems = [1, 3];
 
-function ProblemCell({ problem }: { problem: Problem }) {
+function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProblems: number[] }) {
   const isSolved = solvedProblems.includes(problem.id);
   
   const difficultyColors = {
@@ -52,13 +52,13 @@ function ProblemCell({ problem }: { problem: Problem }) {
 }
 
 export default function ProblemsPage() {
+  const { token } = useAuthStore();
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
   const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     api.get<Problem[]>(`/problems/`)
       .then((data) => {
         setProblems(data);
@@ -68,9 +68,34 @@ export default function ProblemsPage() {
           sequence.set(String(problem.id), index + 1);
         });
         setProblemSequence(sequence);
-      })
-      .finally(() => setLoading(false));
+      });
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    // Fetch all submissions to get latest status for each problem
+    api.get<Array<{ id: number; problemId: number; status: string; createdAt: string }>>(`/submissions/all`, token)
+      .then((data) => {
+        // Get the latest submission for each problem
+        const latestSubmissions = new Map<number, { status: string; createdAt: string }>();
+        data.forEach(sub => {
+          const existing = latestSubmissions.get(sub.problemId);
+          if (!existing || new Date(sub.createdAt) > new Date(existing.createdAt)) {
+            latestSubmissions.set(sub.problemId, { status: sub.status, createdAt: sub.createdAt });
+          }
+        });
+        
+        // Only mark as solved if latest status is accepted
+        const acceptedProblemIds = Array.from(latestSubmissions.entries())
+          .filter(([_, sub]) => sub.status === "accepted")
+          .map(([problemId, _]) => problemId);
+        
+        setSolvedProblems(acceptedProblemIds);
+      })
+      .catch(() => {
+        setSolvedProblems([]);
+      });
+  }, [token]);
 
   const solvedCount = problems.filter((p) => solvedProblems.includes(p.id)).length;
 
@@ -299,7 +324,7 @@ export default function ProblemsPage() {
                   animationDelay: `${100 + (idx * 30)}ms`
                 }}
               >
-                <ProblemCell problem={p} />
+                <ProblemCell problem={p} solvedProblems={solvedProblems} />
               </div>
             ))}
           </div>
