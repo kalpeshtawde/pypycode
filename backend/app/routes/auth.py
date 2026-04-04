@@ -68,7 +68,8 @@ def google_auth():
 @auth_bp.get("/me")
 @jwt_required()
 def me():
-    user = User.query.get(int(get_jwt_identity()))
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
     if not user:
         return jsonify(error="Not found"), 404
     return jsonify(id=user.id, username=user.username, email=user.email)
