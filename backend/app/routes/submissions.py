@@ -21,13 +21,15 @@ def submit():
     )
     db.session.add(sub)
     db.session.commit()
+    print(f"Queuing submission {sub.id} with task")
     task = run_submission.delay(sub.id)
+    print(f"Task queued: {task.id}")
     sub.task_id = task.id
     db.session.commit()
     return jsonify(id=sub.id, taskId=task.id, status="pending"), 202
 
 
-@submissions_bp.get("/<int:sub_id>")
+@submissions_bp.get("/<sub_id>")
 @jwt_required()
 def get_submission(sub_id):
     user_id = get_jwt_identity()
