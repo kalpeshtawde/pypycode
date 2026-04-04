@@ -24,13 +24,66 @@ def problem_to_dict(p: Problem, hide_tests=True):
 def list_problems():
     difficulty = request.args.get("difficulty")
     tag = request.args.get("tag")
+    sort_by = request.args.get("sort", "id")  # id, difficulty, created_at
+    order = request.args.get("order", "asc")  # asc, desc
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 15, type=int), 50)  # max 50 per page
+    
     q = Problem.query
+    
+    # Apply filters
     if difficulty:
         q = q.filter_by(difficulty=difficulty)
     if tag:
         q = q.filter(Problem.tags.contains([tag]))
-    problems = q.order_by(Problem.id).all()
-    return jsonify([problem_to_dict(p) for p in problems])
+    
+    # Apply sorting
+    if sort_by == "difficulty":
+        if order == "desc":
+            q = q.order_by(db.case(
+                (Problem.difficulty == "hard", 3),
+                (Problem.difficulty == "medium", 2),
+                (Problem.difficulty == "easy", 1),
+                else_=0
+            ).desc())
+        else:
+            q = q.order_by(db.case(
+                (Problem.difficulty == "easy", 1),
+                (Problem.difficulty == "medium", 2),
+                (Problem.difficulty == "hard", 3),
+                else_=4
+            ).asc())
+    elif sort_by == "created_at":
+        if order == "desc":
+            q = q.order_by(Problem.created_at.desc())
+        else:
+            q = q.order_by(Problem.created_at.asc())
+    else:  # default sort by id
+        if order == "desc":
+            q = q.order_by(Problem.id.desc())
+        else:
+            q = q.order_by(Problem.id.asc())
+    
+    # Apply pagination
+    pagination = q.paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
+    
+    return jsonify({
+        "problems": [problem_to_dict(p) for p in pagination.items],
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": pagination.total,
+            "pages": pagination.pages,
+            "has_prev": pagination.has_prev,
+            "has_next": pagination.has_next,
+            "prev_num": pagination.prev_num,
+            "next_num": pagination.next_num
+        }
+    })
 
 
 @problems_bp.get("/<slug>")

@@ -57,19 +57,51 @@ export default function ProblemsPage() {
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
   const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
+  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.get<Problem[]>(`/problems/`)
+  const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: page.toString(),
+      per_page: "15",
+      sort: sort,
+      order: order,
+      ...(difficulty !== "all" && { difficulty })
+    });
+    
+    api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`)
       .then((data) => {
-        setProblems(data);
-        // Generate sequence numbers at load time (based on all problems, not filtered)
+        setProblems(data.problems);
+        setPagination(data.pagination);
+        
+        // Generate sequence numbers based on current page
         const sequence = new Map<string, number>();
-        data.forEach((problem, index) => {
-          sequence.set(String(problem.id), index + 1);
+        data.problems.forEach((problem, index) => {
+          sequence.set(String(problem.id), (page - 1) * 15 + index + 1);
         });
         setProblemSequence(sequence);
+      })
+      .catch(() => {
+        setProblems([]);
+        setPagination(null);
+      })
+      .finally(() => {
+        setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchProblems(1, sortBy, sortOrder, filter);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchProblems(1, sortBy, sortOrder, filter);
+  }, [sortBy, sortOrder, filter]);
 
   useEffect(() => {
     if (!token) return;
@@ -102,7 +134,7 @@ export default function ProblemsPage() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-16">
       {/* Filter tabs */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-2 mb-6">
         {DIFFS.map((d) => (
           <button
             key={d}
@@ -116,9 +148,6 @@ export default function ProblemsPage() {
             {d}
           </button>
         ))}
-        <span className="ml-auto text-xs font-mono text-slate-600">
-          {problems.length} problem{problems.length !== 1 ? "s" : ""}
-        </span>
       </div>
 
       {/* Solved counter */}
@@ -147,14 +176,13 @@ export default function ProblemsPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              fontSize: '10px',
-              fontWeight: 700
+              fontSize: '14px',
+              fontWeight: 800
             }}
           >
             ✓
           </div>
-          {solvedCount} / {problems.length} solved
+          {solvedCount} solved
         </div>
       </div>
 
@@ -293,6 +321,7 @@ export default function ProblemsPage() {
           </div>
         </div>
 
+        
         {/* Contribution Grid */}
         <div style={{
           background: 'white',
@@ -393,14 +422,41 @@ export default function ProblemsPage() {
 
         {/* Problems List */}
         <div style={{ marginTop: '60px' }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            color: '#0F172A',
-            margin: '0 0 20px 0'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
           }}>
-            All Problems
-          </h3>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 700,
+              color: '#0F172A',
+              margin: '0'
+            }}>
+              All Problems
+            </h3>
+            
+            {/* Sort controls - same line as heading */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono text-slate-600">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-1.5 text-sm font-mono border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="id">Default</option>
+                <option value="difficulty">Difficulty</option>
+                <option value="created_at">Date Added</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="px-3 py-1.5 text-sm font-mono border border-slate-200 rounded-lg bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+              >
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
 
           <div style={{
             background: 'white',
@@ -571,6 +627,82 @@ export default function ProblemsPage() {
           </div>
         </div>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <button
+            onClick={() => {
+              setCurrentPage(pagination.prev_num);
+              fetchProblems(pagination.prev_num, sortBy, sortOrder, filter);
+            }}
+            disabled={!pagination.has_prev}
+            className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
+              pagination.has_prev
+                ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            ←
+          </button>
+
+          {/* Page numbers */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+              let pageNum;
+              if (pagination.pages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= pagination.pages - 2) {
+                pageNum = pagination.pages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => {
+                    setCurrentPage(pageNum);
+                    fetchProblems(pageNum, sortBy, sortOrder, filter);
+                  }}
+                  className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
+                    pageNum === currentPage
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => {
+              setCurrentPage(pagination.next_num);
+              fetchProblems(pagination.next_num, sortBy, sortOrder, filter);
+            }}
+            disabled={!pagination.has_next}
+            className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
+              pagination.has_next
+                ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            →
+          </button>
+        </div>
+      )}
+
+      {/* Loading indicator */}
+      {loading && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-mono text-slate-600">Loading...</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,13 +3,87 @@ import { Link } from "react-router-dom";
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 mt-16">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:wght@700;800&display=swap');
+        
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        
+        .footer-logo-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 7px;
+          background: #0F172A;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          position: relative;
+        }
+        
+        .footer-logo-prompt {
+          font-family: "Reddit Sans", monospace;
+          font-size: 14px;
+          font-weight: 700;
+          color: #1A6BFF;
+          position: absolute;
+          left: 5px;
+          top: 50%;
+          transform: translateY(-50%);
+          line-height: 1;
+        }
+        
+        .footer-logo-cursor {
+          width: 5px;
+          height: 9px;
+          background: #6366F1;
+          border-radius: 1px;
+          position: absolute;
+          right: 6px;
+          top: 50%;
+          transform: translateY(-50%);
+          animation: blink 1.2s ease-in-out infinite;
+        }
+        
+        .footer-logo-wordmark {
+          font-size: 19px;
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: -0.3px;
+          display: inline-flex;
+          align-items: baseline;
+        }
+        
+        .footer-logo-blue {
+          color: #1A6BFF;
+          font-size: 19px;
+          font-weight: 800;
+        }
+        
+        .footer-logo-dark {
+          color: #0F172A;
+          font-size: 19px;
+          font-weight: 800;
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <img src="/logo.svg" alt="PyPyCode" className="w-8 h-8" />
-              <span className="font-display font-semibold text-slate-900">PyPyCode</span>
+              {/* Icon */}
+              <div className="footer-logo-icon">
+                <span className="footer-logo-prompt">&gt;_</span>
+                <div className="footer-logo-cursor"></div>
+              </div>
+              
+              {/* Wordmark */}
+              <span className="footer-logo-wordmark">
+                <span className="footer-logo-blue">PyPy</span>
+                <span className="footer-logo-dark">Code</span>
+              </span>
             </div>
             <p className="text-slate-600 text-sm">
               A focused coding platform for Python developers.
