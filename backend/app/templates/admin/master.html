@@ -1,0 +1,23 @@
+{% extends 'admin/base.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+  .navbar-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+  .navbar-brand img {
+    width: 32px;
+    height: 32px;
+  }
+</style>
+{% endblock %}
+
+{% block brand %}
+<a class="navbar-brand" href="{{ url_for('admin.index') }}">
+  <img src="/logo.svg" alt="PyPyCode" />
+  PyPyCode Admin
+</a>
+{% endblock %}

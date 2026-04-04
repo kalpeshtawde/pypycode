@@ -11,12 +11,12 @@ def leaderboard():
     rows = (
         db.session.query(
             User.username,
-            func.count(Submission.id.distinct()).label("solved"),
+            func.count(Submission.problem_id.distinct()).label("solved"),
         )
         .join(Submission, Submission.user_id == User.id)
         .filter(Submission.status == "accepted")
         .group_by(User.username)
-        .order_by(func.count(Submission.id.distinct()).desc())
+        .order_by(func.count(Submission.problem_id.distinct()).desc())
         .limit(50)
         .all()
     )
