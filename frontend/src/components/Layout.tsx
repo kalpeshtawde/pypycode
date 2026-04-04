@@ -30,19 +30,95 @@ export default function Layout() {
           padding: '0 40px'
         }}
       >
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:wght@700;800&display=swap');
+          
+          @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+          }
+          
+          .logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            background: #0F172A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+          }
+          
+          .logo-prompt {
+            font-family: "Reddit Sans", monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1A6BFF;
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            line-height: 1;
+          }
+          
+          .logo-cursor {
+            width: 5px;
+            height: 9px;
+            background: #6366F1;
+            border-radius: 1px;
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: blink 1.2s ease-in-out infinite;
+          }
+          
+          .logo-wordmark {
+            font-size: 19px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: baseline;
+          }
+          
+          .logo-blue {
+            color: #1A6BFF;
+            font-size: 19px;
+            font-weight: 800;
+          }
+          
+          .logo-dark {
+            color: #0F172A;
+            font-size: 19px;
+            font-weight: 800;
+          }
+        `}</style>
+        
         <nav className="h-full flex items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="shrink-0" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/logo.svg" alt="PyPyCode" style={{ width: '28px', height: '28px' }} />
-            {/* Wordmark */}
-            <div style={{ display: 'flex', gap: '0px' }}>
-              <span style={{ fontSize: '19px', fontWeight: 800, color: '#1A6BFF' }}>
-                PyPy
-              </span>
-              <span style={{ fontSize: '19px', fontWeight: 800, color: '#0F172A' }}>
-                Code
-              </span>
+          <NavLink 
+            to="/" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              textDecoration: 'none', 
+              cursor: 'pointer' 
+            }}
+          >
+            {/* Icon */}
+            <div className="logo-icon">
+              <span className="logo-prompt">&gt;_</span>
+              <div className="logo-cursor"></div>
             </div>
+            
+            {/* Wordmark */}
+            <span className="logo-wordmark">
+              <span className="logo-blue">PyPy</span>
+              <span className="logo-dark">Code</span>
+            </span>
           </NavLink>
 
           {/* Links */}
