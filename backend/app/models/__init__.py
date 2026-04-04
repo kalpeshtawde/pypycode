@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from app import db
 import bcrypt
+import uuid
 
 
 class User(db.Model):
     __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(256), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=True)
@@ -24,7 +25,7 @@ class User(db.Model):
 
 class Problem(db.Model):
     __tablename__ = "problems"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     slug = db.Column(db.String(128), unique=True, nullable=False)
     title = db.Column(db.String(256), nullable=False)
     difficulty = db.Column(db.String(16), nullable=False)  # easy | medium | hard
@@ -39,9 +40,9 @@ class Problem(db.Model):
 
 class Submission(db.Model):
     __tablename__ = "submissions"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    problem_id = db.Column(db.Integer, db.ForeignKey("problems.id"), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    problem_id = db.Column(db.String(36), db.ForeignKey("problems.id"), nullable=False)
     code = db.Column(db.Text, nullable=False)
     language = db.Column(db.String(16), default="python")
     status = db.Column(db.String(32), default="pending")
