@@ -53,16 +53,24 @@ function ProblemCell({ problem }: { problem: Problem }) {
 
 export default function ProblemsPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    const q = filter !== "all" ? `?difficulty=${filter}` : "";
-    api.get<Problem[]>(`/problems/${q}`)
-      .then(setProblems)
+    api.get<Problem[]>(`/problems/`)
+      .then((data) => {
+        setProblems(data);
+        // Generate sequence numbers at load time (based on all problems, not filtered)
+        const sequence = new Map<string, number>();
+        data.forEach((problem, index) => {
+          sequence.set(String(problem.id), index + 1);
+        });
+        setProblemSequence(sequence);
+      })
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, []);
 
   const solvedCount = problems.filter((p) => solvedProblems.includes(p.id)).length;
 
@@ -466,7 +474,7 @@ export default function ProblemsPage() {
                     fontWeight: 600,
                     color: isSolved ? '#10B981' : '#CBD5E1'
                   }}>
-                    {String(p.id).padStart(2, '0')}
+                    {String(problemSequence.get(String(p.id)) || 0).padStart(2, '0')}
                   </div>
 
                   {/* Title */}
