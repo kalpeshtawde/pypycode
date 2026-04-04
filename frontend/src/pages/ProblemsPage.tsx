@@ -15,7 +15,9 @@ function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProb
     hard: '#EF4444'
   };
 
-  const cellColor = isSolved ? difficultyColors[problem.difficulty] : '#E5E7EB';
+  const cellColor = difficultyColors[problem.difficulty];
+  const textColor = isSolved ? 'white' : 'white';
+  const opacity = isSolved ? 1 : 0.3;
 
   return (
     <Link
@@ -35,15 +37,20 @@ function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProb
         position: 'relative',
         fontSize: '12px',
         fontWeight: 700,
-        color: 'white'
+        color: textColor,
+        opacity: opacity
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'scale(1.15)';
         e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.2)';
+        if (!isSolved) {
+          e.currentTarget.style.opacity = '0.6';
+        }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'scale(1)';
         e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.opacity = opacity;
       }}
     >
       {isSolved && '✓'}
@@ -55,7 +62,7 @@ export default function ProblemsPage() {
   const { token } = useAuthStore();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
-  const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
+  const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
   const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -79,9 +86,9 @@ export default function ProblemsPage() {
         setPagination(data.pagination);
         
         // Generate sequence numbers based on current page
-        const sequence = new Map<string, number>();
+        const sequence = new Map<number, number>();
         data.problems.forEach((problem, index) => {
-          sequence.set(String(problem.id), (page - 1) * 15 + index + 1);
+          sequence.set(problem.id, (page - 1) * 15 + index + 1);
         });
         setProblemSequence(sequence);
       })
@@ -392,6 +399,16 @@ export default function ProblemsPage() {
                 width: '24px',
                 height: '24px',
                 borderRadius: '4px',
+                background: '#10B981',
+                border: '1px solid #D1D5DB'
+              }} />
+              <span style={{ fontWeight: 500 }}>Easy</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
                 background: '#F59E0B',
                 border: '1px solid #D1D5DB'
               }} />
@@ -555,7 +572,7 @@ export default function ProblemsPage() {
                     fontWeight: 600,
                     color: isSolved ? '#10B981' : '#CBD5E1'
                   }}>
-                    {String(problemSequence.get(String(p.id)) || 0).padStart(2, '0')}
+                    {String(problemSequence.get(p.id) || 0).padStart(2, '0')}
                   </div>
 
                   {/* Title */}
