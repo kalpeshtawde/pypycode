@@ -8,11 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                  <path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z" fill="white"/>
-                </svg>
-              </div>
+              <img src="/logo.svg" alt="PyPyCode" className="w-8 h-8" />
               <span className="font-display font-semibold text-slate-900">PyPyCode</span>
             </div>
             <p className="text-slate-600 text-sm">

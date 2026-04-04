@@ -32,21 +32,8 @@ export default function Layout() {
       >
         <nav className="h-full flex items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="shrink-0" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* 2×2 Grid Icon */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '2px',
-              width: '16px',
-              height: '16px'
-            }}>
-              <div style={{ width: '7px', height: '7px', backgroundColor: '#1A6BFF', borderRadius: '2px' }} />
-              <div style={{ width: '7px', height: '7px', backgroundColor: '#6366F1', borderRadius: '2px' }} />
-              <div style={{ width: '7px', height: '7px', backgroundColor: '#6366F1', borderRadius: '2px' }} />
-              <div style={{ width: '7px', height: '7px', backgroundColor: '#1A6BFF', borderRadius: '2px' }} />
-            </div>
-
+          <NavLink to="/" className="shrink-0" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/logo.svg" alt="PyPyCode" style={{ width: '28px', height: '28px' }} />
             {/* Wordmark */}
             <div style={{ display: 'flex', gap: '0px' }}>
               <span style={{ fontSize: '19px', fontWeight: 800, color: '#1A6BFF' }}>

@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue rounded square background -->
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="#1A6BFF"/>
+  
+  <!-- Python snake symbol in white -->
+  <g transform="translate(8, 8)">
+    <!-- Left circle (Python blue) -->
+    <circle cx="4" cy="6" r="3" fill="white" opacity="0.9"/>
+    <!-- Right circle (Python yellow) -->
+    <circle cx="12" cy="6" r="3" fill="white" opacity="0.7"/>
+    <!-- Bottom connecting element -->
+    <path d="M 8 10 Q 8 14 6 16" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
