@@ -4,6 +4,7 @@ import sys
 import signal
 import traceback
 import resource
+from io import StringIO
 
 TIMEOUT = 4  # seconds
 
@@ -19,10 +20,20 @@ def limit_resources():
 
 def run_tests(code: str, test_cases: list) -> dict:
     namespace = {}
+    output_buffer = StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = output_buffer
+    
     try:
         exec(compile(code, "<submission>", "exec"), namespace)
     except Exception as e:
-        return {"passed": 0, "total": len(test_cases), "error": f"Compilation error: {e}"}
+        sys.stdout = old_stdout
+        return {
+            "passed": 0,
+            "total": len(test_cases),
+            "error": f"Compilation error: {e}",
+            "output": output_buffer.getvalue()
+        }
 
     passed = 0
     errors = []
@@ -45,10 +56,13 @@ def run_tests(code: str, test_cases: list) -> dict:
         except Exception:
             errors.append(f"Test {i+1}: {traceback.format_exc(limit=3)}")
 
+    sys.stdout = old_stdout
+    
     return {
         "passed": passed,
         "total": len(test_cases),
         "error": "\n".join(errors) if errors else None,
+        "output": output_buffer.getvalue()
     }
 
 

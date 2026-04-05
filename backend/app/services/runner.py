@@ -89,7 +89,15 @@ def run_submission(self, submission_id: str):
             sub.passed_tests = result.get("passed", 0)
             sub.total_tests = result.get("total", sub.total_tests)
             sub.runtime_ms = int(elapsed_ms)
-            sub.error_output = result.get("error")
+            
+            # Combine error output and print statements for debugging
+            error_parts = []
+            if result.get("output"):
+                error_parts.append(f"Output:\n{result.get('output')}")
+            if result.get("error"):
+                error_parts.append(f"Errors:\n{result.get('error')}")
+            
+            sub.error_output = "\n".join(error_parts) if error_parts else None
             sub.status = "accepted" if result.get("passed") == result.get("total") else "wrong_answer"
 
         except docker.errors.ContainerError as e:
