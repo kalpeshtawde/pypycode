@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Editor from "@monaco-editor/react";
 import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
+import CodeMirrorEditor from "../components/CodeMirrorEditor";
 import type { Problem, Submission } from "../types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -619,27 +619,13 @@ export default function ProblemPage() {
           </div>
         </div>
 
-        {/* Monaco Editor */}
+        {/* CodeMirror Editor */}
         <div className="flex-1 overflow-hidden bg-slate-50">
-          <Editor
-            height="100%"
-            defaultLanguage="python"
+          <CodeMirrorEditor
             value={code}
-            onChange={(v) => setCode(v ?? "")}
-            theme="vs"
-            options={{
-              fontSize: fontSize,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontLigatures: true,
-              minimap: { enabled: false },
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
-              padding: { top: 16, bottom: 16 },
-              renderLineHighlight: "gutter",
-              cursorStyle: "line",
-              tabSize: 4,
-              wordWrap: "on",
-            }}
+            onChange={setCode}
+            fontSize={fontSize}
+            vimMode={vimMode}
           />
         </div>
 

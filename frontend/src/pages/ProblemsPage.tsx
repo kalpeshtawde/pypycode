@@ -50,7 +50,7 @@ function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProb
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'scale(1)';
         e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.opacity = opacity;
+        e.currentTarget.style.opacity = opacity.toString();
       }}
     >
       {isSolved && '✓'}

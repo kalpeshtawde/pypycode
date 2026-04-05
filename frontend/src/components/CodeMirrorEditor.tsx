@@ -3,6 +3,19 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { python } from '@codemirror/lang-python';
 import { vim } from '@replit/codemirror-vim';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { tags as t } from '@lezer/highlight';
+
+const lightHighlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: '#d73a49' },
+  { tag: t.atom, color: '#005cc5' },
+  { tag: t.number, color: '#005cc5' },
+  { tag: t.string, color: '#032f62' },
+  { tag: t.variableName, color: '#24292e' },
+  { tag: t.function(t.variableName), color: '#6f42c1' },
+  { tag: t.comment, color: '#6a737d' },
+  { tag: t.operator, color: '#d73a49' },
+]);
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -30,6 +43,7 @@ export default function CodeMirrorEditor({
           onChange(update.state.doc.toString());
         }
       }),
+      syntaxHighlighting(lightHighlightStyle),
       EditorView.theme({
         '.cm-editor': {
           fontSize: `${fontSize}px`,
@@ -78,7 +92,7 @@ export default function CodeMirrorEditor({
     return () => {
       editor.destroy();
     };
-  }, [vimMode, onChange]);
+  }, [vimMode, onChange, fontSize]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.state.doc.toString() !== value) {
