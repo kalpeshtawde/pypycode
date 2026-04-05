@@ -46,7 +46,6 @@ export default function CodeMirrorEditor({
       syntaxHighlighting(lightHighlightStyle),
       EditorView.theme({
         '.cm-editor': {
-          fontSize: `${fontSize}px`,
           fontFamily: "'JetBrains Mono', monospace",
           height: '100%',
           backgroundColor: '#f8fafc',
@@ -92,7 +91,7 @@ export default function CodeMirrorEditor({
     return () => {
       editor.destroy();
     };
-  }, [vimMode, onChange, fontSize]);
+  }, [vimMode, onChange]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.state.doc.toString() !== value) {
@@ -105,6 +104,15 @@ export default function CodeMirrorEditor({
       });
     }
   }, [value]);
+
+  useEffect(() => {
+    if (editorRef.current && containerRef.current) {
+      const editorElement = containerRef.current.querySelector('.cm-editor') as HTMLElement;
+      if (editorElement) {
+        editorElement.style.fontSize = `${fontSize}px`;
+      }
+    }
+  }, [fontSize]);
 
   return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />;
 }
