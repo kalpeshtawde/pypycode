@@ -5,6 +5,7 @@ import { python } from '@codemirror/lang-python';
 import { vim } from '@replit/codemirror-vim';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
+import { history } from '@codemirror/commands';
 
 const lightHighlightStyle = HighlightStyle.define([
   { tag: t.keyword, color: '#d73a49' },
@@ -37,6 +38,7 @@ export default function CodeMirrorEditor({
     if (!containerRef.current) return;
 
     const extensions: any[] = [
+      history(),
       python(),
       EditorView.updateListener.of((update: any) => {
         if (update.docChanged) {
