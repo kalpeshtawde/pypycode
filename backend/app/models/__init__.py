@@ -49,10 +49,18 @@ class Submission(db.Model):
     # pending | running | accepted | wrong_answer | time_limit | runtime_error
     passed_tests = db.Column(db.Integer, default=0)
     total_tests = db.Column(db.Integer, default=0)
-    runtime_ms = db.Column(db.Float)
-    memory_kb = db.Column(db.Float)
-    error_output = db.Column(db.Text)
-    task_id = db.Column(db.String(64))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship("User", back_populates="submissions")
     problem = db.relationship("Problem", back_populates="submissions")
+
+
+class Contact(db.Model):
+    __tablename__ = "contacts"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(256), nullable=False)
+    subject = db.Column(db.String(256), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(32), default="pending")  # pending | read | responded
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -47,13 +47,16 @@ def create_app():
     from app.routes.problems import problems_bp
     from app.routes.submissions import submissions_bp
     from app.routes.leaderboard import leaderboard_bp
-    from app.admin import init_admin
+    from app.routes import auth, problems, submissions, leaderboard, contact
+    from app.routes.contact import contact_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(problems_bp, url_prefix="/problems")
     app.register_blueprint(submissions_bp, url_prefix="/submissions")
     app.register_blueprint(leaderboard_bp, url_prefix="/leaderboard")
+    app.register_blueprint(contact_bp, url_prefix="/contact")
 
+    from app.admin import init_admin
     init_admin(app)
 
     @app.get("/health")

@@ -167,6 +167,12 @@ export default function Layout() {
             >
               Leaderboard
             </NavLink>
+            <NavLink 
+              to="/contact" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Contact
+            </NavLink>
           </div>
 
           {/* Auth */}
