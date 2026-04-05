@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { EditorState } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, lineNumbers } from '@codemirror/view';
 import { python } from '@codemirror/lang-python';
 import { vim } from '@replit/codemirror-vim';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { HighlightStyle, syntaxHighlighting, indentOnInput } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
-import { history } from '@codemirror/commands';
+import { history, indentMore, indentLess } from '@codemirror/commands';
+import { keymap } from '@codemirror/view';
+import { indentUnit } from '@codemirror/language';
 
 const lightHighlightStyle = HighlightStyle.define([
   { tag: t.keyword, color: '#d73a49' },
@@ -39,7 +41,14 @@ export default function CodeMirrorEditor({
 
     const extensions: any[] = [
       history(),
+      lineNumbers(),
+      indentOnInput(),
+      indentUnit.of('    '),
       python(),
+      keymap.of([
+        { key: 'Tab', run: indentMore },
+        { key: 'Shift-Tab', run: indentLess },
+      ]),
       EditorView.updateListener.of((update: any) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
