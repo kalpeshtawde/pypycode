@@ -22,7 +22,13 @@ export default function HomePage() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    api.get<{ id: number }[]>("/problems/").then((p) => setCount(p.length)).catch(() => {});
+    api
+      .get<{ problems: { id: string }[]; pagination?: { total?: number } }>("/problems/")
+      .then((res) => {
+        const total = res.pagination?.total;
+        setCount(typeof total === "number" ? total : res.problems.length);
+      })
+      .catch(() => {});
   }, []);
 
   return (

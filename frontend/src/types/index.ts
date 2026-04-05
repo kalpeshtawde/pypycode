@@ -28,7 +28,42 @@ export interface LeaderboardEntry {
 }
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  screenName?: string | null;
+}
+
+export interface ProfileStats {
+  totalSubmissions: number;
+  acceptedSubmissions: number;
+  solvedProblems: number;
+  acceptanceRate: number;
+}
+
+export interface ProfileActivity {
+  submissionId: string;
+  problemId: string;
+  problemSlug: string;
+  problemTitle: string;
+  status: string;
+  passedTests: number | null;
+  totalTests: number | null;
+  runtimeMs: number | null;
+  memoryKb: number | null;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  screenName: string | null;
+  createdAt: string | null;
+  stats: ProfileStats;
+  activity: ProfileActivity[];
 }

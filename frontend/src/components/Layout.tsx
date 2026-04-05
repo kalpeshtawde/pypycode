@@ -10,7 +10,7 @@ export default function Layout() {
 
   useEffect(() => {
     if (token && !user) {
-      api.get<{ id: number; username: string; email: string }>("/auth/me", token)
+      api.get<{ id: string; username: string; email: string; firstName?: string | null; lastName?: string | null; screenName?: string | null }>("/auth/me", token)
         .then((u) => setAuth(token, u))
         .catch(() => logout());
     }
@@ -196,6 +196,12 @@ export default function Layout() {
                 >
                   {user.username.charAt(0).toUpperCase()}
                 </div>
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  Profile
+                </NavLink>
                 <button 
                   onClick={() => { logout(); navigate("/"); }}
                   style={{

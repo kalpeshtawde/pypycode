@@ -18,6 +18,11 @@ export default function AuthPage() {
     lastName: "",
     screenName: "",
   });
+  const [screenNameAvailability, setScreenNameAvailability] = useState<{
+    checking: boolean;
+    available: boolean | null;
+    message: string;
+  }>({ checking: false, available: null, message: "" });
   const { setAuth, token } = useAuthStore();
   const navigate = useNavigate();
 
@@ -29,6 +34,34 @@ export default function AuthPage() {
       setIsCheckingAuth(false);
     }
   }, [token, navigate]);
+
+  useEffect(() => {
+    if (!showProfileForm) return;
+
+    const raw = profileData.screenName.trim();
+    if (!raw) {
+      setScreenNameAvailability({ checking: false, available: null, message: "" });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setScreenNameAvailability({ checking: true, available: null, message: "" });
+      try {
+        const res = await api.get<{ available: boolean; screenName: string; error?: string }>(
+          `/auth/screen-name-availability?screenName=${encodeURIComponent(raw)}`
+        );
+        setScreenNameAvailability({
+          checking: false,
+          available: res.available,
+          message: res.available ? "" : res.error || `${res.screenName} is not available`,
+        });
+      } catch {
+        setScreenNameAvailability({ checking: false, available: null, message: "Unable to check availability" });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [profileData.screenName, showProfileForm]);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setError("");
@@ -70,7 +103,7 @@ export default function AuthPage() {
       }
       
       // Existing user - log them in
-      const me = await api.get<{ id: number; username: string; email: string }>(
+      const me = await api.get<{ id: string; username: string; email: string }>(
         "/auth/me",
         res.token
       );
@@ -108,6 +141,12 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
 
+    if (screenNameAvailability.available === false) {
+      setError(screenNameAvailability.message || "Screen name is not available");
+      setLoading(false);
+      return;
+    }
+
     if (!googleToken) {
       setError("Google token missing. Please try again.");
       setLoading(false);
@@ -128,7 +167,7 @@ export default function AuthPage() {
       });
 
       const me = await api.get<{
-        id: number;
+        id: string;
         username: string;
         email: string;
         firstName: string;
@@ -311,9 +350,14 @@ return (
                   required
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
                 />
+                {screenNameAvailability.message && screenNameAvailability.available === false && (
+                  <p className="text-xs text-red-600">
+                    {screenNameAvailability.message}
+                  </p>
+                )}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || screenNameAvailability.checking || screenNameAvailability.available === false}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
                 >
                   {loading ? "Setting up..." : "Complete Setup"}

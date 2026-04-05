@@ -9,6 +9,7 @@ import ContactPage from "./pages/ContactPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
+import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="problems/:slug" element={<ProblemPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="auth" element={<AuthPage />} />
+          <Route path="profile" element={<ProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
