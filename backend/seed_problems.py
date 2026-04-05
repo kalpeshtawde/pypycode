@@ -185,7 +185,9 @@ You must do this by modifying the input array in-place with O(1) extra memory.
 
 def seed_database():
     with app.app_context():
-        # Clear existing problems
+        # Clear existing data (submissions first due to foreign keys)
+        from app.models import Submission
+        Submission.query.delete()
         Problem.query.delete()
         
         # Add new problems

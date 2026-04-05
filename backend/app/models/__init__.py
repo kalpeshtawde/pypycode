@@ -49,6 +49,10 @@ class Submission(db.Model):
     # pending | running | accepted | wrong_answer | time_limit | runtime_error
     passed_tests = db.Column(db.Integer, default=0)
     total_tests = db.Column(db.Integer, default=0)
+    runtime_ms = db.Column(db.Integer, nullable=True)
+    memory_kb = db.Column(db.Integer, nullable=True)
+    error_output = db.Column(db.Text, nullable=True)
+    task_id = db.Column(db.String(256), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship("User", back_populates="submissions")
     problem = db.relationship("Problem", back_populates="submissions")
