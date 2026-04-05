@@ -11,6 +11,13 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    screenName: "",
+  });
   const { setAuth, token } = useAuthStore();
   const navigate = useNavigate();
 
@@ -26,11 +33,43 @@ export default function AuthPage() {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setError("");
     setLoading(true);
+    setGoogleToken(credentialResponse.credential);
+    
     try {
-      const res = await api.post<{ token: string; username: string; is_new: boolean }>(
+      // First, try to authenticate without profile data
+      const res = await api.post<{
+        token?: string;
+        username?: string;
+        is_new: boolean;
+        requiresProfileSetup?: boolean;
+        firstName?: string;
+        lastName?: string;
+        screenName?: string;
+        error?: string;
+      }>(
         "/auth/google",
         { token: credentialResponse.credential }
       );
+      
+      // If profile setup is required, show profile form
+      if (res.requiresProfileSetup || res.is_new) {
+        setProfileData({
+          firstName: res.firstName || "",
+          lastName: res.lastName || "",
+          screenName: res.screenName || "",
+        });
+        setShowProfileForm(true);
+        setLoading(false);
+        return;
+      }
+
+      if (!res.token) {
+        setError("Authentication failed");
+        setLoading(false);
+        return;
+      }
+      
+      // Existing user - log them in
       const me = await api.get<{ id: number; username: string; email: string }>(
         "/auth/me",
         res.token
@@ -38,19 +77,75 @@ export default function AuthPage() {
       setAuth(res.token, me);
       setSuccess(true);
       
-      // Show success message briefly before redirecting
       setTimeout(() => {
         navigate("/problems");
       }, 1500);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Authentication failed");
-      setLoading(false);
+      // If error is about missing profile data, show form
+      const errorMsg = err instanceof Error ? err.message : "Authentication failed";
+      if (errorMsg.includes("First name") || errorMsg.includes("screen name")) {
+        setShowProfileForm(true);
+        setLoading(false);
+      } else {
+        setError(errorMsg);
+        setLoading(false);
+      }
     }
   };
 
   const handleGoogleError = () => {
     setError("Google authentication failed. Please try again.");
     setLoading(false);
+  };
+
+  const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!googleToken) {
+      setError("Google token missing. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await api.post<{
+        token: string;
+        username: string;
+        screenName: string;
+        firstName: string;
+        lastName: string;
+        is_new: boolean;
+      }>("/auth/google", {
+        token: googleToken,
+        ...profileData,
+      });
+
+      const me = await api.get<{
+        id: number;
+        username: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        screenName: string;
+      }>("/auth/me", res.token);
+
+      setAuth(res.token, me);
+      setSuccess(true);
+
+      setTimeout(() => {
+        navigate("/problems");
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Profile setup failed");
+      setLoading(false);
+    }
   };
 
   // Show loading spinner while checking authentication
@@ -163,10 +258,12 @@ return (
 
           <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-xl p-8 transition-all duration-300">
             <h1 className="font-display text-3xl font-bold text-slate-900 text-center mb-2">
-              Welcome to PyPyCode
+              {showProfileForm ? "Complete Your Profile" : "Welcome to PyPyCode"}
             </h1>
             <p className="text-slate-600 text-sm text-center mb-8">
-              Sign in with your Google account to start solving Python problems
+              {showProfileForm
+                ? "Tell us a bit about yourself to get started"
+                : "Sign in with your Google account to start solving Python problems"}
             </p>
 
             {/* Success State */}
@@ -182,8 +279,50 @@ return (
               </div>
             )}
 
+            {/* Profile Form for New Users */}
+            {showProfileForm && !success && (
+              <form onSubmit={handleProfileSubmit} className="space-y-4 mb-6">
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    name="firstName"
+                    placeholder="First Name"
+                    value={profileData.firstName}
+                    onChange={handleProfileInputChange}
+                    required
+                    className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                  />
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder="Last Name"
+                    value={profileData.lastName}
+                    onChange={handleProfileInputChange}
+                    required
+                    className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                  />
+                </div>
+                <input
+                  type="text"
+                  name="screenName"
+                  placeholder="Screen Name (e.g., codeninja, firstName_lastName)"
+                  value={profileData.screenName}
+                  onChange={handleProfileInputChange}
+                  required
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
+                >
+                  {loading ? "Setting up..." : "Complete Setup"}
+                </button>
+              </form>
+            )}
+
             {/* Google Login Button */}
-            {!success && (
+            {!success && !showProfileForm && (
               <div className="flex justify-center mb-6">
                 <div className={`transition-all duration-300 ${loading ? 'opacity-50 pointer-events-none scale-95' : 'hover:scale-105'}`}>
                   <GoogleLogin

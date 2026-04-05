@@ -1,13 +1,27 @@
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from wtforms import StringField, validators
+from flask_admin.form import BaseForm
 from app import db
 from app.models import User, Problem, Submission, Contact
 
 
+class UserForm(BaseForm):
+    username = StringField('Username', [validators.DataRequired()])
+    email = StringField('Email', [validators.DataRequired()])
+    first_name = StringField('First Name')
+    last_name = StringField('Last Name')
+    screen_name = StringField('Screen Name')
+    google_id = StringField('Google ID')
+
+
 class UserAdmin(ModelView):
-    column_list = [User.id, User.username, User.email, User.created_at]
-    column_searchable_list = [User.username, User.email]
-    column_sortable_list = [User.created_at]
+    column_list = ['id', 'username', 'email', 'first_name', 'last_name', 'screen_name', 'google_id', 'created_at']
+    column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'screen_name']
+    column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name']
+    form = UserForm
+    can_create = False
+    can_delete = False
 
 
 class ProblemAdmin(ModelView):

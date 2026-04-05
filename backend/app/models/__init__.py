@@ -11,6 +11,9 @@ class User(db.Model):
     email = db.Column(db.String(256), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=True)
     google_id = db.Column(db.String(256), unique=True, nullable=True)
+    first_name = db.Column(db.String(128), nullable=True)
+    last_name = db.Column(db.String(128), nullable=True)
+    screen_name = db.Column(db.String(64), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="user")
 

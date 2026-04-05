@@ -57,13 +57,7 @@ export default function LeaderboardPage() {
                     <span className="text-slate-400 font-mono text-xs font-medium">{e.rank}</span>
                   )}
                 </span>
-                <div className="flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-mono font-bold transition-all
-                                   ${e.rank <= 3 
-                                     ? "bg-emerald-100 border-emerald-300 text-emerald-700" 
-                                     : "bg-slate-100 border-slate-300 text-slate-600"}`}>
-                    {e.username[0].toUpperCase()}
-                  </span>
+                <div className="flex items-center">
                   <span className={`font-body text-sm transition-colors ${e.rank <= 3 ? "text-slate-900 font-semibold" : "text-slate-700"}`}>
                     {e.username}
                   </span>

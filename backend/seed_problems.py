@@ -98,9 +98,9 @@ An input string is valid if:
     # Write your solution here
     pass""",
         "test_cases": [
-            {"function": "isValid", "input": '"()"', "expected": "True"},
-            {"function": "isValid", "input": '"()[]{}"', "expected": "True"},
-            {"function": "isValid", "input": '"(]"', "expected": "False"},
+            {"function": "isValid", "args": ["()"], "expected": True},
+            {"function": "isValid", "args": ["()[]{}"], "expected": True},
+            {"function": "isValid", "args": ["(]"], "expected": False},
         ],
         "examples": [
             {
