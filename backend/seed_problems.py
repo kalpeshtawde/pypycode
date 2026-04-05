@@ -27,9 +27,9 @@ You can return the answer in any order.
     # Write your solution here
     pass""",
         "test_cases": [
-            {"input": "[2, 7, 11, 15], 9", "expected": "[0, 1]"},
-            {"input": "[3, 2, 4], 6", "expected": "[1, 2]"},
-            {"input": "[3, 3], 6", "expected": "[0, 1]"},
+            {"function": "twoSum", "input": "[2, 7, 11, 15], 9", "expected": "[0, 1]"},
+            {"function": "twoSum", "input": "[3, 2, 4], 6", "expected": "[1, 2]"},
+            {"function": "twoSum", "input": "[3, 3], 6", "expected": "[0, 1]"},
         ],
         "examples": [
             {
@@ -66,9 +66,9 @@ Note: You may assume that `nums1` has a total length of `m + n`, that it has eno
     # Modify nums1 in-place
     pass""",
         "test_cases": [
-            {"input": "[1,2,3,0,0,0], 3, [2,5,6], 3", "expected": "[1,2,2,3,5,6]"},
-            {"input": "[1], 1, [], 0", "expected": "[1]"},
-            {"input": "[0], 0, [1], 1", "expected": "[1]"},
+            {"function": "merge", "input": "[1,2,3,0,0,0], 3, [2,5,6], 3", "expected": "[1,2,2,3,5,6]"},
+            {"function": "merge", "input": "[1], 1, [], 0", "expected": "[1]"},
+            {"function": "merge", "input": "[0], 0, [1], 1", "expected": "[1]"},
         ],
         "examples": [
             {
@@ -98,9 +98,9 @@ An input string is valid if:
     # Write your solution here
     pass""",
         "test_cases": [
-            {"input": '"()"', "expected": "True"},
-            {"input": '"()[]{}"', "expected": "True"},
-            {"input": '"(]"', "expected": "False"},
+            {"function": "isValid", "input": '"()"', "expected": "True"},
+            {"function": "isValid", "input": '"()[]{}"', "expected": "True"},
+            {"function": "isValid", "input": '"(]"', "expected": "False"},
         ],
         "examples": [
             {
@@ -137,8 +137,8 @@ You must do this by modifying the input array in-place with O(1) extra memory.
     # Modify s in-place
     pass""",
         "test_cases": [
-            {"input": '["h","e","l","l","o"]', "expected": '["o","l","l","e","h"]'},
-            {"input": '["H","a","n","n","a","h"]', "expected": '["h","a","n","n","a","H"]'},
+            {"function": "reverseString", "input": '["h","e","l","l","o"]', "expected": '["o","l","l","e","h"]'},
+            {"function": "reverseString", "input": '["H","a","n","n","a","h"]', "expected": '["h","a","n","n","a","H"]'},
         ],
         "examples": [
             {
@@ -163,9 +163,9 @@ You must do this by modifying the input array in-place with O(1) extra memory.
     # Write your solution here
     pass""",
         "test_cases": [
-            {"input": '"abcabcbb"', "expected": "3"},
-            {"input": '"bbbbb"', "expected": "1"},
-            {"input": '"pwwkew"', "expected": "3"},
+            {"function": "lengthOfLongestSubstring", "input": '"abcabcbb"', "expected": "3"},
+            {"function": "lengthOfLongestSubstring", "input": '"bbbbb"', "expected": "1"},
+            {"function": "lengthOfLongestSubstring", "input": '"pwwkew"', "expected": "3"},
         ],
         "examples": [
             {
