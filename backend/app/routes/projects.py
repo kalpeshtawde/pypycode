@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db
-from app.models import Project, Submission
+from app.models import Project, Submission, Problem
+from app.services.runner import run_submission
 
 
 projects_bp = Blueprint("projects", __name__)
@@ -124,3 +125,35 @@ def delete_project(project_id):
         deletedProjectId=project_id,
         deletedSubmissions=deleted_submissions,
     ), 200
+
+
+@projects_bp.post("/<project_id>/submit")
+@jwt_required()
+def submit_to_project(project_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify(error="Project not found"), 404
+
+    data = request.get_json() or {}
+    problem_slug = data.get("problemSlug") or data.get("problem_slug")
+    problem = Problem.query.filter_by(slug=problem_slug).first_or_404()
+
+    code = data.get("code")
+    if not isinstance(code, str) or not code.strip():
+        return jsonify(error="Code is required"), 400
+
+    sub = Submission(
+        user_id=user_id,
+        project_id=project.id,
+        problem_id=problem.id,
+        code=code,
+        total_tests=len(problem.test_cases),
+    )
+    db.session.add(sub)
+    db.session.commit()
+
+    task = run_submission.delay(sub.id)
+    sub.task_id = task.id
+    db.session.commit()
+    return jsonify(id=sub.id, taskId=task.id, status="pending"), 202

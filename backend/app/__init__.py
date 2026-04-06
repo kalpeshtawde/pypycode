@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from celery import Celery
+from app.config import CONFIGS
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -15,16 +16,14 @@ celery_app = Celery(include=["app.services.runner"])
 def create_app():
     app = Flask(__name__)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev")
-    app.config["JWT_SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev")
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600 * 24  # 24h
+    config_name = os.environ.get("APP_CONFIG", "default")
+    config_cls = CONFIGS.get(config_name, CONFIGS["default"])
+    app.config.from_object(config_cls)
 
-    app.config["CELERY_BROKER_URL"] = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/1")
-    app.config["CELERY_RESULT_BACKEND"] = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/2")
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        raise RuntimeError("DATABASE_URL (or PERF_DATABASE_URL for APP_CONFIG=perf) is required")
 
-    CORS(app, origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","))
+    CORS(app, origins=app.config.get("ALLOWED_ORIGINS", "*").split(","))
 
     db.init_app(app)
     migrate.init_app(app, db)

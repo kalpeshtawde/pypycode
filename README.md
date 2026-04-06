@@ -194,6 +194,68 @@ docker compose -f docker-compose.prod.yml exec api python seed.py
 
 ---
 
+## Performance Testing (JMeter)
+
+This repo now includes a dedicated perf stack with isolated database + Redis:
+
+- `docker-compose.perf.yml`
+- `db_perf` (Postgres, port `5433`)
+- `redis_perf` (Redis, port `6380`)
+- `api_perf` (`APP_CONFIG=perf`)
+- `worker_perf` (Celery for perf submissions)
+- `jmeter` (non-GUI run with HTML report output)
+
+### Perf config profile
+
+Backend supports profile-based config in `backend/app/config.py`:
+
+- `APP_CONFIG=default` → normal `DATABASE_URL`
+- `APP_CONFIG=perf` → `PERF_DATABASE_URL` (fallbacks to `DATABASE_URL`)
+- Perf pool tuning via:
+  - `PERF_SQLALCHEMY_POOL_SIZE` (default `20`)
+  - `PERF_SQLALCHEMY_MAX_OVERFLOW` (default `40`)
+
+### Run perf test
+
+```bash
+chmod +x scripts/perf.sh
+./scripts/perf.sh
+```
+
+Outputs:
+
+- `perf/results/results.jtl`
+- `perf/results/report/index.html`
+- `perf/results/latest-run.json`
+- `perf/results/used.properties`
+
+### JMeter plan structure
+
+The plan is in `perf/jmeter/test-plan.jmx` and implements:
+
+- Thread Group (`perf.users`, default 100)
+- HTTP Cookie Manager
+- POST login request
+- POST submission request
+- Summary Report + HTML dashboard output
+
+### Admin-panel configurability
+
+Perf test settings are stored in DB (`perf_test_configs`) and editable in Flask-Admin:
+
+- Admin view: **Performance Config**
+- Export endpoint for JMeter: `/admin/perf/jmeter.properties`
+- Latest run metadata endpoint: `/admin/perf/latest-run`
+
+The JMeter container fetches that properties file before running, so changing values in admin updates future perf runs without editing `.jmx` directly.
+
+`/admin/perf/latest-run` returns:
+
+- `metadata`: parsed contents of `perf/results/latest-run.json` (timestamps and artifact paths)
+- `activeConfig`: current enabled perf config snapshot used for future runs
+
+---
+
 ## Adding Problems
 
 Problems can be added via the API (POST `/problems/`) or directly via `seed.py`.

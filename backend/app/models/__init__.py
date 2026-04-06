@@ -85,3 +85,23 @@ class Contact(db.Model):
     status = db.Column(db.String(32), default="pending")  # pending | read | responded
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class PerfTestConfig(db.Model):
+    __tablename__ = "perf_test_configs"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False, unique=True, default="default")
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    base_url = db.Column(db.String(256), nullable=False, default="http://api_perf:5000")
+    users = db.Column(db.Integer, nullable=False, default=100)
+    ramp_up_seconds = db.Column(db.Integer, nullable=False, default=1)
+    loops = db.Column(db.Integer, nullable=False, default=1)
+    login_path = db.Column(db.String(128), nullable=False, default="/auth/login")
+    submit_path = db.Column(db.String(128), nullable=False, default="/submissions/")
+    login_email = db.Column(db.String(256), nullable=False, default="demo@pypycode.dev")
+    login_password = db.Column(db.String(256), nullable=False, default="demo1234")
+    problem_slug = db.Column(db.String(128), nullable=False, default="two-sum")
+    code = db.Column(db.Text, nullable=False, default="def solution(nums, target):\n    return [0, 1]")
+    project_id = db.Column(db.String(36), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

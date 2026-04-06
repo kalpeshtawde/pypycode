@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  db_perf:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=pypycode_perf
+      - POSTGRES_USER=pypycode
+      - POSTGRES_PASSWORD=pypycode
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_perf:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pypycode"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pypycode_perf
+
+  redis_perf:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    networks:
+      - pypycode_perf
+
+  api_perf:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m flask --app app run --host=0.0.0.0 --port=5000
+    volumes:
+      - ./backend:/app
+      - ./perf/results:/perf-results
+    environment:
+      - APP_CONFIG=perf
+      - PERF_DATABASE_URL=postgresql://pypycode:pypycode@db_perf:5432/pypycode_perf
+      - DATABASE_URL=postgresql://pypycode:pypycode@db_perf:5432/pypycode_perf
+      - REDIS_URL=redis://redis_perf:6379/0
+      - CELERY_BROKER_URL=redis://redis_perf:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis_perf:6379/2
+      - SECRET_KEY=dev-secret-key-change-in-prod
+      - ALLOWED_ORIGINS=*
+    depends_on:
+      db_perf:
+        condition: service_healthy
+      redis_perf:
+        condition: service_started
+    networks:
+      - pypycode_perf
+
+  worker_perf:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=${PERF_WORKER_CONCURRENCY:-8}
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - APP_CONFIG=perf
+      - PERF_DATABASE_URL=postgresql://pypycode:pypycode@db_perf:5432/pypycode_perf
+      - DATABASE_URL=postgresql://pypycode:pypycode@db_perf:5432/pypycode_perf
+      - REDIS_URL=redis://redis_perf:6379/0
+      - CELERY_BROKER_URL=redis://redis_perf:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis_perf:6379/2
+      - SECRET_KEY=dev-secret-key-change-in-prod
+      - SANDBOX_IMAGE=pypycode-sandbox:latest
+    depends_on:
+      - redis_perf
+      - db_perf
+    networks:
+      - pypycode_perf
+
+  jmeter:
+    image: justb4/jmeter:5.6.3
+    depends_on:
+      - api_perf
+    volumes:
+      - ./perf/jmeter:/tests
+      - ./perf/results:/results
+    environment:
+      - PERF_CONFIG_URL=http://api_perf:5000/admin/perf/jmeter.properties
+      - JMETER_TEST_PLAN=/tests/test-plan.jmx
+    command: sh /tests/run.sh
+    networks:
+      - pypycode_perf
+
+volumes:
+  pgdata_perf:
+
+networks:
+  pypycode_perf:
+    driver: bridge

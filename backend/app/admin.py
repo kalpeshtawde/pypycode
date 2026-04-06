@@ -2,8 +2,11 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from wtforms import StringField, validators
 from flask_admin.form import BaseForm
+from flask import Response, jsonify
+import json
+import os
 from app import db
-from app.models import User, Problem, Project, Submission, Contact
+from app.models import User, Problem, Project, Submission, Contact, PerfTestConfig
 
 
 class UserForm(BaseForm):
@@ -56,6 +59,72 @@ class ContactAdmin(ModelView):
     }
 
 
+class PerfTestConfigAdmin(ModelView):
+    column_list = [
+        PerfTestConfig.id,
+        PerfTestConfig.name,
+        PerfTestConfig.enabled,
+        PerfTestConfig.base_url,
+        PerfTestConfig.users,
+        PerfTestConfig.ramp_up_seconds,
+        PerfTestConfig.loops,
+        PerfTestConfig.updated_at,
+    ]
+    form_columns = [
+        "name",
+        "enabled",
+        "base_url",
+        "users",
+        "ramp_up_seconds",
+        "loops",
+        "login_path",
+        "submit_path",
+        "login_email",
+        "login_password",
+        "problem_slug",
+        "code",
+        "project_id",
+    ]
+    column_searchable_list = [PerfTestConfig.name, PerfTestConfig.base_url]
+    can_delete = False
+
+
+def _to_jmeter_properties(config: PerfTestConfig) -> str:
+    encoded_code = (config.code or "").replace("\\", "\\\\").replace("\r\n", "\n").replace("\n", "\\n")
+    property_pairs = {
+        "perf.base_url": config.base_url,
+        "perf.users": str(config.users),
+        "perf.ramp_up": str(config.ramp_up_seconds),
+        "perf.loops": str(config.loops),
+        "perf.login_path": config.login_path,
+        "perf.submit_path": config.submit_path,
+        "perf.login_email": config.login_email,
+        "perf.login_password": config.login_password,
+        "perf.problem_slug": config.problem_slug,
+        "perf.project_id": config.project_id or "",
+        "perf.code": encoded_code,
+    }
+    return "\n".join(f"{key}={value}" for key, value in property_pairs.items()) + "\n"
+
+
+def _perf_config_snapshot(config: PerfTestConfig):
+    return {
+        "id": config.id,
+        "name": config.name,
+        "enabled": config.enabled,
+        "baseUrl": config.base_url,
+        "users": config.users,
+        "rampUpSeconds": config.ramp_up_seconds,
+        "loops": config.loops,
+        "loginPath": config.login_path,
+        "submitPath": config.submit_path,
+        "loginEmail": config.login_email,
+        "problemSlug": config.problem_slug,
+        "projectId": config.project_id,
+        "updatedAt": config.updated_at.isoformat() if config.updated_at else None,
+    }
+
+
 def init_admin(app):
     admin = Admin(app, name='PyPyCode Admin', template_mode='bootstrap4')
     admin.add_view(UserAdmin(User, db.session))
@@ -63,3 +132,43 @@ def init_admin(app):
     admin.add_view(ProjectAdmin(Project, db.session))
     admin.add_view(SubmissionAdmin(Submission, db.session))
     admin.add_view(ContactAdmin(Contact, db.session, name='Contact Queries', endpoint='contact-queries'))
+    admin.add_view(PerfTestConfigAdmin(PerfTestConfig, db.session, name='Performance Config', endpoint='perf-config'))
+
+    @app.get("/admin/perf/jmeter.properties")
+    def perf_jmeter_properties():
+        config = (
+            PerfTestConfig.query.filter_by(enabled=True)
+            .order_by(PerfTestConfig.updated_at.desc(), PerfTestConfig.id.desc())
+            .first()
+        )
+        if not config:
+            config = PerfTestConfig.query.order_by(PerfTestConfig.updated_at.desc(), PerfTestConfig.id.desc()).first()
+
+        if not config:
+            config = PerfTestConfig(name="default")
+            db.session.add(config)
+            db.session.commit()
+
+        return Response(_to_jmeter_properties(config), mimetype="text/plain")
+
+    @app.get("/admin/perf/latest-run")
+    def perf_latest_run():
+        config = (
+            PerfTestConfig.query.filter_by(enabled=True)
+            .order_by(PerfTestConfig.updated_at.desc(), PerfTestConfig.id.desc())
+            .first()
+        )
+        if not config:
+            config = PerfTestConfig.query.order_by(PerfTestConfig.updated_at.desc(), PerfTestConfig.id.desc()).first()
+
+        metadata_path = "/perf-results/latest-run.json"
+        metadata = None
+
+        if os.path.exists(metadata_path):
+            with open(metadata_path, "r", encoding="utf-8") as metadata_file:
+                metadata = json.load(metadata_file)
+
+        return jsonify(
+            metadata=metadata,
+            activeConfig=_perf_config_snapshot(config) if config else None,
+        )
