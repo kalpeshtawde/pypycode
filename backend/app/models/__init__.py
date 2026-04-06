@@ -15,6 +15,7 @@ class User(db.Model):
     last_name = db.Column(db.String(128), nullable=True)
     screen_name = db.Column(db.String(64), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    projects = db.relationship("Project", back_populates="user")
     submissions = db.relationship("Submission", back_populates="user")
 
     def set_password(self, pw: str):
@@ -41,10 +42,22 @@ class Problem(db.Model):
     submissions = db.relationship("Submission", back_populates="problem")
 
 
+class Project(db.Model):
+    __tablename__ = "projects"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    name = db.Column(db.String(25), nullable=False)
+    is_default = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    user = db.relationship("User", back_populates="projects")
+    submissions = db.relationship("Submission", back_populates="project")
+
+
 class Submission(db.Model):
     __tablename__ = "submissions"
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    project_id = db.Column(db.String(36), db.ForeignKey("projects.id"), nullable=False)
     problem_id = db.Column(db.String(36), db.ForeignKey("problems.id"), nullable=False)
     code = db.Column(db.Text, nullable=False)
     language = db.Column(db.String(16), default="python")
@@ -58,6 +71,7 @@ class Submission(db.Model):
     task_id = db.Column(db.String(256), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship("User", back_populates="submissions")
+    project = db.relationship("Project", back_populates="submissions")
     problem = db.relationship("Problem", back_populates="submissions")
 
 

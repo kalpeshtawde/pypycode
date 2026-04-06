@@ -67,3 +67,10 @@ export interface UserProfile {
   stats: ProfileStats;
   activity: ProfileActivity[];
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  createdAt: string | null;
+}

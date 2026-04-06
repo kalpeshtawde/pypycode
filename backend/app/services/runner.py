@@ -14,6 +14,118 @@ MEMORY_LIMIT = "256m"
 CPU_QUOTA = 50000  # 0.5 CPU
 
 
+def _convert_test_cases(problem: Problem):
+    converted_test_cases = []
+    for tc in problem.test_cases:
+        converted_tc = {
+            "function": tc.get("function", "solution"),
+            "expected": json.loads(tc["expected"]) if isinstance(tc["expected"], str) else tc["expected"],
+        }
+        if "input" in tc:
+            input_str = tc["input"]
+            try:
+                args = json.loads("[" + input_str + "]")
+                converted_tc["args"] = args
+            except json.JSONDecodeError:
+                converted_tc["args"] = [input_str]
+        elif "args" in tc:
+            converted_tc["args"] = tc["args"]
+        else:
+            converted_tc["args"] = []
+
+        if "kwargs" in tc:
+            converted_tc["kwargs"] = tc["kwargs"]
+        else:
+            converted_tc["kwargs"] = {}
+
+        converted_test_cases.append(converted_tc)
+    return converted_test_cases
+
+
+def run_code_against_problem(problem: Problem, code: str):
+    try:
+        client = docker.from_env()
+        payload = json.dumps({
+            "code": code,
+            "test_cases": _convert_test_cases(problem),
+        })
+
+        start = time.monotonic()
+        output = client.containers.run(
+            SANDBOX_IMAGE,
+            command=["python", "/runner/runner.py"],
+            stdin_open=True,
+            environment={"PAYLOAD": payload},
+            network_disabled=True,
+            mem_limit=MEMORY_LIMIT,
+            cpu_quota=CPU_QUOTA,
+            cpu_period=100000,
+            read_only=True,
+            remove=True,
+            detach=False,
+            stdout=True,
+            stderr=True,
+        )
+        elapsed_ms = (time.monotonic() - start) * 1000
+
+        output_str = output.decode() if isinstance(output, bytes) else output
+        result = json.loads(output_str)
+
+        error_parts = []
+        if result.get("output"):
+            error_parts.append(f"Output:\n{result.get('output')}")
+        if result.get("error"):
+            error_parts.append(f"Errors:\n{result.get('error')}")
+
+        passed_tests = result.get("passed", 0)
+        total_tests = result.get("total", len(problem.test_cases))
+        return {
+            "status": "accepted" if passed_tests == total_tests else "wrong_answer",
+            "passed_tests": passed_tests,
+            "total_tests": total_tests,
+            "runtime_ms": int(elapsed_ms),
+            "memory_kb": None,
+            "error_output": "\n".join(error_parts) if error_parts else None,
+        }
+    except docker.errors.ContainerError as e:
+        return {
+            "status": "runtime_error",
+            "passed_tests": 0,
+            "total_tests": len(problem.test_cases),
+            "runtime_ms": None,
+            "memory_kb": None,
+            "error_output": str(e)[:2000],
+        }
+    except Exception as e:
+        status = "time_limit" if "Timeout" in type(e).__name__ or "timeout" in str(e).lower() else "runtime_error"
+        return {
+            "status": status,
+            "passed_tests": 0,
+            "total_tests": len(problem.test_cases),
+            "runtime_ms": None,
+            "memory_kb": None,
+            "error_output": str(e)[:2000] if status == "runtime_error" else None,
+        }
+
+
+@celery_app.task(bind=True, max_retries=1)
+def run_code_for_problem(self, problem_id: str, code: str):
+    from app import create_app
+    app = create_app()
+    with app.app_context():
+        problem = Problem.query.get(problem_id)
+        if not problem:
+            return {
+                "status": "runtime_error",
+                "passed_tests": 0,
+                "total_tests": 0,
+                "runtime_ms": None,
+                "memory_kb": None,
+                "error_output": "Problem not found",
+            }
+        return run_code_against_problem(problem, code)
+
+
 @celery_app.task(bind=True, max_retries=2)
 def run_submission(self, submission_id: str):
     from app import create_app
@@ -27,87 +139,12 @@ def run_submission(self, submission_id: str):
         sub.status = "running"
         db.session.commit()
 
-        try:
-            client = docker.from_env()
-            
-            # Convert test cases from string format to args format
-            converted_test_cases = []
-            for tc in problem.test_cases:
-                converted_tc = {
-                    "function": tc.get("function", "solution"),
-                    "expected": json.loads(tc["expected"]) if isinstance(tc["expected"], str) else tc["expected"]
-                }
-                # Parse input string as args list
-                if "input" in tc:
-                    input_str = tc["input"]
-                    # Parse as Python literal - handles lists, strings, numbers, etc.
-                    try:
-                        # Try to parse as a tuple of arguments
-                        # Input format: "[2, 7, 11, 15], 9" -> args: [[2, 7, 11, 15], 9]
-                        args = json.loads("[" + input_str + "]")
-                        converted_tc["args"] = args
-                    except json.JSONDecodeError:
-                        # Fallback: treat as single argument
-                        converted_tc["args"] = [input_str]
-                elif "args" in tc:
-                    converted_tc["args"] = tc["args"]
-                else:
-                    converted_tc["args"] = []
-                
-                if "kwargs" in tc:
-                    converted_tc["kwargs"] = tc["kwargs"]
-                else:
-                    converted_tc["kwargs"] = {}
-                
-                converted_test_cases.append(converted_tc)
-            
-            payload = json.dumps({
-                "code": sub.code,
-                "test_cases": converted_test_cases,
-            })
-
-            start = time.monotonic()
-            output = client.containers.run(
-                SANDBOX_IMAGE,
-                command=["python", "/runner/runner.py"],
-                stdin_open=True,
-                environment={"PAYLOAD": payload},
-                network_disabled=True,
-                mem_limit=MEMORY_LIMIT,
-                cpu_quota=CPU_QUOTA,
-                cpu_period=100000,
-                read_only=True,
-                remove=True,
-                detach=False,
-                stdout=True,
-                stderr=True,
-            )
-            elapsed_ms = (time.monotonic() - start) * 1000
-
-            output_str = output.decode() if isinstance(output, bytes) else output
-            result = json.loads(output_str)
-            sub.passed_tests = result.get("passed", 0)
-            sub.total_tests = result.get("total", sub.total_tests)
-            sub.runtime_ms = int(elapsed_ms)
-            
-            # Combine error output and print statements for debugging
-            error_parts = []
-            if result.get("output"):
-                error_parts.append(f"Output:\n{result.get('output')}")
-            if result.get("error"):
-                error_parts.append(f"Errors:\n{result.get('error')}")
-            
-            sub.error_output = "\n".join(error_parts) if error_parts else None
-            sub.status = "accepted" if result.get("passed") == result.get("total") else "wrong_answer"
-
-        except docker.errors.ContainerError as e:
-            sub.status = "runtime_error"
-            sub.error_output = str(e)[:2000]
-        except Exception as e:
-            if "Timeout" in type(e).__name__ or "timeout" in str(e).lower():
-                sub.status = "time_limit"
-            else:
-                sub.status = "runtime_error"
-                sub.error_output = str(e)[:2000]
+        run_result = run_code_against_problem(problem, sub.code)
+        sub.status = run_result["status"]
+        sub.passed_tests = run_result["passed_tests"]
+        sub.total_tests = run_result["total_tests"]
+        sub.runtime_ms = run_result["runtime_ms"]
+        sub.memory_kb = run_result["memory_kb"]
+        sub.error_output = run_result["error_output"]
 
         db.session.commit()

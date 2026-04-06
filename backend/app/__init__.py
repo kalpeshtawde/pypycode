@@ -45,13 +45,15 @@ def create_app():
 
     from app.routes.auth import auth_bp
     from app.routes.problems import problems_bp
+    from app.routes.projects import projects_bp
     from app.routes.submissions import submissions_bp
     from app.routes.leaderboard import leaderboard_bp
-    from app.routes import auth, problems, submissions, leaderboard, contact
+    from app.routes import auth, problems, projects, submissions, leaderboard, contact
     from app.routes.contact import contact_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(problems_bp, url_prefix="/problems")
+    app.register_blueprint(projects_bp, url_prefix="/projects")
     app.register_blueprint(submissions_bp, url_prefix="/submissions")
     app.register_blueprint(leaderboard_bp, url_prefix="/leaderboard")
     app.register_blueprint(contact_bp, url_prefix="/contact")

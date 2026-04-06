@@ -3,7 +3,7 @@ from flask_admin.contrib.sqla import ModelView
 from wtforms import StringField, validators
 from flask_admin.form import BaseForm
 from app import db
-from app.models import User, Problem, Submission, Contact
+from app.models import User, Problem, Project, Submission, Contact
 
 
 class UserForm(BaseForm):
@@ -30,6 +30,12 @@ class ProblemAdmin(ModelView):
     column_sortable_list = [Problem.difficulty, Problem.created_at]
 
 
+class ProjectAdmin(ModelView):
+    column_list = [Project.id, Project.user_id, Project.name, Project.is_default, Project.created_at]
+    column_searchable_list = [Project.name]
+    column_sortable_list = [Project.name, Project.is_default, Project.created_at]
+
+
 class SubmissionAdmin(ModelView):
     column_list = [Submission.id, Submission.user_id, Submission.problem_id, Submission.status, Submission.created_at]
     column_searchable_list = [Submission.status]
@@ -54,5 +60,6 @@ def init_admin(app):
     admin = Admin(app, name='PyPyCode Admin', template_mode='bootstrap4')
     admin.add_view(UserAdmin(User, db.session))
     admin.add_view(ProblemAdmin(Problem, db.session))
+    admin.add_view(ProjectAdmin(Project, db.session))
     admin.add_view(SubmissionAdmin(Submission, db.session))
     admin.add_view(ContactAdmin(Contact, db.session, name='Contact Queries', endpoint='contact-queries'))

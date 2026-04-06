@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import CodeMirrorEditor from "../components/CodeMirrorEditor";
-import type { Problem, Submission } from "../types";
+import type { Problem, Project, Submission } from "../types";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Queued…",
@@ -17,13 +17,20 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function ProblemPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token } = useAuthStore();
   const navigate = useNavigate();
 
   const [problem, setProblem] = useState<Problem | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    () => searchParams.get("projectId") ?? ""
+  );
   const [code, setCode] = useState("");
   const [submission, setSubmission] = useState<Submission | null>(null);
+  const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lastSuccessfulRunCode, setLastSuccessfulRunCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
   const [fontSize, setFontSize] = useState(15);
   const [vimMode, setVimMode] = useState(false);
@@ -38,9 +45,63 @@ export default function ProblemPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (!slug || !token) return;
+    if (!token) {
+      setProjects([]);
+      setSelectedProjectId("");
+      return;
+    }
+
+    api.get<Project[]>("/projects/", token)
+      .then((data) => {
+        const sorted = [...data].sort((a, b) => {
+          if (a.isDefault === b.isDefault) {
+            return a.name.localeCompare(b.name);
+          }
+          return a.isDefault ? -1 : 1;
+        });
+        setProjects(sorted);
+        setSelectedProjectId((current) => {
+          if (current && sorted.some((project) => project.id === current)) {
+            return current;
+          }
+          const fromUrl = searchParams.get("projectId") ?? "";
+          if (fromUrl && sorted.some((project) => project.id === fromUrl)) {
+            return fromUrl;
+          }
+          const defaultProject = sorted.find((project) => project.isDefault) ?? sorted[0];
+          return defaultProject?.id ?? "";
+        });
+      })
+      .catch(() => {
+        setProjects([]);
+      });
+  }, [token, searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (selectedProjectId) {
+      params.set("projectId", selectedProjectId);
+    } else {
+      params.delete("projectId");
+    }
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [selectedProjectId, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!slug || !problem) return;
+    if (!token) {
+      setSubmission(null);
+      setCode(problem.starterCode);
+      return;
+    }
+
+    const suffix = selectedProjectId
+      ? `?projectId=${encodeURIComponent(selectedProjectId)}`
+      : "";
     api.get<Array<{ id: number; status: string; passedTests: number; totalTests: number; runtimeMs: number | null; memoryKb: number | null; code: string; createdAt: string }>>(
-      `/submissions/problem/${slug}`,
+      `/submissions/problem/${slug}${suffix}`,
       token
     )
       .then((submissions) => {
@@ -57,10 +118,20 @@ export default function ProblemPage() {
             createdAt: latestSubmission.createdAt,
           });
           setCode(latestSubmission.code);
+          setLastSuccessfulRunCode(null);
+          return;
         }
+
+        setSubmission(null);
+        setCode(problem.starterCode);
+        setLastSuccessfulRunCode(null);
       })
-      .catch(() => {});
-  }, [slug, token]);
+      .catch(() => {
+        setSubmission(null);
+        setCode(problem.starterCode);
+        setLastSuccessfulRunCode(null);
+      });
+  }, [slug, token, selectedProjectId, problem]);
 
   const poll = useCallback((id: number) => {
     const interval = setInterval(async () => {
@@ -79,15 +150,57 @@ export default function ProblemPage() {
     return () => clearInterval(interval);
   }, [token]);
 
+  const handleRun = async () => {
+    if (!token) { navigate("/auth"); return; }
+    if (!problem) return;
+    setRunning(true);
+    setSubmission(null);
+    setLastSuccessfulRunCode(null);
+    try {
+      const result = await api.post<{
+        status: Submission["status"];
+        passedTests: number;
+        totalTests: number;
+        runtimeMs: number | null;
+        memoryKb: number | null;
+        errorOutput: string | null;
+      }>(
+        "/submissions/run",
+        { problemSlug: problem.slug, code, projectId: selectedProjectId || undefined },
+        token
+      );
+
+      setSubmission({
+        id: 0,
+        status: result.status,
+        passedTests: result.passedTests,
+        totalTests: result.totalTests,
+        runtimeMs: result.runtimeMs,
+        memoryKb: result.memoryKb,
+        errorOutput: result.errorOutput,
+        createdAt: new Date().toISOString(),
+      });
+
+      if (result.status === "accepted") {
+        setLastSuccessfulRunCode(code);
+      }
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Run failed");
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!token) { navigate("/auth"); return; }
     if (!problem) return;
+    if (lastSuccessfulRunCode !== code) return;
     setSubmitting(true);
     setSubmission(null);
     try {
       const { id } = await api.post<{ id: number }>(
         "/submissions/",
-        { problemSlug: problem.slug, code },
+        { problemSlug: problem.slug, code, projectId: selectedProjectId || undefined },
         token
       );
       setSubmission({ id, status: "pending", passedTests: 0, totalTests: 0, runtimeMs: null, memoryKb: null, errorOutput: null, createdAt: new Date().toISOString() });
@@ -104,6 +217,7 @@ export default function ProblemPage() {
 
   const statusOk = submission?.status === "accepted";
   const statusDone = submission && !["pending", "running"].includes(submission.status);
+  const canSubmit = !running && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-slate-50 relative">
@@ -464,20 +578,48 @@ export default function ProblemPage() {
         {/* Editor header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0 bg-slate-50">
           <span className="text-xs font-mono text-slate-600">Python 3.12</span>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className={`btn-primary text-sm py-1.5 px-5 ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
-          >
-            {submitting ? (
-              <span className="flex items-center gap-2">
-                <svg className="w-3 h-3 animate-spin-slow" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="12" />
-                </svg>
-                Running…
-              </span>
-            ) : "Submit"}
-          </button>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={!token || projects.length === 0 || submitting}
+              className="px-3 py-1.5 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
+            >
+              {!token && <option value="">Sign in to select project</option>}
+              {token && projects.length === 0 && <option value="">No projects</option>}
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleRun}
+              disabled={running || submitting}
+              className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
+              </svg>
+              {running ? "Running..." : "Run"}
+            </button>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className={`text-sm py-1.5 px-5 rounded-lg bg-indigo-600 text-white transition-colors ${canSubmit ? "hover:bg-indigo-700" : "opacity-60 cursor-not-allowed"}`}
+            >
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="w-3 h-3 animate-spin-slow" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="12" />
+                  </svg>
+                  Submitting...
+                </span>
+              ) : "Submit"}
+            </button>
+          </div>
         </div>
 
         {/* Editor toolbar */}

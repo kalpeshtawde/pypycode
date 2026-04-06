@@ -2,11 +2,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
-import type { Problem } from "../types";
+import type { Problem, Project } from "../types";
 
 const DIFFS = ["all", "easy", "medium", "hard"] as const;
 
-function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProblems: number[] }) {
+function ProblemCell({
+  problem,
+  solvedProblems,
+  selectedProjectId,
+}: {
+  problem: Problem;
+  solvedProblems: number[];
+  selectedProjectId: string;
+}) {
   const isSolved = solvedProblems.includes(problem.id);
   
   const difficultyColors = {
@@ -18,10 +26,13 @@ function ProblemCell({ problem, solvedProblems }: { problem: Problem; solvedProb
   const cellColor = difficultyColors[problem.difficulty];
   const textColor = isSolved ? 'white' : 'white';
   const opacity = isSolved ? 1 : 0.3;
+  const targetPath = selectedProjectId
+    ? `/problems/${problem.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
+    : `/problems/${problem.slug}`;
 
   return (
     <Link
-      to={`/problems/${problem.slug}`}
+      to={targetPath}
       title={`${problem.title} (${problem.difficulty})`}
       style={{
         width: '24px',
@@ -62,6 +73,10 @@ export default function ProblemsPage() {
   const { token } = useAuthStore();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    () => localStorage.getItem("selectedProjectId") ?? ""
+  );
   const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
   const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
@@ -69,6 +84,23 @@ export default function ProblemsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [switchingDefault, setSwitchingDefault] = useState(false);
+  const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [createProjectError, setCreateProjectError] = useState<string | null>(null);
+  const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+  const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
+
+  const sortProjects = (items: Project[]) => {
+    return [...items].sort((a, b) => {
+      if (a.isDefault === b.isDefault) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.isDefault ? -1 : 1;
+    });
+  };
 
   const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
     setLoading(true);
@@ -111,9 +143,45 @@ export default function ProblemsPage() {
   }, [sortBy, sortOrder, filter]);
 
   useEffect(() => {
+    if (!token) {
+      setProjects([]);
+      setSelectedProjectId("");
+      return;
+    }
+
+    api.get<Project[]>("/projects/", token)
+      .then((data) => {
+        setProjects(sortProjects(data));
+        const defaultProject = data.find((project) => project.isDefault) ?? data[0];
+        setSelectedProjectId((current) => {
+          if (current && data.some((project) => project.id === current)) {
+            return current;
+          }
+          return defaultProject?.id ?? "";
+        });
+      })
+      .catch(() => {
+        setProjects([]);
+      });
+  }, [token]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem("selectedProjectId", selectedProjectId);
+      return;
+    }
+    localStorage.removeItem("selectedProjectId");
+  }, [selectedProjectId]);
+
+  useEffect(() => {
     if (!token) return;
+    const params = new URLSearchParams();
+    if (selectedProjectId) {
+      params.set("projectId", selectedProjectId);
+    }
+    const suffix = params.toString() ? `?${params.toString()}` : "";
     // Fetch all submissions to get latest status for each problem
-    api.get<Array<{ id: number; problemId: number; status: string; createdAt: string }>>(`/submissions/all`, token)
+    api.get<Array<{ id: number; problemId: number; status: string; createdAt: string }>>(`/submissions/all${suffix}`, token)
       .then((data) => {
         // Get the latest submission for each problem
         const latestSubmissions = new Map<number, { status: string; createdAt: string }>();
@@ -134,65 +202,84 @@ export default function ProblemsPage() {
       .catch(() => {
         setSolvedProblems([]);
       });
-  }, [token]);
+  }, [token, selectedProjectId]);
+
+  const handleCreateProject = async () => {
+    if (!token || creatingProject) return;
+    const name = newProjectName.trim();
+
+    if (!name) {
+      setCreateProjectError("Project name is required");
+      return;
+    }
+    if (name.length > 25) {
+      setCreateProjectError("Project name must be at most 25 characters");
+      return;
+    }
+
+    setCreatingProject(true);
+    setCreateProjectError(null);
+    try {
+      const project = await api.post<Project>("/projects/", { name }, token);
+      setProjects((prev) => sortProjects([...prev, project]));
+      setSelectedProjectId(project.id);
+      setShowCreateProjectDialog(false);
+      setNewProjectName("");
+    } catch (e: unknown) {
+      setCreateProjectError(e instanceof Error ? e.message : "Unable to create project");
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
+  const handleProjectSelection = async (projectId: string) => {
+    setSelectedProjectId(projectId);
+    if (!token || !projectId || switchingDefault) return;
+
+    setSwitchingDefault(true);
+    try {
+      const updated = await api.post<Project>(`/projects/${projectId}/set-default`, {}, token);
+      setProjects((prev) => sortProjects(
+        prev.map((project) => ({
+          ...project,
+          isDefault: project.id === updated.id,
+        }))
+      ));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to set default project");
+    } finally {
+      setSwitchingDefault(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!token || !selectedProjectId || deletingProject) return;
+
+    setDeletingProject(true);
+    setDeleteProjectError(null);
+    try {
+      await api.delete<{ deletedProjectId: string; deletedSubmissions: number }>(
+        `/projects/${selectedProjectId}`,
+        token
+      );
+      const refreshed = await api.get<Project[]>("/projects/", token);
+      const sorted = sortProjects(refreshed);
+      setProjects(sorted);
+      const defaultProject = sorted.find((project) => project.isDefault) ?? sorted[0];
+      setSelectedProjectId(defaultProject?.id ?? "");
+      setShowDeleteProjectDialog(false);
+    } catch (e: unknown) {
+      setDeleteProjectError(e instanceof Error ? e.message : "Failed to delete project");
+    } finally {
+      setDeletingProject(false);
+    }
+  };
 
   const solvedCount = problems.filter((p) => solvedProblems.includes(p.id)).length;
+  const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-16">
-      {/* Filter tabs */}
-      <div className="flex items-center gap-2 mb-6">
-        {DIFFS.map((d) => (
-          <button
-            key={d}
-            onClick={() => setFilter(d)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-mono capitalize transition-all ${
-              filter === d
-                ? "bg-surface border border-accent/30 text-accent"
-                : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            {d}
-          </button>
-        ))}
-      </div>
-
-      {/* Solved counter */}
-      <div className="flex justify-center mb-6">
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'white',
-            border: '1px solid #E2E8F0',
-            borderRadius: '999px',
-            padding: '6px 16px',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: '#10B981',
-            boxShadow: '0 1px 4px rgba(16, 185, 129, 0.1)'
-          }}
-        >
-          <div
-            style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '50%',
-              background: '#10B981',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              fontWeight: 800
-            }}
-          >
-            ✓
-          </div>
-          {solvedCount} solved
-        </div>
-      </div>
-
       {/* GitHub-Style Stats Dashboard */}
       <div style={{
         maxWidth: '1000px',
@@ -229,6 +316,62 @@ export default function ProblemsPage() {
         `}</style>
 
         {/* Stats Cards Row */}
+        <div style={{
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <div className="flex items-center gap-3">
+            <div style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#0F172A',
+              margin: 0
+            }}>
+              Active Project
+            </div>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => handleProjectSelection(e.target.value)}
+              disabled={!token || projects.length === 0 || switchingDefault}
+              className="px-3 py-2 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[220px]"
+            >
+              {projects.length === 0 && <option value="">No projects</option>}
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowCreateProjectDialog(true);
+                setCreateProjectError(null);
+                setNewProjectName("");
+              }}
+              disabled={!token || creatingProject || deletingProject}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
+            >
+              Create New Project
+            </button>
+            <button
+              onClick={() => {
+                setShowDeleteProjectDialog(true);
+                setDeleteProjectError(null);
+              }}
+              disabled={!token || !selectedProjectId || deletingProject || creatingProject}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:bg-red-300"
+            >
+              Delete Project
+            </button>
+          </div>
+        </div>
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -360,7 +503,7 @@ export default function ProblemsPage() {
                   animationDelay: `${100 + (idx * 30)}ms`
                 }}
               >
-                <ProblemCell problem={p} solvedProblems={solvedProblems} />
+                <ProblemCell problem={p} solvedProblems={solvedProblems} selectedProjectId={selectedProjectId} />
               </div>
             ))}
           </div>
@@ -437,8 +580,25 @@ export default function ProblemsPage() {
           </div>
         </div>
 
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 mt-6 mb-6">
+          {DIFFS.map((d) => (
+            <button
+              key={d}
+              onClick={() => setFilter(d)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-mono capitalize transition-all ${
+                filter === d
+                  ? "bg-surface border border-accent/30 text-accent"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+
         {/* Problems List */}
-        <div style={{ marginTop: '60px' }}>
+        <div style={{ marginTop: '30px' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -513,7 +673,7 @@ export default function ProblemsPage() {
               return (
                 <Link
                   key={p.id}
-                  to={`/problems/${p.slug}`}
+                  to={selectedProjectId ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}` : `/problems/${p.slug}`}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '40px 60px 1fr 150px 120px',
@@ -646,6 +806,99 @@ export default function ProblemsPage() {
       </div>
 
       {/* Pagination */}
+      {showCreateProjectDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
+            <div className="px-6 py-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">Create New Project</h3>
+              <p className="text-sm text-slate-500 mt-1">Track submissions under a dedicated project.</p>
+            </div>
+            <div className="px-6 py-5">
+              <label className="block text-xs font-semibold text-slate-600 mb-2">Project Name</label>
+              <input
+                autoFocus
+                maxLength={25}
+                value={newProjectName}
+                onChange={(e) => {
+                  setNewProjectName(e.target.value);
+                  setCreateProjectError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCreateProject();
+                  }
+                }}
+                placeholder="e.g. Interview Prep Jan 2026"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <div className="mt-2 text-xs text-slate-500">{newProjectName.trim().length}/25 characters</div>
+              {createProjectError && (
+                <div className="mt-2 text-sm text-red-600">{createProjectError}</div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  if (creatingProject) return;
+                  setShowCreateProjectDialog(false);
+                  setCreateProjectError(null);
+                  setNewProjectName("");
+                }}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateProject}
+                disabled={creatingProject}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+              >
+                {creatingProject ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteProjectDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
+            <div className="px-6 py-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">Delete Project</h3>
+              <p className="text-sm text-slate-500 mt-1">This action cannot be undone.</p>
+            </div>
+            <div className="px-6 py-5">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Deleting <span className="font-semibold">{selectedProject?.name || "this project"}</span> will remove all progress and submissions under this project.
+              </div>
+              {deleteProjectError && (
+                <div className="mt-3 text-sm text-red-600">{deleteProjectError}</div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  if (deletingProject) return;
+                  setShowDeleteProjectDialog(false);
+                  setDeleteProjectError(null);
+                }}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                disabled={deletingProject}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+              >
+                {deletingProject ? "Deleting..." : "Delete Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pagination && pagination.pages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-8">
           <button
