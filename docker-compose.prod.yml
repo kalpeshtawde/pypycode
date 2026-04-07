@@ -63,6 +63,8 @@ services:
       - SANDBOX_IMAGE=pypycode-sandbox:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - redis
     restart: unless-stopped
     networks:
       - pypycode-server
