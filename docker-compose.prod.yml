@@ -20,8 +20,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
     container_name: pypycode_frontend_builder
+    command: sh -c "npm run build && cp -r dist/* /usr/share/nginx/html/"
     volumes:
-      - frontend_build:/app/dist
+      - frontend_build:/usr/share/nginx/html
     networks:
       - pypycode-server
 
