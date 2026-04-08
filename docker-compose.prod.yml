@@ -8,26 +8,10 @@ services:
       - "8084:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - frontend_build:/usr/share/nginx/html:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - api
     restart: unless-stopped
-    networks:
-      - pypycode-server
-
-  frontend_builder:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-      target: builder
-      args:
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-    container_name: pypycode_frontend_builder
-    command: sh -c "npm run build && cp -r dist/* /usr/share/nginx/html/"
-    environment:
-      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
-    volumes:
-      - frontend_build:/usr/share/nginx/html
     networks:
       - pypycode-server
 
@@ -85,7 +69,6 @@ services:
 
 volumes:
   redisdata:
-  frontend_build:
 
 networks:
   pypycode-server:

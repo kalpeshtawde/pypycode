@@ -183,7 +183,9 @@ nano .env
 
 ```bash
 chmod +x scripts/deploy.sh
-./scripts/deploy.sh
+./scripts/deploy.sh frontend-fast   # frontend assets + nginx refresh (fastest)
+# or
+./scripts/deploy.sh full-stack      # api/worker/frontend rebuild + migrations
 ```
 
 ### 5. Seed (first deploy only)
