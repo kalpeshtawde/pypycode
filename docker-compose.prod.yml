@@ -20,8 +20,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       target: builder
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     container_name: pypycode_frontend_builder
     command: sh -c "npm run build && cp -r dist/* /usr/share/nginx/html/"
+    environment:
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     volumes:
       - frontend_build:/usr/share/nginx/html
     networks:
@@ -41,6 +45,7 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - redis
     restart: unless-stopped
