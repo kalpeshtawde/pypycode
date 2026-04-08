@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../hooks/useAuth";
 import { useEffect } from "react";
 import { api } from "../utils/api";
@@ -7,6 +7,9 @@ import Footer from "./Footer";
 export default function Layout() {
   const { token, user, setAuth, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authRedirectPath = `${location.pathname}${location.search}`;
+  const authLink = `/auth?redirect=${encodeURIComponent(authRedirectPath)}`;
 
   useEffect(() => {
     if (token && !user) {
@@ -205,22 +208,43 @@ export default function Layout() {
                 <button 
                   onClick={() => { logout(); navigate("/"); }}
                   style={{
-                    fontWeight: 500,
-                    fontSize: '14px',
-                    color: '#64748B',
-                    background: 'none',
-                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    letterSpacing: '0.2px',
+                    color: '#475569',
+                    background: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '999px',
+                    padding: '8px 14px',
                     cursor: 'pointer',
-                    transition: 'color 200ms ease'
+                    transition: 'all 180ms ease',
+                    boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#DC2626';
+                    e.currentTarget.style.background = '#FEF2F2';
+                    e.currentTarget.style.borderColor = '#FECACA';
+                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(220,38,38,0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.background = '#FFFFFF';
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)';
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.2)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)';
+                  }}
                 >
                   Sign out
                 </button>
               </>
             ) : (
-              <NavLink to="/auth" className="btn-primary text-sm py-2 px-5">
+              <NavLink to={authLink} className="btn-primary text-sm py-2 px-5">
                 Sign in
               </NavLink>
             )}

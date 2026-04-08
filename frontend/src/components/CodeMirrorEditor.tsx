@@ -8,6 +8,7 @@ import { tags as t } from '@lezer/highlight';
 import { history, indentMore, indentLess } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { indentUnit } from '@codemirror/language';
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 
 const lightHighlightStyle = HighlightStyle.define([
   { tag: t.keyword, color: '#d73a49' },
@@ -43,9 +44,11 @@ export default function CodeMirrorEditor({
       history(),
       lineNumbers(),
       indentOnInput(),
+      closeBrackets(),
       indentUnit.of('    '),
       python(),
       keymap.of([
+        ...closeBracketsKeymap,
         { key: 'Tab', run: indentMore },
         { key: 'Shift-Tab', run: indentLess },
       ]),

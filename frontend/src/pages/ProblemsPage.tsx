@@ -10,10 +10,14 @@ function ProblemCell({
   problem,
   solvedProblems,
   selectedProjectId,
+  canOpenProblem,
+  onMissingProject,
 }: {
   problem: Problem;
   solvedProblems: number[];
   selectedProjectId: string;
+  canOpenProblem: boolean;
+  onMissingProject: () => void;
 }) {
   const isSolved = solvedProblems.includes(problem.id);
   
@@ -63,6 +67,12 @@ function ProblemCell({
         e.currentTarget.style.boxShadow = 'none';
         e.currentTarget.style.opacity = opacity.toString();
       }}
+      onClick={(e) => {
+        if (!canOpenProblem) {
+          e.preventDefault();
+          onMissingProject();
+        }
+      }}
     >
       {isSolved && '✓'}
     </Link>
@@ -71,6 +81,7 @@ function ProblemCell({
 
 export default function ProblemsPage() {
   const { token } = useAuthStore();
+  const isLoggedIn = Boolean(token);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -277,6 +288,14 @@ export default function ProblemsPage() {
 
   const solvedCount = problems.filter((p) => solvedProblems.includes(p.id)).length;
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
+  const hasActiveProject = Boolean(selectedProjectId);
+
+  const promptCreateProject = () => {
+    if (!token) return;
+    setShowCreateProjectDialog(true);
+    setCreateProjectError("Please create a project before opening a problem");
+    setNewProjectName("");
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-16">
@@ -315,270 +334,280 @@ export default function ProblemsPage() {
           }
         `}</style>
 
-        {/* Stats Cards Row */}
-        <div style={{
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          flexWrap: 'wrap'
-        }}>
-          <div className="flex items-center gap-3">
+        {isLoggedIn && (
+          <>
+            {/* Stats Cards Row */}
             <div style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: '#0F172A',
-              margin: 0
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap'
             }}>
-              Active Project
+              <div className="flex items-center gap-3">
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  margin: 0
+                }}>
+                  Active Project
+                </div>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => handleProjectSelection(e.target.value)}
+                  disabled={!token || projects.length === 0 || switchingDefault}
+                  className="px-3 py-2 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[220px]"
+                >
+                  {projects.length === 0 && <option value="">No projects</option>}
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowCreateProjectDialog(true);
+                    setCreateProjectError(null);
+                    setNewProjectName("");
+                  }}
+                  disabled={!token || creatingProject || deletingProject}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
+                >
+                  Create New Project
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteProjectDialog(true);
+                    setDeleteProjectError(null);
+                  }}
+                  disabled={!token || !selectedProjectId || deletingProject || creatingProject}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:bg-red-300"
+                >
+                  Delete Project
+                </button>
+              </div>
             </div>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => handleProjectSelection(e.target.value)}
-              disabled={!token || projects.length === 0 || switchingDefault}
-              className="px-3 py-2 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[220px]"
-            >
-              {projects.length === 0 && <option value="">No projects</option>}
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setShowCreateProjectDialog(true);
-                setCreateProjectError(null);
-                setNewProjectName("");
-              }}
-              disabled={!token || creatingProject || deletingProject}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
-            >
-              Create New Project
-            </button>
-            <button
-              onClick={() => {
-                setShowDeleteProjectDialog(true);
-                setDeleteProjectError(null);
-              }}
-              disabled={!token || !selectedProjectId || deletingProject || creatingProject}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:bg-red-300"
-            >
-              Delete Project
-            </button>
-          </div>
-        </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px',
-          marginBottom: '40px'
-        }}>
-          {/* Total Solved Card */}
-          <div
-            className="stat-card"
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '20px',
-              boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
-              animationDelay: '100ms'
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
-              TOTAL SOLVED
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
-              {solvedCount}
-            </div>
-            <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-              of {problems.length} problems
-            </div>
-          </div>
-
-          {/* Easy Solved Card */}
-          <div
-            className="stat-card"
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '20px',
-              boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
-              animationDelay: '150ms'
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
-              EASY
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
-              {problems.filter(p => p.difficulty === 'easy' && solvedProblems.includes(p.id)).length}
-            </div>
-            <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-              of {problems.filter(p => p.difficulty === 'easy').length}
-            </div>
-          </div>
-
-          {/* Medium Solved Card */}
-          <div
-            className="stat-card"
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '20px',
-              boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
-              animationDelay: '200ms'
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
-              MEDIUM
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#F59E0B' }}>
-              {problems.filter(p => p.difficulty === 'medium' && solvedProblems.includes(p.id)).length}
-            </div>
-            <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-              of {problems.filter(p => p.difficulty === 'medium').length}
-            </div>
-          </div>
-
-          {/* Hard Solved Card */}
-          <div
-            className="stat-card"
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '20px',
-              boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
-              animationDelay: '250ms'
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
-              HARD
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#EF4444' }}>
-              {problems.filter(p => p.difficulty === 'hard' && solvedProblems.includes(p.id)).length}
-            </div>
-            <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-              of {problems.filter(p => p.difficulty === 'hard').length}
-            </div>
-          </div>
-        </div>
-
-        
-        {/* Contribution Grid */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          padding: '24px',
-          boxShadow: '0 2px 8px rgba(15,23,42,0.05)'
-        }}>
-          <h3 style={{
-            fontSize: '16px',
-            fontWeight: 700,
-            color: '#0F172A',
-            margin: '0 0 20px 0'
-          }}>
-            Problem Completion
-          </h3>
-
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px',
-            alignItems: 'flex-start'
-          }}>
-            {problems.map((p, idx) => (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '40px'
+            }}>
+              {/* Total Solved Card */}
               <div
-                key={p.id}
-                className="problem-cell"
+                className="stat-card"
                 style={{
-                  animationDelay: `${100 + (idx * 30)}ms`
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+                  animationDelay: '100ms'
                 }}
               >
-                <ProblemCell problem={p} solvedProblems={solvedProblems} selectedProjectId={selectedProjectId} />
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                  TOTAL SOLVED
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
+                  {solvedCount}
+                </div>
+                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                  of {problems.length} problems
+                </div>
               </div>
-            ))}
-          </div>
 
-          {/* Legend */}
-          <div style={{
-            marginTop: '24px',
-            paddingTop: '20px',
-            borderTop: '1px solid #F1F5F9',
-            display: 'flex',
-            gap: '20px',
-            alignItems: 'center',
-            fontSize: '13px',
-            color: '#64748B'
-          }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: '#10B981',
-                border: '1px solid #D1D5DB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 700
-              }}>
-                ✓
+              {/* Easy Solved Card */}
+              <div
+                className="stat-card"
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+                  animationDelay: '150ms'
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                  EASY
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
+                  {problems.filter(p => p.difficulty === 'easy' && solvedProblems.includes(p.id)).length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                  of {problems.filter(p => p.difficulty === 'easy').length}
+                </div>
               </div>
-              <span style={{ fontWeight: 500 }}>Solved</span>
+
+              {/* Medium Solved Card */}
+              <div
+                className="stat-card"
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+                  animationDelay: '200ms'
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                  MEDIUM
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#F59E0B' }}>
+                  {problems.filter(p => p.difficulty === 'medium' && solvedProblems.includes(p.id)).length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                  of {problems.filter(p => p.difficulty === 'medium').length}
+                </div>
+              </div>
+
+              {/* Hard Solved Card */}
+              <div
+                className="stat-card"
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+                  animationDelay: '250ms'
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                  HARD
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#EF4444' }}>
+                  {problems.filter(p => p.difficulty === 'hard' && solvedProblems.includes(p.id)).length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                  of {problems.filter(p => p.difficulty === 'hard').length}
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+
+            {/* Contribution Grid */}
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(15,23,42,0.05)'
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                color: '#0F172A',
+                margin: '0 0 20px 0'
+              }}>
+                Problem Completion
+              </h3>
+
               <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: '#10B981',
-                border: '1px solid #D1D5DB'
-              }} />
-              <span style={{ fontWeight: 500 }}>Easy</span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                alignItems: 'flex-start'
+              }}>
+                {problems.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="problem-cell"
+                    style={{
+                      animationDelay: `${100 + (idx * 30)}ms`
+                    }}
+                  >
+                    <ProblemCell
+                      problem={p}
+                      solvedProblems={solvedProblems}
+                      selectedProjectId={selectedProjectId}
+                      canOpenProblem={hasActiveProject}
+                      onMissingProject={promptCreateProject}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Legend */}
               <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: '#F59E0B',
-                border: '1px solid #D1D5DB'
-              }} />
-              <span style={{ fontWeight: 500 }}>Medium</span>
+                marginTop: '24px',
+                paddingTop: '20px',
+                borderTop: '1px solid #F1F5F9',
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center',
+                fontSize: '13px',
+                color: '#64748B'
+              }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: '#10B981',
+                    border: '1px solid #D1D5DB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 700
+                  }}>
+                    ✓
+                  </div>
+                  <span style={{ fontWeight: 500 }}>Solved</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: '#10B981',
+                    border: '1px solid #D1D5DB'
+                  }} />
+                  <span style={{ fontWeight: 500 }}>Easy</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: '#F59E0B',
+                    border: '1px solid #D1D5DB'
+                  }} />
+                  <span style={{ fontWeight: 500 }}>Medium</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: '#EF4444',
+                    border: '1px solid #D1D5DB'
+                  }} />
+                  <span style={{ fontWeight: 500 }}>Hard</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: '#E5E7EB',
+                    border: '1px solid #D1D5DB'
+                  }} />
+                  <span style={{ fontWeight: 500 }}>Unsolved</span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: '#EF4444',
-                border: '1px solid #D1D5DB'
-              }} />
-              <span style={{ fontWeight: 500 }}>Hard</span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: '#E5E7EB',
-                border: '1px solid #D1D5DB'
-              }} />
-              <span style={{ fontWeight: 500 }}>Unsolved</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Filter tabs */}
         <div className="flex items-center gap-2 mt-6 mb-6">
@@ -667,13 +696,16 @@ export default function ProblemsPage() {
             {problems.map((p) => {
               const isHidden = filter !== 'all' && p.difficulty !== filter;
               const isSolved = solvedProblems.includes(p.id);
+              const targetPath = selectedProjectId
+                ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
+                : `/problems/${p.slug}`;
 
               if (isHidden) return null;
 
               return (
                 <Link
                   key={p.id}
-                  to={selectedProjectId ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}` : `/problems/${p.slug}`}
+                  to={targetPath}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '40px 60px 1fr 150px 120px',
@@ -696,6 +728,12 @@ export default function ProblemsPage() {
                     e.currentTarget.style.background = isSolved 
                       ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)'
                       : 'white';
+                  }}
+                  onClick={(e) => {
+                    if (isLoggedIn && !hasActiveProject) {
+                      e.preventDefault();
+                      promptCreateProject();
+                    }
                   }}
                 >
                   {/* Solved Checkmark */}
@@ -806,7 +844,7 @@ export default function ProblemsPage() {
       </div>
 
       {/* Pagination */}
-      {showCreateProjectDialog && (
+      {isLoggedIn && showCreateProjectDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
             <div className="px-6 py-5 border-b border-slate-100">
@@ -861,7 +899,7 @@ export default function ProblemsPage() {
         </div>
       )}
 
-      {showDeleteProjectDialog && (
+      {isLoggedIn && showDeleteProjectDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
             <div className="px-6 py-5 border-b border-slate-100">

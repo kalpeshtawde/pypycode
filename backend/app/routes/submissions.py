@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from celery.exceptions import TimeoutError as CeleryTimeoutError, NotRegistered
 from app import db
 from app.models import Submission, Problem, Project
-from app.routes.projects import get_or_create_default_project
 from app.services.runner import run_submission, run_code_for_problem
 
 submissions_bp = Blueprint("submissions", __name__)
@@ -58,17 +57,22 @@ def submit():
     data = request.get_json() or {}
     problem = Problem.query.filter_by(slug=data.get("problemSlug")).first_or_404()
     project_id = data.get("projectId")
-    if project_id:
-        project = Project.query.filter_by(id=project_id, user_id=user_id).first()
-        if not project:
-            return jsonify(error="Project not found"), 404
-    else:
-        project = get_or_create_default_project(user_id)
+    if not project_id:
+        return jsonify(error="Project is required"), 400
+
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify(error="Project not found"), 404
+
+    code = data.get("code")
+    if not isinstance(code, str) or not code.strip():
+        return jsonify(error="Code is required"), 400
+
     sub = Submission(
         user_id=user_id,
         project_id=project.id,
         problem_id=problem.id,
-        code=data["code"],
+        code=code,
         total_tests=len(problem.test_cases),
     )
     db.session.add(sub)

@@ -7,7 +7,6 @@ from app.services.runner import run_submission
 
 
 projects_bp = Blueprint("projects", __name__)
-DEFAULT_PROJECT_NAME = "Interview prep 2026"
 MAX_PROJECT_NAME_LENGTH = 25
 
 
@@ -20,36 +19,15 @@ def project_to_dict(project: Project):
     }
 
 
-def get_or_create_default_project(user_id: str) -> Project:
-    project = Project.query.filter_by(user_id=user_id, is_default=True).first()
-    if project:
-        return project
-
-    fallback = Project.query.filter_by(user_id=user_id, name=DEFAULT_PROJECT_NAME).first()
-    if fallback:
-        fallback.is_default = True
-        db.session.flush()
-        return fallback
-
-    project = Project(user_id=user_id, name=DEFAULT_PROJECT_NAME, is_default=True)
-    db.session.add(project)
-    db.session.flush()
-    return project
-
-
 @projects_bp.get("/")
 @jwt_required()
 def list_projects():
     user_id = get_jwt_identity()
-    default_project = get_or_create_default_project(user_id)
     projects = (
         Project.query.filter_by(user_id=user_id)
         .order_by(Project.is_default.desc(), Project.created_at.asc())
         .all()
     )
-    if default_project not in projects:
-        projects.insert(0, default_project)
-    db.session.commit()
     return jsonify([project_to_dict(project) for project in projects])
 
 
@@ -116,8 +94,6 @@ def delete_project(project_id):
         )
         if next_project:
             next_project.is_default = True
-        else:
-            get_or_create_default_project(user_id)
 
     db.session.commit()
 

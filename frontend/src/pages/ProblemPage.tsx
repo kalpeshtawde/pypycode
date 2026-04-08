@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
@@ -15,11 +15,82 @@ const STATUS_LABEL: Record<string, string> = {
   runtime_error: "Runtime Error",
 };
 
+type TestCaseRow = {
+  index: number;
+  passed: boolean;
+  expected?: string;
+  got?: string;
+  message?: string;
+};
+
+function buildTestCaseRows(submission: Submission): TestCaseRow[] {
+  const total = Math.max(submission.totalTests || 0, 0);
+  if (!total) return [];
+
+  const failedByIndex = new Map<number, Omit<TestCaseRow, "index" | "passed">>();
+  const rawDetails = (submission.errorOutput || "").replace(/^Errors:\s*/i, "").trim();
+  const lines = rawDetails.split("\n");
+  let currentIndex: number | null = null;
+  let currentChunk: string[] = [];
+
+  const commitChunk = () => {
+    if (currentIndex == null) return;
+    const chunk = currentChunk.join("\n").trim();
+    if (!chunk) return;
+
+    const expectedGotMatch = chunk.match(/^expected\s+(.+),\s*got\s+(.+)$/is);
+    if (expectedGotMatch) {
+      failedByIndex.set(currentIndex, {
+        expected: expectedGotMatch[1].trim(),
+        got: expectedGotMatch[2].trim(),
+      });
+      return;
+    }
+
+    failedByIndex.set(currentIndex, { message: chunk });
+  };
+
+  for (const line of lines) {
+    const testStart = line.match(/^Test\s+(\d+):\s*(.*)$/i);
+    if (testStart) {
+      commitChunk();
+      currentIndex = Number(testStart[1]);
+      currentChunk = [testStart[2] || ""];
+      continue;
+    }
+
+    if (currentIndex != null) {
+      currentChunk.push(line);
+    }
+  }
+  commitChunk();
+
+  const rows: TestCaseRow[] = [];
+  for (let index = 1; index <= total; index += 1) {
+    const parsedFailure = failedByIndex.get(index);
+    const isFailed = Boolean(parsedFailure);
+    const fallbackByCount = !failedByIndex.size && submission.status !== "accepted" && index > submission.passedTests;
+    const passed = !isFailed && !fallbackByCount;
+
+    rows.push({
+      index,
+      passed,
+      expected: parsedFailure?.expected,
+      got: parsedFailure?.got,
+      message: parsedFailure?.message ?? (!passed ? rawDetails || undefined : undefined),
+    });
+  }
+
+  return rows;
+}
+
 export default function ProblemPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { token } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authLink = `/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
   const [problem, setProblem] = useState<Problem | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -35,6 +106,7 @@ export default function ProblemPage() {
   const [fontSize, setFontSize] = useState(15);
   const [vimMode, setVimMode] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [expandedTest, setExpandedTest] = useState<number | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -151,7 +223,7 @@ export default function ProblemPage() {
   }, [token]);
 
   const handleRun = async () => {
-    if (!token) { navigate("/auth"); return; }
+    if (!token) { navigate(authLink); return; }
     if (!problem) return;
     setRunning(true);
     setSubmission(null);
@@ -192,7 +264,7 @@ export default function ProblemPage() {
   };
 
   const handleSubmit = async () => {
-    if (!token) { navigate("/auth"); return; }
+    if (!token) { navigate(authLink); return; }
     if (!problem) return;
     if (lastSuccessfulRunCode !== code) return;
     setSubmitting(true);
@@ -210,6 +282,12 @@ export default function ProblemPage() {
       alert(e instanceof Error ? e.message : "Submission failed");
     }
   };
+
+  const testRows = useMemo(() => (submission ? buildTestCaseRows(submission) : []), [submission]);
+
+  useEffect(() => {
+    setExpandedTest(null);
+  }, [submission?.id, submission?.status, submission?.createdAt]);
 
   if (!problem) {
     return <div className="flex items-center justify-center h-64 text-slate-600 font-mono">Loading…</div>;
@@ -773,26 +851,100 @@ export default function ProblemPage() {
 
         {/* Result panel */}
         {submission && (
-          <div className={`shrink-0 border-t border-slate-200 p-4 text-sm
-                          ${statusOk ? "bg-emerald-50" : statusDone ? "bg-yellow-50" : "bg-slate-50"}`}>
-            <div className="flex items-center gap-3 mb-2">
-              {statusOk && (
-                <span className="text-emerald-600 font-bold text-lg">✓</span>
-              )}
-              <span className={`font-semibold font-mono ${statusOk ? "text-emerald-600" : statusDone ? "text-yellow-600" : "text-slate-600"}`}>
-                {STATUS_LABEL[submission.status] ?? submission.status}
-              </span>
-              {statusDone && (
+          <div className="shrink-0 border-t border-slate-200 bg-slate-50 text-sm">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 bg-white/75">
+              <div className="flex items-center gap-3 min-w-0">
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold font-mono border ${
+                    statusOk
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : statusDone
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-slate-100 text-slate-700 border-slate-200"
+                  }`}
+                >
+                  {statusOk ? "✓" : statusDone ? "✗" : "•"}&nbsp;
+                  {STATUS_LABEL[submission.status] ?? submission.status}
+                </span>
                 <span className="text-slate-600 font-mono text-xs">
                   {submission.passedTests}/{submission.totalTests} tests passed
-                  {submission.runtimeMs ? ` · ${Math.round(submission.runtimeMs)}ms` : ""}
                 </span>
-              )}
+              </div>
+              <span className="text-slate-500 font-mono text-xs whitespace-nowrap">
+                {submission.runtimeMs != null ? `${Math.round(submission.runtimeMs)}ms` : "—"}
+              </span>
             </div>
-            {submission.errorOutput && (
-              <pre className="text-xs font-mono text-red-700 bg-red-50 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
-                {submission.errorOutput}
-              </pre>
+
+            {statusDone && testRows.length > 0 ? (
+              <div className="px-4 py-3 space-y-2 max-h-72 overflow-auto">
+                {testRows.map((row) => {
+                  const isExpanded = expandedTest === row.index;
+                  return (
+                    <div
+                      key={row.index}
+                      className={`rounded-lg border ${row.passed ? "border-emerald-100 bg-emerald-50/45" : "border-red-100 bg-red-50/45"}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedTest((current) => (current === row.index ? null : row.index))}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className={`text-sm font-bold ${row.passed ? "text-emerald-600" : "text-red-600"}`}>
+                            {row.passed ? "✓" : "✗"}
+                          </span>
+                          <span className="text-sm font-mono text-slate-700">Test {row.index}</span>
+                        </div>
+                        <span
+                          className="text-slate-400 text-xs"
+                          style={{
+                            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                            transition: "transform 180ms ease",
+                          }}
+                        >
+                          ▼
+                        </span>
+                      </button>
+
+                      <div
+                        style={{
+                          maxHeight: isExpanded ? "220px" : "0px",
+                          opacity: isExpanded ? 1 : 0,
+                          overflow: "hidden",
+                          transition: "max-height 220ms ease, opacity 180ms ease",
+                        }}
+                      >
+                        <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/70">
+                          {row.expected !== undefined && (
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Expected:</div>
+                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                                {row.expected}
+                              </pre>
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                              {row.got !== undefined ? "Got:" : "Details:"}
+                            </div>
+                            <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                              {row.got ?? row.message ?? "Passed"}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : submission.errorOutput ? (
+              <div className="px-4 py-3">
+                <pre className="text-xs font-mono text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
+                  {submission.errorOutput}
+                </pre>
+              </div>
+            ) : (
+              <div className="px-4 py-3 text-xs font-mono text-slate-500">Running tests...</div>
             )}
           </div>
         )}

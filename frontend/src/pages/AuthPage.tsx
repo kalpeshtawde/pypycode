@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
@@ -25,15 +25,22 @@ export default function AuthPage() {
   }>({ checking: false, available: null, message: "" });
   const { setAuth, token } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = useMemo(() => {
+    const redirect = searchParams.get("redirect");
+    if (!redirect) return "/problems";
+    if (!redirect.startsWith("/") || redirect.startsWith("//")) return "/problems";
+    return redirect;
+  }, [searchParams]);
 
   // Check if user is already authenticated
   useEffect(() => {
     if (token) {
-      navigate("/problems");
+      navigate(redirectPath, { replace: true });
     } else {
       setIsCheckingAuth(false);
     }
-  }, [token, navigate]);
+  }, [token, navigate, redirectPath]);
 
   useEffect(() => {
     if (!showProfileForm) return;
@@ -111,7 +118,7 @@ export default function AuthPage() {
       setSuccess(true);
       
       setTimeout(() => {
-        navigate("/problems");
+        navigate(redirectPath, { replace: true });
       }, 1500);
     } catch (err: unknown) {
       // If error is about missing profile data, show form
@@ -179,7 +186,7 @@ export default function AuthPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        navigate("/problems");
+        navigate(redirectPath, { replace: true });
       }, 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Profile setup failed");
@@ -314,7 +321,7 @@ return (
                   </svg>
                   <p className="text-emerald-300 text-sm font-medium">Authentication successful!</p>
                 </div>
-                <p className="text-emerald-400 text-xs text-center mt-1">Redirecting to problems...</p>
+                <p className="text-emerald-400 text-xs text-center mt-1">Redirecting...</p>
               </div>
             )}
 
