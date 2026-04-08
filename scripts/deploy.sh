@@ -26,12 +26,7 @@ require_env_file() {
 
 deploy_frontend_fast() {
   echo "⚡ Fast frontend deploy"
-  echo "→ Building frontend dist locally..."
-  (
-    cd frontend
-    npm ci
-    npm run build
-  )
+  echo "→ Using prebuilt frontend dist from CI..."
 
   echo "→ Reloading nginx..."
   docker compose -f "$COMPOSE_FILE" up -d nginx
