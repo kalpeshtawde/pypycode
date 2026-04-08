@@ -43,12 +43,6 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-6 pt-28 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-200
-                        bg-emerald-50 text-emerald-700 text-xs font-mono mb-8 animate-fade-up">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-          Python challenges, nothing else
-        </div>
-
         <h1 className="font-display text-5xl sm:text-7xl font-semibold leading-[1.05] tracking-tight
                        text-slate-900 mb-6 animate-fade-up [animation-delay:100ms] opacity-0 [animation-fill-mode:forwards]">
           Write Python.

@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed areas
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'migrations/**'
+              - 'sandbox/**'
+              - 'docker-compose.prod.yml'
+              - 'scripts/deploy.sh'
+              - 'nginx/**'
+            frontend:
+              - 'frontend/**'
+              - 'nginx/**'
+              - 'scripts/deploy.sh'
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git pull origin main
+            chmod +x scripts/deploy.sh
+
+            if [ "${{ steps.changes.outputs.backend }}" = "true" ]; then
+              echo "Backend-related changes detected -> full stack deploy with migrations"
+              ./scripts/deploy.sh full-stack
+            else
+              echo "No backend changes detected -> frontend fast deploy"
+              ./scripts/deploy.sh frontend-fast
+            fi
