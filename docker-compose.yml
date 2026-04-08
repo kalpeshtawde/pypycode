@@ -22,6 +22,7 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:81/api
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     networks:
       - pypycode
 
@@ -39,6 +40,7 @@ services:
       - SECRET_KEY=dev-secret-key-change-in-prod
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       db:
         condition: service_healthy
