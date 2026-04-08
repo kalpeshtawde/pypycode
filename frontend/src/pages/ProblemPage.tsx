@@ -84,6 +84,20 @@ function buildTestCaseRows(submission: Submission): TestCaseRow[] {
   return rows;
 }
 
+function extractOutputTail(errorOutput: string | null | undefined, maxLines: number = 6): string | null {
+  if (!errorOutput) return null;
+  const outputMatch = errorOutput.match(/Output:\n([\s\S]*?)(?:\nErrors:\n|$)/i);
+  if (!outputMatch?.[1]) return null;
+
+  const lines = outputMatch[1]
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0);
+
+  if (!lines.length) return null;
+  return lines.slice(-maxLines).join("\n");
+}
+
 export default function ProblemPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -284,6 +298,7 @@ export default function ProblemPage() {
   };
 
   const testRows = useMemo(() => (submission ? buildTestCaseRows(submission) : []), [submission]);
+  const outputTail = useMemo(() => extractOutputTail(submission?.errorOutput), [submission?.errorOutput]);
 
   useEffect(() => {
     setExpandedTest(null);
@@ -931,6 +946,16 @@ export default function ProblemPage() {
                               {row.got ?? row.message ?? "Passed"}
                             </pre>
                           </div>
+                          {!row.passed && outputTail && (
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                                Output (last lines):
+                              </div>
+                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                                {outputTail}
+                              </pre>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
