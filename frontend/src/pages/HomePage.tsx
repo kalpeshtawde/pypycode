@@ -72,7 +72,7 @@ export default function HomePage() {
             {count} problems available
           </p>
         )}
-      </section> 
+      </section>
 
       {/* Code preview */}
       <section className="max-w-2xl mx-auto px-6 mb-24">

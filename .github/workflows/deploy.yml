@@ -48,7 +48,10 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npm run build
+          npm run build || (
+            npm i --no-save @rollup/rollup-linux-x64-gnu
+            npm run build
+          )
 
       - name: Copy frontend dist to server
         if: steps.changes.outputs.frontend == 'true'
