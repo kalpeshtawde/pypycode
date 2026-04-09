@@ -1,5 +1,6 @@
-from flask_admin import Admin
+from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
+from flask_admin.contrib.fileadmin import FileAdmin
 from wtforms import StringField, validators
 from flask_admin.form import BaseForm
 from flask import Response, jsonify
@@ -28,38 +29,45 @@ class UserForm(BaseForm):
 
 
 class UserAdmin(ModelView):
-    column_list = ['id', 'username', 'email', 'first_name', 'last_name', 'screen_name', 'google_id', 'created_at']
+    column_list = [
+        'id', 'username', 'email', 'first_name', 'last_name', 'screen_name',
+        'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at',
+        'google_id', 'created_at'
+    ]
     column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'screen_name']
-    column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name']
+    column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name', 'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at']
+    column_filters = ['subscription_status', 'trial_used', 'created_at']
     form = UserForm
     can_create = False
     can_delete = False
+    column_formatters = {
+        'trial_started_at': lambda view, context, model, name: model.trial_started_at.strftime('%Y-%m-%d %H:%M') if model.trial_started_at else '-',
+        'trial_ends_at': lambda view, context, model, name: model.trial_ends_at.strftime('%Y-%m-%d %H:%M') if model.trial_ends_at else '-',
+    }
 
 
 class SubscriptionAdmin(ModelView):
     column_list = [
-        Subscription.id,
-        Subscription.user_id,
-        Subscription.status,
-        Subscription.amount_cents,
-        Subscription.currency,
-        Subscription.interval,
-        Subscription.stripe_customer_id,
-        Subscription.stripe_subscription_id,
-        Subscription.created_at,
-        Subscription.updated_at,
+        'id', 'user_id', 'status', 'amount_cents', 'currency', 'interval',
+        'stripe_customer_id', 'stripe_subscription_id', 'created_at', 'updated_at'
     ]
     column_searchable_list = [
-        Subscription.user_id,
-        Subscription.status,
-        Subscription.stripe_customer_id,
-        Subscription.stripe_subscription_id,
-        Subscription.stripe_checkout_session_id,
-        Subscription.stripe_product_id,
-        Subscription.stripe_price_id,
+        'user_id', 'status', 'stripe_customer_id', 'stripe_subscription_id',
+        'stripe_checkout_session_id', 'stripe_product_id', 'stripe_price_id'
     ]
-    column_sortable_list = [Subscription.status, Subscription.created_at, Subscription.updated_at]
+    column_sortable_list = ['status', 'created_at', 'updated_at']
+    column_filters = ['status', 'currency', 'interval', 'created_at']
     can_create = False
+    column_formatters = {
+        'amount_cents': lambda v, c, m, p: f"${m.amount_cents/100:.2f}" if m.amount_cents else '-',
+        'created_at': lambda v, c, m, p: m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '-',
+        'updated_at': lambda v, c, m, p: m.updated_at.strftime('%Y-%m-%d %H:%M') if m.updated_at else '-',
+    }
+    column_labels = {
+        'amount_cents': 'Amount',
+        'stripe_customer_id': 'Stripe Customer',
+        'stripe_subscription_id': 'Stripe Subscription',
+    }
 
 
 class StripeWebhookEventAdmin(ModelView):
@@ -78,9 +86,14 @@ class StripeWebhookEventAdmin(ModelView):
 
 
 class ProblemAdmin(ModelView):
-    column_list = [Problem.id, Problem.slug, Problem.title, Problem.difficulty, Problem.created_at]
-    column_searchable_list = [Problem.slug, Problem.title]
-    column_sortable_list = [Problem.difficulty, Problem.created_at]
+    column_list = ['id', 'slug', 'title', 'difficulty', 'tags', 'created_at']
+    column_searchable_list = ['slug', 'title', 'description']
+    column_sortable_list = ['difficulty', 'created_at', 'slug']
+    column_filters = ['difficulty', 'created_at']
+    can_create = True
+    can_edit = True
+    can_delete = True
+    form_excluded_columns = ['submissions']
 
 
 class ProjectAdmin(ModelView):
@@ -90,9 +103,24 @@ class ProjectAdmin(ModelView):
 
 
 class SubmissionAdmin(ModelView):
-    column_list = [Submission.id, Submission.user_id, Submission.problem_id, Submission.status, Submission.created_at]
-    column_searchable_list = [Submission.status]
-    column_sortable_list = [Submission.status, Submission.created_at]
+    column_list = ['id', 'user_id', 'problem_id', 'project_id', 'status', 'passed_tests', 'total_tests', 'runtime_ms', 'memory_kb', 'created_at']
+    column_searchable_list = ['status', 'user_id', 'problem_id']
+    column_sortable_list = ['status', 'created_at', 'runtime_ms', 'memory_kb']
+    column_filters = ['status', 'created_at']
+    can_create = False
+    can_edit = False
+    can_delete = False
+    column_formatters = {
+        'created_at': lambda v, c, m, p: m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '-',
+        'runtime_ms': lambda v, c, m, p: f"{m.runtime_ms}ms" if m.runtime_ms else '-',
+        'memory_kb': lambda v, c, m, p: f"{m.memory_kb}KB" if m.memory_kb else '-',
+        'passed_tests': lambda v, c, m, p: f"{m.passed_tests}/{m.total_tests}" if m.total_tests else '-',
+    }
+    column_labels = {
+        'runtime_ms': 'Runtime',
+        'memory_kb': 'Memory',
+        'passed_tests': 'Tests',
+    }
 
 
 class ContactAdmin(ModelView):
@@ -175,8 +203,36 @@ def _perf_config_snapshot(config: PerfTestConfig):
     }
 
 
+class DashboardView(AdminIndexView):
+    @expose('/')
+    def index(self):
+        from app.models import User, Problem, Submission, Subscription, Contact
+        user_count = User.query.count()
+        problem_count = Problem.query.count()
+        submission_count = Submission.query.count()
+        subscription_count = Subscription.query.count()
+        pending_contacts = Contact.query.filter_by(status='pending').count()
+        
+        return self.render('admin/index.html',
+            user_count=user_count,
+            problem_count=problem_count,
+            submission_count=submission_count,
+            subscription_count=subscription_count,
+            pending_contacts=pending_contacts
+        )
+
+
 def init_admin(app):
-    admin = Admin(app, name='PyPyCode Admin', template_mode='bootstrap4')
+    admin = Admin(
+        app,
+        name='PyPyCode Admin',
+        template_mode='bootstrap4',
+        base_template='admin/master.html',
+        index_view=DashboardView(
+            name='Dashboard',
+            url='/admin'
+        )
+    )
     admin.add_view(UserAdmin(User, db.session))
     admin.add_view(ProblemAdmin(Problem, db.session))
     admin.add_view(ProjectAdmin(Project, db.session))

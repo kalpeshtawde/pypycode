@@ -2,22 +2,261 @@
 
 {% block head_css %}
 {{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 <style>
+  :root {
+    --primary-color: #1A6BFF;
+    --secondary-color: #0F172A;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --danger-color: #EF4444;
+    --bg-light: #F8FAFC;
+    --text-muted: #64748B;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-light);
+  }
+
+  .navbar {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #1e293b 100%) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
   .navbar-brand {
     display: flex !important;
     align-items: center !important;
-    gap: 10px !important;
+    gap: 12px !important;
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #fff !important;
+    letter-spacing: -0.3px;
   }
-  .navbar-brand img {
-    width: 32px;
-    height: 32px;
+
+  .navbar-brand:hover {
+    color: var(--primary-color) !important;
+  }
+
+  .navbar-brand i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+  }
+
+  .navbar-nav .nav-link {
+    color: rgba(255,255,255,0.8) !important;
+    font-weight: 500;
+    padding: 0.75rem 1rem !important;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .navbar-nav .nav-link:hover {
+    color: #fff !important;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .container-fluid {
+    padding: 1.5rem;
+  }
+
+  .table {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+    padding: 1rem;
+  }
+
+  .table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+  }
+
+  .table tbody tr:hover {
+    background: #F8FAFC;
+  }
+
+  .btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .btn-primary:hover {
+    background: #1557cc;
+    border-color: #1557cc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,107,255,0.3);
+  }
+
+  .btn-success {
+    background: var(--success-color);
+    border-color: var(--success-color);
+  }
+
+  .btn-danger {
+    background: var(--danger-color);
+    border-color: var(--danger-color);
+  }
+
+  .alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .form-control {
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26,107,255,0.1);
+  }
+
+  .card {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  }
+
+  .card-header {
+    background: #fff;
+    border-bottom: 1px solid #F1F5F9;
+    padding: 1.25rem;
+    font-weight: 600;
+  }
+
+  .badge {
+    border-radius: 20px;
+    padding: 0.35rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.75rem;
+  }
+
+  .badge-success {
+    background: rgba(16,185,129,0.1);
+    color: var(--success-color);
+  }
+
+  .badge-warning {
+    background: rgba(245,158,11,0.1);
+    color: var(--warning-color);
+  }
+
+  .badge-danger {
+    background: rgba(239,68,68,0.1);
+    color: var(--danger-color);
+  }
+
+  .list-group-item {
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    border: 1px solid #F1F5F9;
+    transition: all 0.2s ease;
+  }
+
+  .list-group-item:hover {
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+  }
+
+  .nav-sidebar {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 1rem;
+  }
+
+  .nav-sidebar .nav-link {
+    color: var(--text-muted) !important;
+    border-radius: 8px;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 0.25rem;
+  }
+
+  .nav-sidebar .nav-link:hover,
+  .nav-sidebar .nav-link.active {
+    color: var(--primary-color) !important;
+    background: rgba(26,107,255,0.08);
+  }
+
+  .nav-sidebar .nav-link i {
+    margin-right: 0.5rem;
+    width: 20px;
+    text-align: center;
+  }
+
+  .fa-trash::before {
+    content: "\F5DE";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-pencil::before {
+    content: "\F4CB";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-plus::before {
+    content: "\F4FE";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-filter::before {
+    content: "\F3E8";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-search::before {
+    content: "\F52B";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-refresh::before {
+    content: "\F130";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-user::before {
+    content: "\F4E1";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-home::before {
+    content: "\F3E5";
+    font-family: "bootstrap-icons";
+  }
+
+  .fa-asterisk::before {
+    content: "\F7BF";
+    font-family: "bootstrap-icons";
   }
 </style>
 {% endblock %}
 
 {% block brand %}
 <a class="navbar-brand" href="{{ url_for('admin.index') }}">
-  <img src="/logo.svg" alt="PyPyCode" />
+  <i class="bi bi-terminal"></i>
   PyPyCode Admin
 </a>
 {% endblock %}
