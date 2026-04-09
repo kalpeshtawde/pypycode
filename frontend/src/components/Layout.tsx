@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../utils/api";
+import type { BillingAccessStatus } from "../types";
 import Footer from "./Footer";
 
 export default function Layout() {
@@ -10,6 +11,8 @@ export default function Layout() {
   const location = useLocation();
   const authRedirectPath = `${location.pathname}${location.search}`;
   const authLink = `/auth?redirect=${encodeURIComponent(authRedirectPath)}`;
+  const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
+  const [loadingAccessStatus, setLoadingAccessStatus] = useState(false);
 
   useEffect(() => {
     if (token && !user) {
@@ -18,6 +21,32 @@ export default function Layout() {
         .catch(() => logout());
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setAccessStatus(null);
+      return;
+    }
+
+    setLoadingAccessStatus(true);
+    api
+      .get<BillingAccessStatus>("/billing/access-status", token)
+      .then((status) => setAccessStatus(status))
+      .catch(() => setAccessStatus(null))
+      .finally(() => setLoadingAccessStatus(false));
+  }, [token, location.pathname]);
+
+  useEffect(() => {
+    if (!token || loadingAccessStatus || !accessStatus) {
+      return;
+    }
+
+    const hasAccess = accessStatus.accessStatus === "subscribed" || accessStatus.accessStatus === "trialing";
+    const isPublicPath = location.pathname === "/auth" || location.pathname === "/pricing";
+    if (!hasAccess && !isPublicPath) {
+      navigate(`/pricing?required=1&redirect=${encodeURIComponent(authRedirectPath)}`, { replace: true });
+    }
+  }, [token, loadingAccessStatus, accessStatus, location.pathname, authRedirectPath, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -171,6 +200,12 @@ export default function Layout() {
               Leaderboard
             </NavLink>
             <NavLink 
+              to="/pricing" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Pricing
+            </NavLink>
+            <NavLink 
               to="/contact" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
@@ -251,6 +286,12 @@ export default function Layout() {
           </div>
         </nav>
       </header>
+
+      {accessStatus?.accessStatus === "trialing" && (
+        <div className="w-full border-b border-blue-200 bg-blue-50 px-6 py-2 text-center text-sm font-medium text-blue-700">
+          {accessStatus.trial.daysRemaining} day{accessStatus.trial.daysRemaining === 1 ? "" : "s"} left in your trial period
+        </div>
+      )}
 
       {/* Page content */}
       <main className="flex-1">

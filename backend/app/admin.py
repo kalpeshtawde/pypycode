@@ -6,7 +6,16 @@ from flask import Response, jsonify
 import json
 import os
 from app import db
-from app.models import User, Problem, Project, Submission, Contact, PerfTestConfig
+from app.models import (
+    User,
+    Problem,
+    Project,
+    Submission,
+    Contact,
+    PerfTestConfig,
+    Subscription,
+    StripeWebhookEvent,
+)
 
 
 class UserForm(BaseForm):
@@ -24,6 +33,47 @@ class UserAdmin(ModelView):
     column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name']
     form = UserForm
     can_create = False
+    can_delete = False
+
+
+class SubscriptionAdmin(ModelView):
+    column_list = [
+        Subscription.id,
+        Subscription.user_id,
+        Subscription.status,
+        Subscription.amount_cents,
+        Subscription.currency,
+        Subscription.interval,
+        Subscription.stripe_customer_id,
+        Subscription.stripe_subscription_id,
+        Subscription.created_at,
+        Subscription.updated_at,
+    ]
+    column_searchable_list = [
+        Subscription.user_id,
+        Subscription.status,
+        Subscription.stripe_customer_id,
+        Subscription.stripe_subscription_id,
+        Subscription.stripe_checkout_session_id,
+        Subscription.stripe_product_id,
+        Subscription.stripe_price_id,
+    ]
+    column_sortable_list = [Subscription.status, Subscription.created_at, Subscription.updated_at]
+    can_create = False
+
+
+class StripeWebhookEventAdmin(ModelView):
+    column_list = [
+        StripeWebhookEvent.id,
+        StripeWebhookEvent.event_type,
+        StripeWebhookEvent.processed,
+        StripeWebhookEvent.stripe_created_at,
+        StripeWebhookEvent.received_at,
+    ]
+    column_searchable_list = [StripeWebhookEvent.id, StripeWebhookEvent.event_type]
+    column_sortable_list = [StripeWebhookEvent.processed, StripeWebhookEvent.stripe_created_at, StripeWebhookEvent.received_at]
+    can_create = False
+    can_edit = False
     can_delete = False
 
 
@@ -133,6 +183,8 @@ def init_admin(app):
     admin.add_view(SubmissionAdmin(Submission, db.session))
     admin.add_view(ContactAdmin(Contact, db.session, name='Contact Queries', endpoint='contact-queries'))
     admin.add_view(PerfTestConfigAdmin(PerfTestConfig, db.session, name='Performance Config', endpoint='perf-config'))
+    admin.add_view(SubscriptionAdmin(Subscription, db.session, name='Subscriptions', endpoint='subscriptions'))
+    admin.add_view(StripeWebhookEventAdmin(StripeWebhookEvent, db.session, name='Stripe Webhook Events', endpoint='stripe-webhook-events'))
 
     @app.get("/admin/perf/jmeter.properties")
     def perf_jmeter_properties():

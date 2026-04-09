@@ -30,7 +30,8 @@ export default function AuthPage() {
     const redirect = searchParams.get("redirect");
     if (!redirect) return "/problems";
     if (!redirect.startsWith("/") || redirect.startsWith("//")) return "/problems";
-    return redirect;
+    if (redirect.startsWith("/problems/")) return redirect;
+    return "/problems";
   }, [searchParams]);
 
   // Check if user is already authenticated

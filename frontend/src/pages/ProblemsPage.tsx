@@ -10,12 +10,14 @@ function ProblemCell({
   problem,
   solvedProblems,
   selectedProjectId,
+  isLoggedIn,
   canOpenProblem,
   onMissingProject,
 }: {
   problem: Problem;
   solvedProblems: number[];
   selectedProjectId: string;
+  isLoggedIn: boolean;
   canOpenProblem: boolean;
   onMissingProject: () => void;
 }) {
@@ -33,10 +35,12 @@ function ProblemCell({
   const targetPath = selectedProjectId
     ? `/problems/${problem.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
     : `/problems/${problem.slug}`;
+  const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
+  const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
   return (
     <Link
-      to={targetPath}
+      to={isLoggedIn ? targetPath : authRedirectPath}
       title={`${problem.title} (${problem.difficulty})`}
       style={{
         width: '24px',
@@ -68,7 +72,7 @@ function ProblemCell({
         e.currentTarget.style.opacity = opacity.toString();
       }}
       onClick={(e) => {
-        if (!canOpenProblem) {
+        if (isLoggedIn && !canOpenProblem) {
           e.preventDefault();
           onMissingProject();
         }
@@ -528,6 +532,7 @@ export default function ProblemsPage() {
                       problem={p}
                       solvedProblems={solvedProblems}
                       selectedProjectId={selectedProjectId}
+                      isLoggedIn={isLoggedIn}
                       canOpenProblem={hasActiveProject}
                       onMissingProject={promptCreateProject}
                     />
@@ -699,13 +704,15 @@ export default function ProblemsPage() {
               const targetPath = selectedProjectId
                 ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
                 : `/problems/${p.slug}`;
+              const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
+              const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
               if (isHidden) return null;
 
               return (
                 <Link
                   key={p.id}
-                  to={targetPath}
+                  to={isLoggedIn ? targetPath : authRedirectPath}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '40px 60px 1fr 150px 120px',

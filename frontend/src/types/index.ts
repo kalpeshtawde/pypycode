@@ -68,6 +68,39 @@ export interface UserProfile {
   activity: ProfileActivity[];
 }
 
+export interface BillingTrialStatus {
+  isActive: boolean;
+  used: boolean;
+  daysRemaining: number;
+  startedAt: string | null;
+  endsAt: string | null;
+}
+
+export interface BillingSubscriptionSnapshot {
+  id: string;
+  status: string;
+  stripeProductId: string;
+  stripePriceId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  amountCents: number;
+  currency: string;
+  interval: string;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd: boolean;
+  canceledAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface BillingAccessStatus {
+  accessStatus: "none" | "trialing" | "trial_expired" | "subscribed";
+  subscriptionStatus: string;
+  trial: BillingTrialStatus;
+  subscription: BillingSubscriptionSnapshot | null;
+}
+
 export interface Project {
   id: string;
   name: string;

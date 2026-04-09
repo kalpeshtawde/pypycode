@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
-import type { UserProfile } from "../types";
+import type { BillingAccessStatus, UserProfile } from "../types";
 
 export default function ProfilePage() {
   const { token, setAuth, logout } = useAuthStore();
@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [billingStatus, setBillingStatus] = useState<BillingAccessStatus | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -49,6 +50,11 @@ export default function ProfilePage() {
         }
       })
       .finally(() => setLoading(false));
+
+    api
+      .get<BillingAccessStatus>("/billing/access-status", token)
+      .then((res) => setBillingStatus(res))
+      .catch(() => setBillingStatus(null));
   }, [token, navigate, logout]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,6 +242,24 @@ export default function ProfilePage() {
                 {saving ? "Saving..." : "Save Changes"}
               </button>
             </form>
+
+            <div className="mt-8 border-t border-slate-200 pt-6">
+              <h3 className="text-slate-900 font-semibold mb-3">Subscription status</h3>
+              {!billingStatus && <p className="text-slate-500 text-sm">Unable to load billing status.</p>}
+              {billingStatus && (
+                <div className="space-y-2 text-sm text-slate-700">
+                  <p>
+                    Access: <span className="font-semibold capitalize">{billingStatus.accessStatus.replace("_", " ")}</span>
+                  </p>
+                  <p>
+                    Subscription: <span className="font-semibold capitalize">{billingStatus.subscriptionStatus.replace("_", " ")}</span>
+                  </p>
+                  <p>
+                    Trial: <span className="font-semibold">{billingStatus.trial.daysRemaining} days remaining</span>
+                  </p>
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

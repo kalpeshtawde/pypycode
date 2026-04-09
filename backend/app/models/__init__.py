@@ -14,9 +14,14 @@ class User(db.Model):
     first_name = db.Column(db.String(128), nullable=True)
     last_name = db.Column(db.String(128), nullable=True)
     screen_name = db.Column(db.String(64), unique=True, nullable=True)
+    subscription_status = db.Column(db.String(64), nullable=False, default="none")
+    trial_started_at = db.Column(db.DateTime, nullable=True)
+    trial_ends_at = db.Column(db.DateTime, nullable=True)
+    trial_used = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     projects = db.relationship("Project", back_populates="user")
     submissions = db.relationship("Submission", back_populates="user")
+    subscriptions = db.relationship("Subscription", back_populates="user")
 
     def set_password(self, pw: str):
         self.password_hash = bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -105,3 +110,38 @@ class PerfTestConfig(db.Model):
     project_id = db.Column(db.String(36), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class Subscription(db.Model):
+    __tablename__ = "subscriptions"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False, index=True)
+    stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True, unique=True, index=True)
+    stripe_checkout_session_id = db.Column(db.String(255), nullable=True, unique=True, index=True)
+    stripe_product_id = db.Column(db.String(255), nullable=False)
+    stripe_price_id = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(64), nullable=False, default="pending")
+    amount_cents = db.Column(db.Integer, nullable=False, default=3000)
+    currency = db.Column(db.String(16), nullable=False, default="usd")
+    interval = db.Column(db.String(16), nullable=False, default="year")
+    current_period_start = db.Column(db.DateTime, nullable=True)
+    current_period_end = db.Column(db.DateTime, nullable=True)
+    cancel_at_period_end = db.Column(db.Boolean, nullable=False, default=False)
+    canceled_at = db.Column(db.DateTime, nullable=True)
+    raw_payload = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship("User", back_populates="subscriptions")
+
+
+class StripeWebhookEvent(db.Model):
+    __tablename__ = "stripe_webhook_events"
+    id = db.Column(db.String(255), primary_key=True)
+    event_type = db.Column(db.String(128), nullable=False)
+    stripe_created_at = db.Column(db.DateTime, nullable=True)
+    payload = db.Column(db.JSON, nullable=False)
+    processed = db.Column(db.Boolean, nullable=False, default=False)
+    processing_error = db.Column(db.Text, nullable=True)
+    received_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
