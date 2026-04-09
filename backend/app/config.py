@@ -16,6 +16,7 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/2")
 
     ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
+    PROBLEM_INGEST_KEY = os.environ.get("PROBLEM_INGEST_KEY")
 
 
 class PerfConfig(Config):

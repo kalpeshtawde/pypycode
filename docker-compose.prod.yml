@@ -30,6 +30,7 @@ services:
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - PROBLEM_INGEST_KEY=${PROBLEM_INGEST_KEY}
     depends_on:
       - redis
     restart: unless-stopped

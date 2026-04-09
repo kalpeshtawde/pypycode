@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+import hmac
+from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import Problem, Submission
 from app import db
@@ -18,6 +19,45 @@ def problem_to_dict(p: Problem, hide_tests=True):
         "tags": p.tags or [],
         "createdAt": p.created_at.isoformat(),
     }
+
+
+def _require_non_empty_string(data: dict, field: str):
+    value = data.get(field)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
+
+
+def _validate_examples(examples):
+    if not isinstance(examples, list) or not examples:
+        return False
+
+    for example in examples:
+        if not isinstance(example, dict):
+            return False
+        if not isinstance(example.get("input"), str) or not isinstance(example.get("output"), str):
+            return False
+        if "explanation" in example and not isinstance(example.get("explanation"), str):
+            return False
+
+    return True
+
+
+def _validate_test_cases(test_cases):
+    if not isinstance(test_cases, list) or not test_cases:
+        return False
+
+    for test_case in test_cases:
+        if not isinstance(test_case, dict):
+            return False
+        if "expected" not in test_case:
+            return False
+        if "input" not in test_case and "args" not in test_case:
+            return False
+        if "function" in test_case and not isinstance(test_case.get("function"), str):
+            return False
+
+    return True
 
 
 @problems_bp.get("/")
@@ -84,6 +124,65 @@ def list_problems():
             "next_num": pagination.next_num
         }
     })
+
+
+@problems_bp.post("/public-ingest")
+def public_ingest_problem():
+    data = request.get_json() or {}
+
+    expected_key = current_app.config.get("PROBLEM_INGEST_KEY")
+    provided_key = data.get("ingestKey")
+
+    if not expected_key:
+        return jsonify(error="Problem ingest key is not configured on server"), 503
+
+    if not isinstance(provided_key, str) or not hmac.compare_digest(provided_key, expected_key):
+        return jsonify(error="Invalid ingest key"), 403
+
+    slug = _require_non_empty_string(data, "slug")
+    title = _require_non_empty_string(data, "title")
+    difficulty = _require_non_empty_string(data, "difficulty")
+    description = _require_non_empty_string(data, "description")
+    starter_code = _require_non_empty_string(data, "starterCode")
+    examples = data.get("examples")
+    test_cases = data.get("testCases")
+    tags = data.get("tags", [])
+
+    if not slug or not title or not difficulty or not description or not starter_code:
+        return jsonify(error="slug, title, difficulty, description, and starterCode are required"), 400
+
+    difficulty = difficulty.lower()
+    if difficulty not in {"easy", "medium", "hard"}:
+        return jsonify(error="difficulty must be one of: easy, medium, hard"), 400
+
+    if not _validate_examples(examples):
+        return jsonify(error="examples must be a non-empty array of {input, output, explanation?}"), 400
+
+    if not _validate_test_cases(test_cases):
+        return jsonify(error="testCases must be a non-empty array with expected and input or args"), 400
+
+    if tags is None:
+        tags = []
+    if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
+        return jsonify(error="tags must be an array of strings"), 400
+
+    if Problem.query.filter_by(slug=slug).first():
+        return jsonify(error="Problem slug already exists"), 409
+
+    problem = Problem(
+        slug=slug,
+        title=title,
+        difficulty=difficulty,
+        description=description,
+        starter_code=starter_code,
+        test_cases=test_cases,
+        examples=examples,
+        tags=tags,
+    )
+    db.session.add(problem)
+    db.session.commit()
+
+    return jsonify(problem_to_dict(problem)), 201
 
 
 @problems_bp.get("/<slug>")

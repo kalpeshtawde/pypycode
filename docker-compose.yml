@@ -41,6 +41,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - PROBLEM_INGEST_KEY=${PROBLEM_INGEST_KEY}
     depends_on:
       db:
         condition: service_healthy

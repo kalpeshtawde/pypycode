@@ -10,6 +10,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import ProfilePage from "./pages/ProfilePage";
+import ProblemIngestPage from "./pages/ProblemIngestPage";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="auth" element={<AuthPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
+          <Route path="problem-ingest" element={<ProblemIngestPage />} />
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="about" element={<AboutPage />} />
