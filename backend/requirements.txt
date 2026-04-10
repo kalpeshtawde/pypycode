@@ -19,3 +19,5 @@ google-auth-httplib2==0.2.0
 requests==2.31.0
 flask-admin==1.6.1
 stripe==11.6.0
+pytest==8.3.3
+pytest-mock==3.14.0
