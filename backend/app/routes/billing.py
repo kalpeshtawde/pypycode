@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 billing_bp = Blueprint("billing", __name__)
 
 
-STRIPE_PRODUCT_ID = os.getenv("STRIPE_PRODUCT_ID", "prod_UIjX4gboLVPWDq")
-STRIPE_PRICE_CENTS = int(os.getenv("STRIPE_ANNUAL_PRICE_CENTS", "3000"))
-STRIPE_CURRENCY = os.getenv("STRIPE_CURRENCY", "usd")
+STRIPE_PRODUCT_ID = os.getenv("STRIPE_PRODUCT_ID") or "prod_UIjX4gboLVPWDq"
+STRIPE_PRICE_CENTS = int(os.getenv("STRIPE_ANNUAL_PRICE_CENTS") or "3000")
+STRIPE_CURRENCY = os.getenv("STRIPE_CURRENCY") or "usd"
 STRIPE_INTERVAL = "year"
 TRIAL_DAYS = 15
 ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing", "past_due", "unpaid"}
