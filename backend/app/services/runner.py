@@ -17,9 +17,15 @@ CPU_QUOTA = 50000  # 0.5 CPU
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
     for tc in problem.test_cases:
+        expected = tc.get("expected")
+        if isinstance(expected, str):
+            try:
+                expected = json.loads(expected)
+            except json.JSONDecodeError:
+                pass  # Keep as string if not valid JSON
         converted_tc = {
             "function": tc.get("function", "solution"),
-            "expected": json.loads(tc["expected"]) if isinstance(tc["expected"], str) else tc["expected"],
+            "expected": expected,
         }
         if "input" in tc:
             input_str = tc["input"]
