@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
-import type { Problem, Project } from "../types";
+import type { Problem, Project, BillingAccessStatus } from "../types";
 
 const DIFFS = ["all", "easy", "medium", "hard"] as const;
 
@@ -13,6 +13,7 @@ function ProblemCell({
   isLoggedIn,
   canOpenProblem,
   onMissingProject,
+  hasBillingAccess,
 }: {
   problem: Problem;
   solvedProblems: number[];
@@ -20,6 +21,7 @@ function ProblemCell({
   isLoggedIn: boolean;
   canOpenProblem: boolean;
   onMissingProject: () => void;
+  hasBillingAccess?: boolean;
 }) {
   const isSolved = solvedProblems.includes(problem.id);
   
@@ -38,9 +40,16 @@ function ProblemCell({
   const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
   const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
+  // If logged in but no billing access, go to pricing
+  const problemLink = !isLoggedIn
+    ? authRedirectPath
+    : hasBillingAccess
+    ? targetPath
+    : pricingRedirectPath;
+
   return (
     <Link
-      to={isLoggedIn ? targetPath : authRedirectPath}
+      to={problemLink}
       title={`${problem.title} (${problem.difficulty})`}
       style={{
         width: '24px',
@@ -86,6 +95,8 @@ function ProblemCell({
 export default function ProblemsPage() {
   const { token } = useAuthStore();
   const isLoggedIn = Boolean(token);
+  const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
+  const hasBillingAccess = accessStatus?.accessStatus === "subscribed" || accessStatus?.accessStatus === "trialing";
   const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -218,6 +229,18 @@ export default function ProblemsPage() {
         setSolvedProblems([]);
       });
   }, [token, selectedProjectId]);
+
+  // Fetch billing access status for gating
+  useEffect(() => {
+    if (!token) {
+      setAccessStatus(null);
+      return;
+    }
+    api
+      .get<BillingAccessStatus>("/billing/access-status", token)
+      .then((res) => setAccessStatus(res))
+      .catch(() => setAccessStatus(null));
+  }, [token]);
 
   const handleCreateProject = async () => {
     if (!token || creatingProject) return;
@@ -535,6 +558,7 @@ export default function ProblemsPage() {
                       isLoggedIn={isLoggedIn}
                       canOpenProblem={hasActiveProject}
                       onMissingProject={promptCreateProject}
+                      hasBillingAccess={hasBillingAccess}
                     />
                   </div>
                 ))}
@@ -707,12 +731,19 @@ export default function ProblemsPage() {
               const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
               const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
+              // If logged in but no billing access, go to pricing
+              const problemLink = !isLoggedIn
+                ? authRedirectPath
+                : hasBillingAccess
+                ? targetPath
+                : pricingRedirectPath;
+
               if (isHidden) return null;
 
               return (
                 <Link
                   key={p.id}
-                  to={isLoggedIn ? targetPath : authRedirectPath}
+                  to={problemLink}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '40px 60px 1fr 150px 120px',

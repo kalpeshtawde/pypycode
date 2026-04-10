@@ -251,12 +251,29 @@ export default function ProfilePage() {
                   <p>
                     Access: <span className="font-semibold capitalize">{billingStatus.accessStatus.replace("_", " ")}</span>
                   </p>
-                  <p>
-                    Subscription: <span className="font-semibold capitalize">{billingStatus.subscriptionStatus.replace("_", " ")}</span>
-                  </p>
-                  <p>
-                    Trial: <span className="font-semibold">{billingStatus.trial.daysRemaining} days remaining</span>
-                  </p>
+
+                  {billingStatus.accessStatus === "trialing" && billingStatus.trial.endsAt && (
+                    <p>
+                      Trial ends: <span className="font-semibold">{new Date(billingStatus.trial.endsAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </p>
+                  )}
+
+                  {billingStatus.accessStatus === "subscribed" && billingStatus.subscription?.currentPeriodEnd && (
+                    <p>
+                      Renews on: <span className="font-semibold">{new Date(billingStatus.subscription.currentPeriodEnd).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </p>
+                  )}
+
+                  {billingStatus.accessStatus === "trial_expired" && billingStatus.trial.used && (
+                    <div className="text-amber-700">
+                      <p className="font-semibold">Trial consumed</p>
+                      <p className="text-sm">Your 15-day free trial has been used. Subscribe annually to continue accessing all problems.</p>
+                    </div>
+                  )}
+
+                  {billingStatus.accessStatus === "none" && !billingStatus.trial.used && (
+                    <p className="text-slate-500">No active subscription. Start a trial or subscribe to access all problems.</p>
+                  )}
                 </div>
               )}
             </div>

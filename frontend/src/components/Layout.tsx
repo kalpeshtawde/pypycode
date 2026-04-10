@@ -42,8 +42,9 @@ export default function Layout() {
     }
 
     const hasAccess = accessStatus.accessStatus === "subscribed" || accessStatus.accessStatus === "trialing";
-    const isPublicPath = location.pathname === "/auth" || location.pathname === "/pricing";
-    if (!hasAccess && !isPublicPath) {
+    const isPublicPath = location.pathname === "/auth" || location.pathname === "/pricing" || location.pathname === "/problems";
+    const isProblemDetail = location.pathname.startsWith("/problems/") && location.pathname !== "/problems/";
+    if (!hasAccess && !isPublicPath && isProblemDetail) {
       navigate(`/pricing?required=1&redirect=${encodeURIComponent(authRedirectPath)}`, { replace: true });
     }
   }, [token, loadingAccessStatus, accessStatus, location.pathname, authRedirectPath, navigate]);

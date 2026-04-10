@@ -1,7 +1,7 @@
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.fileadmin import FileAdmin
-from wtforms import StringField, validators
+from wtforms import StringField, BooleanField, DateTimeField, validators
 from flask_admin.form import BaseForm
 from flask import Response, jsonify
 import json
@@ -26,6 +26,10 @@ class UserForm(BaseForm):
     last_name = StringField('Last Name')
     screen_name = StringField('Screen Name')
     google_id = StringField('Google ID')
+    subscription_status = StringField('Subscription Status')
+    trial_used = BooleanField('Trial Used')
+    trial_started_at = DateTimeField('Trial Started At', format='%Y-%m-%d %H:%M:%S')
+    trial_ends_at = DateTimeField('Trial Ends At', format='%Y-%m-%d %H:%M:%S')
 
 
 class UserAdmin(ModelView):

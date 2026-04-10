@@ -10,6 +10,9 @@ import stripe
 
 from app import db
 from app.models import StripeWebhookEvent, Subscription, User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 billing_bp = Blueprint("billing", __name__)
@@ -52,7 +55,8 @@ def _stripe_to_dict(value):
 def _to_datetime(unix_ts):
     if not unix_ts:
         return None
-    return datetime.fromtimestamp(unix_ts, tz=timezone.utc)
+    # Return UTC naive datetime for database compatibility
+    return datetime.fromtimestamp(unix_ts, tz=timezone.utc).replace(tzinfo=None)
 
 
 def _as_utc_naive(value: Optional[datetime]):
@@ -75,6 +79,9 @@ def _sync_subscription(stripe_subscription, fallback_user_id=None, checkout_sess
         local_subscription = Subscription.query.filter_by(stripe_subscription_id=stripe_subscription_id).first()
     if local_subscription is None and checkout_session_id:
         local_subscription = Subscription.query.filter_by(stripe_checkout_session_id=checkout_session_id).first()
+        # If found by checkout session but has different stripe_subscription_id, skip updating checkout_session_id later
+        if local_subscription and stripe_subscription_id and local_subscription.stripe_subscription_id != stripe_subscription_id:
+            checkout_session_id = None  # Don't try to re-assign, it belongs to another subscription
 
     if local_subscription is None:
         if not user_id:
@@ -97,7 +104,9 @@ def _sync_subscription(stripe_subscription, fallback_user_id=None, checkout_sess
     local_subscription.stripe_subscription_id = stripe_subscription_id
     if checkout_session_id:
         local_subscription.stripe_checkout_session_id = checkout_session_id
-    local_subscription.status = stripe_subscription.get("status") or local_subscription.status
+    stripe_status = stripe_subscription.get("status")
+    local_subscription.status = stripe_status or local_subscription.status
+    logger.info(f"Subscription sync: stripe_status={stripe_status}, local_status={local_subscription.status}")
     local_subscription.stripe_price_id = price.get("id")
     local_subscription.stripe_product_id = price.get("product") or local_subscription.stripe_product_id
     local_subscription.amount_cents = price.get("unit_amount") or local_subscription.amount_cents
@@ -371,20 +380,25 @@ def stripe_webhook():
             if event_object.get("mode") == "subscription":
                 subscription_id = event_object.get("subscription")
                 user_id = event_object.get("client_reference_id")
+                logger.info(f"Checkout completed: subscription_id={subscription_id}, user_id={user_id}")
                 if subscription_id:
                     stripe_subscription = stripe.Subscription.retrieve(subscription_id)
-                    _sync_subscription(
+                    logger.info(f"Retrieved Stripe subscription: current_period_end={stripe_subscription.get('current_period_end')}")
+                    local_sub = _sync_subscription(
                         stripe_subscription,
                         fallback_user_id=user_id,
                         checkout_session_id=event_object.get("id"),
                     )
+                    logger.info(f"Synced subscription: id={local_sub.id}, current_period_end={local_sub.current_period_end}")
 
         elif event_type in {
             "customer.subscription.created",
             "customer.subscription.updated",
             "customer.subscription.deleted",
         }:
-            _sync_subscription(event_object)
+            logger.info(f"Subscription event: {event_type}, sub_id={event_object.get('id')}, period_end={event_object.get('current_period_end')}")
+            local_sub = _sync_subscription(event_object)
+            logger.info(f"Synced from {event_type}: id={local_sub.id}, current_period_end={local_sub.current_period_end}")
 
         elif event_type in {"invoice.payment_succeeded", "invoice.payment_failed"}:
             subscription_id = event_object.get("subscription")

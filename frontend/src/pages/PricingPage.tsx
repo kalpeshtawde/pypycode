@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../hooks/useAuth";
-import type { BillingAccessStatus } from "../types";
+import type { BillingAccessStatus, BillingSubscriptionSnapshot } from "../types";
 import { api } from "../utils/api";
 
 interface PricingResponse {
@@ -30,6 +30,7 @@ export default function PricingPage() {
 
   const [pricing, setPricing] = useState<PricingResponse | null>(null);
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
+  const [subscription, setSubscription] = useState<BillingSubscriptionSnapshot | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(true);
   const [loadingAccessStatus, setLoadingAccessStatus] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
@@ -66,6 +67,14 @@ export default function PricingPage() {
         setError(err instanceof Error ? err.message : "Unable to check trial eligibility");
       })
       .finally(() => setLoadingAccessStatus(false));
+
+    // Fetch subscription details on successful payment return
+    if (isSuccess && token) {
+      api
+        .get<{ subscription: BillingSubscriptionSnapshot }>("/billing/subscription", token)
+        .then((res) => setSubscription(res.subscription))
+        .catch(() => {}); // Silently ignore - subscription may not be synced yet
+    }
   }, [token, isSuccess]);
 
   const safeRedirectAfterUnlock = useMemo(() => {
@@ -127,8 +136,45 @@ export default function PricingPage() {
         </div>
 
         {isSuccess && (
-          <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-800 text-sm text-center">
-            Payment successful. Your annual subscription is being activated.
+          <div className="mb-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+              <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="font-display text-2xl font-bold text-slate-900 mb-2">
+              Payment Successful!
+            </h2>
+            <p className="text-slate-600 mb-6">
+              Your annual subscription has been activated. You now have full access to all PyPyCode features.
+            </p>
+            {subscription?.currentPeriodEnd && (
+              <div className="mb-6 inline-block rounded-xl bg-white border border-emerald-100 px-6 py-4 text-left shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Subscription renews on</div>
+                <div className="font-semibold text-slate-900 text-lg">
+                  {new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => navigate(safeRedirectAfterUnlock)}
+                className="btn-primary text-base px-8 py-3"
+              >
+                Continue to Problems
+              </button>
+              <Link
+                to="/profile"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+              >
+                View Subscription in Profile
+              </Link>
+            </div>
           </div>
         )}
 
