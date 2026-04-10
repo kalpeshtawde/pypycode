@@ -35,7 +35,10 @@ def _stripe_webhook_secret() -> Optional[str]:
 
 
 def _frontend_url() -> str:
-    return os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    url = os.getenv("FRONTEND_URL")
+    if not url:
+        url = "http://localhost:5173"
+    return url.rstrip("/")
 
 
 def _safe_redirect_path(path: Optional[str]) -> str:
