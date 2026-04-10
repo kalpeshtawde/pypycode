@@ -28,7 +28,7 @@ jobs:
 
       - name: Run backend tests
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           SECRET_KEY: test-secret-key-1234567890-1234567890
           CELERY_BROKER_URL: memory://
           CELERY_RESULT_BACKEND: cache+memory://
