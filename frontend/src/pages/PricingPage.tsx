@@ -112,7 +112,7 @@ export default function PricingPage() {
     try {
       const response = await api.post<BillingAccessStatus>("/billing/start-trial", {}, token);
       setAccessStatus(response);
-      navigate(safeRedirectAfterUnlock, { replace: true });
+      navigate("/problems", { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unable to start trial");
     } finally {
@@ -249,6 +249,8 @@ export default function PricingPage() {
               <p className="text-slate-600 text-sm">
                 {hasSubscriptionAccess
                   ? "You already have an active subscription."
+                  : accessStatus?.accessStatus === "trialing"
+                  ? "Trial activated. You have full access to all problems."
                   : accessStatus?.trial.used
                   ? "Trial already used for this account."
                   : "Trial is not available right now."}
