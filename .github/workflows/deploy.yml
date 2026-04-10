@@ -46,6 +46,8 @@ jobs:
       - name: Build frontend dist
         if: steps.changes.outputs.frontend == 'true'
         working-directory: frontend
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
           npm ci
           npm run build || (
