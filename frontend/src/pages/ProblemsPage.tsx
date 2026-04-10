@@ -105,7 +105,7 @@ export default function ProblemsPage() {
   );
   const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
   const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
-  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
+  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at" | "favorite">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
@@ -118,6 +118,8 @@ export default function ProblemsPage() {
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
+  const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const sortProjects = (items: Project[]) => {
     return [...items].sort((a, b) => {
@@ -240,6 +242,21 @@ export default function ProblemsPage() {
       .get<BillingAccessStatus>("/billing/access-status", token)
       .then((res) => setAccessStatus(res))
       .catch(() => setAccessStatus(null));
+  }, [token]);
+
+  // Fetch user's favorite problem IDs
+  useEffect(() => {
+    if (!token) {
+      setFavoriteProblemIds(new Set());
+      return;
+    }
+    api
+      .get<{ favorites: Array<{ problem: { id: string } }> }>("/favorites/", token)
+      .then((res) => {
+        const ids = new Set(res.favorites.map((f) => f.problem.id));
+        setFavoriteProblemIds(ids);
+      })
+      .catch(() => setFavoriteProblemIds(new Set()));
   }, [token]);
 
   const handleCreateProject = async () => {
@@ -671,7 +688,31 @@ export default function ProblemsPage() {
             }}>
               All Problems
             </h3>
-            
+
+            {/* Search input */}
+            <div className="flex items-center gap-2 flex-1 max-w-md mx-8">
+              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title or tags..."
+                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-slate-400 hover:text-slate-600 p-1"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
             {/* Sort controls - same line as heading */}
             <div className="flex items-center gap-3">
               <span className="text-xs font-mono text-slate-600">Sort:</span>
@@ -683,6 +724,7 @@ export default function ProblemsPage() {
                 <option value="id">Default</option>
                 <option value="difficulty">Difficulty</option>
                 <option value="created_at">Date Added</option>
+                <option value="favorite">Favorites</option>
               </select>
               <button
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
@@ -703,7 +745,7 @@ export default function ProblemsPage() {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '40px 60px 1fr 150px 120px',
+              gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
               gap: '16px',
               padding: '16px 24px',
               background: '#F8FAFC',
@@ -714,6 +756,7 @@ export default function ProblemsPage() {
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
             }}>
+              <div style={{ textAlign: 'center' }}>★</div>
               <div></div>
               <div>#</div>
               <div>Title</div>
@@ -721,65 +764,111 @@ export default function ProblemsPage() {
               <div style={{ textAlign: 'right' }}>Difficulty</div>
             </div>
 
-            {/* Table Rows */}
-            {problems.map((p) => {
-              const isHidden = filter !== 'all' && p.difficulty !== filter;
-              const isSolved = solvedProblems.includes(p.id);
-              const targetPath = selectedProjectId
-                ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
-                : `/problems/${p.slug}`;
-              const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
-              const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
+            {/* Table Rows - with search filter and favorite sorting */}
+            {(() => {
+              // Filter by search query (title and tags)
+              const filtered = searchQuery.trim()
+                ? problems.filter((p) => {
+                    const query = searchQuery.toLowerCase();
+                    const inTitle = p.title.toLowerCase().includes(query);
+                    const inTags = p.tags.some((t) => t.toLowerCase().includes(query));
+                    return inTitle || inTags;
+                  })
+                : problems;
 
-              // If logged in but no billing access, go to pricing
-              const problemLink = !isLoggedIn
-                ? authRedirectPath
-                : hasBillingAccess
-                ? targetPath
-                : pricingRedirectPath;
+              // Sort by favorite if selected (client-side since favorites are user-specific)
+              const sorted = sortBy === "favorite"
+                ? [...filtered].sort((a, b) => {
+                    const aFav = favoriteProblemIds.has(String(a.id));
+                    const bFav = favoriteProblemIds.has(String(b.id));
+                    return sortOrder === "desc"
+                      ? Number(aFav) - Number(bFav)  // Favorites last
+                      : Number(bFav) - Number(aFav); // Favorites first
+                  })
+                : filtered;
 
-              if (isHidden) return null;
+              return sorted.map((p) => {
+                const isHidden = filter !== 'all' && p.difficulty !== filter;
+                const isSolved = solvedProblems.includes(p.id);
+                const targetPath = selectedProjectId
+                  ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
+                  : `/problems/${p.slug}`;
+                const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
+                const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
-              return (
-                <Link
-                  key={p.id}
-                  to={problemLink}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '40px 60px 1fr 150px 120px',
-                    gap: '16px',
-                    padding: '16px 24px',
-                    borderBottom: '1px solid #F1F5F9',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 150ms ease',
-                    background: isSolved ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)' : 'white',
-                    textDecoration: 'none',
-                    color: 'inherit'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isSolved 
-                      ? 'linear-gradient(90deg, #DCFCE7 0%, #F8FAFC 100%)'
-                      : '#F8FAFC';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isSolved 
-                      ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)'
-                      : 'white';
-                  }}
-                  onClick={(e) => {
-                    if (isLoggedIn && !hasActiveProject) {
-                      e.preventDefault();
-                      promptCreateProject();
-                    }
-                  }}
-                >
-                  {/* Solved Checkmark */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
+                // If logged in but no billing access, go to pricing
+                const problemLink = !isLoggedIn
+                  ? authRedirectPath
+                  : hasBillingAccess
+                  ? targetPath
+                  : pricingRedirectPath;
+
+                if (isHidden) return null;
+
+                const isFavorite = favoriteProblemIds.has(String(p.id));
+
+                return (
+                  <Link
+                    key={p.id}
+                    to={problemLink}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
+                      gap: '16px',
+                      padding: '16px 24px',
+                      borderBottom: '1px solid #F1F5F9',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease',
+                      background: isSolved ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)' : 'white',
+                      textDecoration: 'none',
+                      color: 'inherit'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = isSolved
+                        ? 'linear-gradient(90deg, #DCFCE7 0%, #F8FAFC 100%)'
+                        : '#F8FAFC';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = isSolved
+                        ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)'
+                        : 'white';
+                    }}
+                    onClick={(e) => {
+                      if (isLoggedIn && !hasActiveProject) {
+                        e.preventDefault();
+                        promptCreateProject();
+                      }
+                    }}
+                  >
+                    {/* Favorite Star */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {isFavorite && (
+                        <svg
+                          className="w-5 h-5"
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            fill: '#FBBF24',
+                            filter: 'drop-shadow(0 1px 2px rgba(251, 191, 36, 0.3))'
+                          }}
+                          viewBox="0 0 24 24"
+                        >
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Solved Checkmark */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
                     {isSolved && (
                       <div
                         style={{
@@ -800,25 +889,25 @@ export default function ProblemsPage() {
                         ✓
                       </div>
                     )}
-                  </div>
+                    </div>
 
-                  {/* Problem Number */}
-                  <div style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: isSolved ? '#10B981' : '#CBD5E1'
-                  }}>
+                    {/* Problem Number */}
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: isSolved ? '#10B981' : '#CBD5E1'
+                    }}>
                     {String(problemSequence.get(p.id) || 0).padStart(2, '0')}
-                  </div>
+                    </div>
 
-                  {/* Title */}
-                  <div style={{
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    color: isSolved ? '#10B981' : '#0F172A'
-                  }}>
-                    {p.title}
-                  </div>
+                    {/* Title */}
+                    <div style={{
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: isSolved ? '#10B981' : '#0F172A'
+                    }}>
+                      {p.title}
+                    </div>
 
                   {/* Tags */}
                   <div style={{
@@ -842,41 +931,42 @@ export default function ProblemsPage() {
                         {tag}
                       </span>
                     ))}
-                  </div>
+                    </div>
 
-                  {/* Difficulty Badge */}
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        display: 'inline-block',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        padding: '4px 12px',
-                        borderRadius: '999px',
-                        textTransform: 'capitalize',
-                        background: p.difficulty === 'easy' 
-                          ? '#ECFDF5' 
-                          : p.difficulty === 'medium' 
-                          ? '#FFFBEB' 
-                          : '#FEF2F2',
-                        color: p.difficulty === 'easy' 
-                          ? '#10B981' 
-                          : p.difficulty === 'medium' 
-                          ? '#F59E0B' 
-                          : '#EF4444',
-                        border: p.difficulty === 'easy'
-                          ? '1px solid rgba(16,185,129,0.2)'
-                          : p.difficulty === 'medium'
-                          ? '1px solid rgba(245,158,11,0.2)'
-                          : '1px solid rgba(239,68,68,0.2)'
-                      }}
-                    >
-                      {p.difficulty}
+                    {/* Difficulty Badge */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          padding: '4px 12px',
+                          borderRadius: '999px',
+                          textTransform: 'capitalize',
+                          background: p.difficulty === 'easy'
+                            ? '#ECFDF5'
+                            : p.difficulty === 'medium'
+                            ? '#FFFBEB'
+                            : '#FEF2F2',
+                          color: p.difficulty === 'easy'
+                            ? '#10B981'
+                            : p.difficulty === 'medium'
+                            ? '#F59E0B'
+                            : '#EF4444',
+                          border: p.difficulty === 'easy'
+                            ? '1px solid rgba(16,185,129,0.2)'
+                            : p.difficulty === 'medium'
+                            ? '1px solid rgba(245,158,11,0.2)'
+                            : '1px solid rgba(239,68,68,0.2)'
+                        }}
+                      >
+                        {p.difficulty}
                     </div>
                   </div>
                 </Link>
               );
-            })}
+            });
+          })()}
           </div>
         </div>
       </div>

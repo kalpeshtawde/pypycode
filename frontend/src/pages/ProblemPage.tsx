@@ -121,6 +121,8 @@ export default function ProblemPage() {
   const [vimMode, setVimMode] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [expandedTest, setExpandedTest] = useState<number | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isCheckingFavorite, setIsCheckingFavorite] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -129,6 +131,18 @@ export default function ProblemPage() {
       setCode(p.starterCode);
     });
   }, [slug]);
+
+  useEffect(() => {
+    if (!problem?.id || !token) {
+      setIsFavorite(false);
+      return;
+    }
+    setIsCheckingFavorite(true);
+    api.get<{ isFavorite: boolean }>(`/favorites/check/${problem.id}`, token)
+      .then((data) => setIsFavorite(data.isFavorite))
+      .catch(() => setIsFavorite(false))
+      .finally(() => setIsCheckingFavorite(false));
+  }, [problem?.id, token]);
 
   useEffect(() => {
     if (!token) {
@@ -297,6 +311,27 @@ export default function ProblemPage() {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!token) { navigate(authLink); return; }
+    if (!problem || isCheckingFavorite) return;
+
+    try {
+      if (isFavorite) {
+        await api.delete(`/favorites/${problem.id}`, token);
+        setIsFavorite(false);
+        setToastMessage("Removed from favorites");
+      } else {
+        await api.post("/favorites/", { problemId: problem.id }, token);
+        setIsFavorite(true);
+        setToastMessage("Added to favorites");
+      }
+      setTimeout(() => setToastMessage(null), 2500);
+    } catch (e: unknown) {
+      setToastMessage(e instanceof Error ? e.message : "Failed to update favorite");
+      setTimeout(() => setToastMessage(null), 2500);
+    }
+  };
+
   const testRows = useMemo(() => (submission ? buildTestCaseRows(submission) : []), [submission]);
   const outputTail = useMemo(() => extractOutputTail(submission?.errorOutput), [submission?.errorOutput]);
 
@@ -338,9 +373,39 @@ export default function ProblemPage() {
             <>
               {/* Title + badge */}
               <div className="mb-8">
-                <h1 className="text-5xl font-black text-slate-900 mb-4" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
-                  {problem.title}
-                </h1>
+                <div className="flex items-center gap-3 mb-4">
+                  <h1 className="text-5xl font-black text-slate-900" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                    {problem.title}
+                  </h1>
+                  <button
+                    onClick={handleToggleFavorite}
+                    disabled={!token || isCheckingFavorite}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                      !token
+                        ? "opacity-40 cursor-not-allowed"
+                        : "hover:bg-slate-100 active:scale-95 cursor-pointer"
+                    }`}
+                    title={!token ? "Sign in to add favorites" : (isFavorite ? "Remove from favorites" : "Add to favorites")}
+                  >
+                    {isCheckingFavorite ? (
+                      <svg className="w-8 h-8 animate-spin text-slate-400" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className={`w-8 h-8 transition-all duration-200 ${
+                          isFavorite ? "fill-yellow-400 stroke-yellow-500" : "fill-none stroke-slate-400 hover:stroke-slate-600"
+                        }`}
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   <span 
                     className="inline-flex items-center px-3.5 py-1.5 rounded-full text-white font-bold text-sm"

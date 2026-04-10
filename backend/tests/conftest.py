@@ -20,7 +20,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app, db
-from app.models import Problem, Project, User
+from app.models import Favorite, Problem, Project, User
 
 
 Problem.__table__.columns["tags"].type = JSON()

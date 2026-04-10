@@ -22,6 +22,7 @@ class User(db.Model):
     projects = db.relationship("Project", back_populates="user")
     submissions = db.relationship("Submission", back_populates="user")
     subscriptions = db.relationship("Subscription", back_populates="user")
+    favorites = db.relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, pw: str):
         self.password_hash = bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -145,3 +146,15 @@ class StripeWebhookEvent(db.Model):
     processed = db.Column(db.Boolean, nullable=False, default=False)
     processing_error = db.Column(db.Text, nullable=True)
     received_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class Favorite(db.Model):
+    __tablename__ = "favorites"
+    __table_args__ = (db.UniqueConstraint("user_id", "problem_id", name="uix_user_problem"),)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False, index=True)
+    problem_id = db.Column(db.String(36), db.ForeignKey("problems.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship("User", back_populates="favorites")
+    problem = db.relationship("Problem")

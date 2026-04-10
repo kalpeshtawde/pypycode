@@ -52,6 +52,47 @@ This will:
 
 ---
 
+## Running Tests
+
+### Backend Unit Tests (pytest)
+
+The backend has a comprehensive test suite using pytest with mocked external services (Stripe, Celery, Docker).
+
+**Setup (one time):**
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**Run tests:**
+```bash
+# From repo root
+backend/.venv/bin/pytest -q backend/tests
+
+# Or with coverage
+backend/.venv/bin/pytest --cov=backend/app backend/tests
+```
+
+**Test structure:**
+```
+backend/tests/
+├── conftest.py           # Shared fixtures (app, db, user, auth_headers)
+├── test_models.py        # Model unit tests
+├── test_auth_routes.py   # Auth API tests
+├── test_problems_routes.py
+├── test_projects_routes.py
+├── test_submissions_routes.py
+├── test_billing_routes.py  # Stripe mocks
+├── test_runner_service.py  # Celery/Docker mocks
+└── test_misc_routes.py   # Health, contact, leaderboard
+```
+
+**CI/CD:** Tests run automatically on every push to `main`. Deploy is blocked if tests fail.
+
+---
+
 ## Project Structure
 
 ```
