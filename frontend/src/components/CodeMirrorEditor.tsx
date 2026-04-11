@@ -36,6 +36,12 @@ export default function CodeMirrorEditor({
 }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
+  const onChangeRef = useRef(onChange);
+  
+  // Keep onChange ref up to date without recreating editor
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -54,7 +60,7 @@ export default function CodeMirrorEditor({
       ]),
       EditorView.updateListener.of((update: any) => {
         if (update.docChanged) {
-          onChange(update.state.doc.toString());
+          onChangeRef.current(update.state.doc.toString());
         }
       }),
       syntaxHighlighting(lightHighlightStyle),
@@ -109,7 +115,7 @@ export default function CodeMirrorEditor({
     return () => {
       editor.destroy();
     };
-  }, [vimMode, onChange]);
+  }, [vimMode]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.state.doc.toString() !== value) {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
@@ -112,6 +112,8 @@ export default function ProblemPage() {
     () => searchParams.get("projectId") ?? ""
   );
   const [code, setCode] = useState("");
+  const codeLoadedRef = useRef(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -126,11 +128,13 @@ export default function ProblemPage() {
 
   useEffect(() => {
     if (!slug) return;
+    codeLoadedRef.current = false;
     api.get<Problem>(`/problems/${slug}`).then((p) => {
       setProblem(p);
       // Load saved code from localStorage, or fall back to starter code
       const savedCode = localStorage.getItem(`pypycode:code:${p.slug}`);
       setCode(savedCode || p.starterCode);
+      codeLoadedRef.current = true;
     });
   }, [slug]);
 
@@ -195,7 +199,10 @@ export default function ProblemPage() {
     if (!slug || !problem) return;
     if (!token) {
       setSubmission(null);
-      setCode(problem.starterCode);
+      // Only reset code if we haven't loaded from localStorage yet
+      if (!codeLoadedRef.current) {
+        setCode(problem.starterCode);
+      }
       return;
     }
 
@@ -225,12 +232,16 @@ export default function ProblemPage() {
         }
 
         setSubmission(null);
-        setCode(problem.starterCode);
+        if (!codeLoadedRef.current) {
+          setCode(problem.starterCode);
+        }
         setLastSuccessfulRunCode(null);
       })
       .catch(() => {
         setSubmission(null);
-        setCode(problem.starterCode);
+        if (!codeLoadedRef.current) {
+          setCode(problem.starterCode);
+        }
         setLastSuccessfulRunCode(null);
       });
   }, [slug, token, selectedProjectId, problem]);
@@ -945,9 +956,14 @@ export default function ProblemPage() {
             value={code}
             onChange={(newCode) => {
               setCode(newCode);
-              // Save to localStorage whenever code changes
+              // Debounce localStorage save to avoid typing lag
               if (problem?.slug) {
-                localStorage.setItem(`pypycode:code:${problem.slug}`, newCode);
+                if (saveTimeoutRef.current) {
+                  clearTimeout(saveTimeoutRef.current);
+                }
+                saveTimeoutRef.current = setTimeout(() => {
+                  localStorage.setItem(`pypycode:code:${problem.slug}`, newCode);
+                }, 500);
               }
             }}
             fontSize={fontSize}
