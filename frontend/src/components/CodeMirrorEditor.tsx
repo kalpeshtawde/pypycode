@@ -65,6 +65,10 @@ export default function CodeMirrorEditor({
           backgroundColor: '#f8fafc',
           color: '#0f172a',
         },
+        '.cm-scroller': {
+          overflow: 'auto',
+          fontFamily: "'JetBrains Mono', monospace",
+        },
         '.cm-gutters': {
           backgroundColor: '#f8fafc',
           borderRight: '1px solid #e2e8f0',

@@ -93,6 +93,64 @@ backend/tests/
 
 ---
 
+## CLI Commands
+
+### Validate Problems
+
+Validate all problems in the database have valid test cases and required fields:
+
+```bash
+# Local development
+cd backend
+flask validate-problems
+
+# Docker
+docker compose exec api flask validate-problems
+
+# Production
+docker compose -f docker-compose.prod.yml exec api flask validate-problems
+```
+
+**What it checks:**
+- Required fields (slug, title, difficulty)
+- Test cases exist and have required fields (function, expected, input/args)
+- Examples exist
+
+**Output:**
+```
+======================================================================
+PROBLEM VALIDATION REPORT
+======================================================================
+
+Found 100 problems to validate...
+
+[   1/ 100] ✅ two-sum
+[   2/ 100] ✅ add-two-numbers
+[   3/ 100] ❌ word-search
+         → Test case 5: missing 'expected'
+
+...
+
+======================================================================
+SUMMARY
+======================================================================
+Total:    100
+Passed:   98 ✅
+Failed:   2 ❌
+
+Failed problems:
+  - word-search
+  - another-problem
+
+Exiting with error code 1
+```
+
+**Exit codes:**
+- `0` = All problems valid (for CI/CD integration)
+- `1` = One or more problems failed validation
+
+---
+
 ## Project Structure
 
 ```

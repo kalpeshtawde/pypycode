@@ -128,7 +128,9 @@ export default function ProblemPage() {
     if (!slug) return;
     api.get<Problem>(`/problems/${slug}`).then((p) => {
       setProblem(p);
-      setCode(p.starterCode);
+      // Load saved code from localStorage, or fall back to starter code
+      const savedCode = localStorage.getItem(`pypycode:code:${p.slug}`);
+      setCode(savedCode || p.starterCode);
     });
   }, [slug]);
 
@@ -753,6 +755,24 @@ export default function ProblemPage() {
             </select>
 
             <button
+              onClick={() => {
+                if (problem?.starterCode) {
+                  setCode(problem.starterCode);
+                  localStorage.removeItem(`pypycode:code:${problem.slug}`);
+                  setToastMessage("Code reset to starter template");
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              disabled={running || submitting}
+              className={`text-sm py-1.5 px-3 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+              title="Reset to starter code"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h4.274a.75.75 0 0 0 0-1.5H2.99a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39ZM4.974 5.954a5.5 5.5 0 0 1 9.2-2.466l.31.31h-4.268a.75.75 0 0 0 0 1.5h7.286a.75.75 0 0 0 .75-.75V.712a.75.75 0 0 0-1.5 0v2.43l-.31-.31a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.45.391Z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            <button
               onClick={handleRun}
               disabled={running || submitting}
               className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
@@ -920,10 +940,16 @@ export default function ProblemPage() {
         </div>
 
         {/* CodeMirror Editor */}
-        <div className="flex-1 overflow-hidden bg-slate-50">
+        <div className="flex-1 overflow-auto bg-slate-50">
           <CodeMirrorEditor
             value={code}
-            onChange={setCode}
+            onChange={(newCode) => {
+              setCode(newCode);
+              // Save to localStorage whenever code changes
+              if (problem?.slug) {
+                localStorage.setItem(`pypycode:code:${problem.slug}`, newCode);
+              }
+            }}
             fontSize={fontSize}
             vimMode={vimMode}
           />
