@@ -48,12 +48,80 @@ def _convert_test_cases(problem: Problem):
     return converted_test_cases
 
 
+def _run_single_test(client, code: str, test_case: dict) -> dict:
+    """Run a single test case in sandbox."""
+    payload = json.dumps({
+        "code": code,
+        "test_cases": [test_case],
+    })
+
+    start = time.monotonic()
+    output = client.containers.run(
+        SANDBOX_IMAGE,
+        command=["python", "/runner/runner.py"],
+        stdin_open=True,
+        environment={"PAYLOAD": payload},
+        network_disabled=True,
+        mem_limit=MEMORY_LIMIT,
+        cpu_quota=CPU_QUOTA,
+        cpu_period=100000,
+        read_only=True,
+        remove=True,
+        detach=False,
+        stdout=True,
+        stderr=True,
+    )
+    elapsed_ms = (time.monotonic() - start) * 1000
+
+    output_str = output.decode() if isinstance(output, bytes) else output
+    result = json.loads(output_str)
+    result["runtime_ms"] = int(elapsed_ms)
+    return result
+
+
 def run_code_against_problem(problem: Problem, code: str):
     try:
         client = docker.from_env()
+        test_cases = _convert_test_cases(problem)
+
+        if not test_cases:
+            return {
+                "status": "runtime_error",
+                "passed_tests": 0,
+                "total_tests": 0,
+                "runtime_ms": None,
+                "memory_kb": None,
+                "error_output": "No test cases found",
+            }
+
+        # Phase 1: Run first test only
+        first_test_result = _run_single_test(client, code, test_cases[0])
+
+        # Check if first test passed
+        first_passed = first_test_result.get("passed", 0) == 1
+
+        if not first_passed:
+            # First test failed - return early with failure
+            error_parts = []
+            if first_test_result.get("output"):
+                error_parts.append(f"Output:\n{first_test_result.get('output')}")
+            if first_test_result.get("error"):
+                error_parts.append(f"Errors:\n{first_test_result.get('error')}")
+
+            return {
+                "status": "wrong_answer",
+                "passed_tests": 0,
+                "total_tests": len(test_cases),
+                "runtime_ms": first_test_result.get("runtime_ms"),
+                "memory_kb": None,
+                "error_output": "\n".join(error_parts) if error_parts else "First test case failed",
+            }
+
+        # Phase 2: First test passed - run full suite
+        all_test_cases = test_cases
         payload = json.dumps({
             "code": code,
-            "test_cases": _convert_test_cases(problem),
+            "test_cases": all_test_cases,
         })
 
         start = time.monotonic()
@@ -84,7 +152,7 @@ def run_code_against_problem(problem: Problem, code: str):
             error_parts.append(f"Errors:\n{result.get('error')}")
 
         passed_tests = result.get("passed", 0)
-        total_tests = result.get("total", len(problem.test_cases))
+        total_tests = result.get("total", len(all_test_cases))
         return {
             "status": "accepted" if passed_tests == total_tests else "wrong_answer",
             "passed_tests": passed_tests,

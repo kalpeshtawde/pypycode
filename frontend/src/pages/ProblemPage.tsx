@@ -84,7 +84,7 @@ function buildTestCaseRows(submission: Submission): TestCaseRow[] {
   return rows;
 }
 
-function extractOutputTail(errorOutput: string | null | undefined, maxLines: number = 6): string | null {
+function extractOutputTail(errorOutput: string | null | undefined, maxLines: number = 10): string | null {
   if (!errorOutput) return null;
   const outputMatch = errorOutput.match(/Output:\n([\s\S]*?)(?:\nErrors:\n|$)/i);
   if (!outputMatch?.[1]) return null;
