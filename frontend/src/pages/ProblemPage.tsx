@@ -69,8 +69,9 @@ function buildTestCaseRows(submission: Submission): TestCaseRow[] {
   for (let index = 1; index <= total; index += 1) {
     const parsedFailure = failedByIndex.get(index);
     const isFailed = Boolean(parsedFailure);
-    const fallbackByCount = !failedByIndex.size && submission.status !== "accepted" && index > submission.passedTests;
-    const passed = !isFailed && !fallbackByCount;
+    // Mark as failed if: (1) has explicit error, or (2) submission not accepted and test index > passed count
+    const notRunOrFailed = submission.status !== "accepted" && index > submission.passedTests;
+    const passed = !isFailed && !notRunOrFailed;
 
     rows.push({
       index,

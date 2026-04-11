@@ -48,11 +48,11 @@ def _convert_test_cases(problem: Problem):
     return converted_test_cases
 
 
-def _run_single_test(client, code: str, test_case: dict) -> dict:
-    """Run a single test case in sandbox."""
+def _run_tests_batch(client, code: str, test_cases: list) -> dict:
+    """Run multiple test cases in sandbox."""
     payload = json.dumps({
         "code": code,
-        "test_cases": [test_case],
+        "test_cases": test_cases,
     })
 
     start = time.monotonic()
@@ -94,70 +94,64 @@ def run_code_against_problem(problem: Problem, code: str):
                 "error_output": "No test cases found",
             }
 
-        # Phase 1: Run first test only
-        first_test_result = _run_single_test(client, code, test_cases[0])
+        # Phase 1: Run first 3 tests
+        first_batch_size = min(3, len(test_cases))
+        first_batch = test_cases[:first_batch_size]
+        first_result = _run_tests_batch(client, code, first_batch)
 
-        # Check if first test passed
-        first_passed = first_test_result.get("passed", 0) == 1
+        first_passed = first_result.get("passed", 0)
+        first_total = first_result.get("total", first_batch_size)
 
-        if not first_passed:
-            # First test failed - return early with failure
-            error_parts = []
-            if first_test_result.get("output"):
-                error_parts.append(f"Output:\n{first_test_result.get('output')}")
-            if first_test_result.get("error"):
-                error_parts.append(f"Errors:\n{first_test_result.get('error')}")
+        # Build error output from first batch
+        error_parts = []
+        if first_result.get("output"):
+            error_parts.append(f"Output:\n{first_result.get('output')}")
+        if first_result.get("error"):
+            error_parts.append(f"Errors:\n{first_result.get('error')}")
 
+        # If any of first 3 failed, return early (showing results of first 3)
+        if first_passed < first_total:
             return {
                 "status": "wrong_answer",
-                "passed_tests": 0,
+                "passed_tests": first_passed,
                 "total_tests": len(test_cases),
-                "runtime_ms": first_test_result.get("runtime_ms"),
+                "runtime_ms": first_result.get("runtime_ms"),
                 "memory_kb": None,
-                "error_output": "\n".join(error_parts) if error_parts else "First test case failed",
+                "error_output": "\n".join(error_parts) if error_parts else f"Failed {first_total - first_passed} of first {first_batch_size} tests",
             }
 
-        # Phase 2: First test passed - run full suite
-        all_test_cases = test_cases
-        payload = json.dumps({
-            "code": code,
-            "test_cases": all_test_cases,
-        })
+        # Phase 2: All first 3 passed - run remaining tests
+        remaining_tests = test_cases[first_batch_size:]
+        
+        if not remaining_tests:
+            # All tests were in first batch
+            return {
+                "status": "accepted",
+                "passed_tests": first_passed,
+                "total_tests": len(test_cases),
+                "runtime_ms": first_result.get("runtime_ms"),
+                "memory_kb": None,
+                "error_output": "\n".join(error_parts) if error_parts else None,
+            }
 
-        start = time.monotonic()
-        output = client.containers.run(
-            SANDBOX_IMAGE,
-            command=["python", "/runner/runner.py"],
-            stdin_open=True,
-            environment={"PAYLOAD": payload},
-            network_disabled=True,
-            mem_limit=MEMORY_LIMIT,
-            cpu_quota=CPU_QUOTA,
-            cpu_period=100000,
-            read_only=True,
-            remove=True,
-            detach=False,
-            stdout=True,
-            stderr=True,
-        )
-        elapsed_ms = (time.monotonic() - start) * 1000
+        # Run remaining tests
+        remaining_result = _run_tests_batch(client, code, remaining_tests)
+        
+        # Combine results
+        total_passed = first_passed + remaining_result.get("passed", 0)
+        total_tests = len(test_cases)
+        
+        # Combine error outputs
+        if remaining_result.get("output"):
+            error_parts.append(f"Output:\n{remaining_result.get('output')}")
+        if remaining_result.get("error"):
+            error_parts.append(f"Errors:\n{remaining_result.get('error')}")
 
-        output_str = output.decode() if isinstance(output, bytes) else output
-        result = json.loads(output_str)
-
-        error_parts = []
-        if result.get("output"):
-            error_parts.append(f"Output:\n{result.get('output')}")
-        if result.get("error"):
-            error_parts.append(f"Errors:\n{result.get('error')}")
-
-        passed_tests = result.get("passed", 0)
-        total_tests = result.get("total", len(all_test_cases))
         return {
-            "status": "accepted" if passed_tests == total_tests else "wrong_answer",
-            "passed_tests": passed_tests,
+            "status": "accepted" if total_passed == total_tests else "wrong_answer",
+            "passed_tests": total_passed,
             "total_tests": total_tests,
-            "runtime_ms": int(elapsed_ms),
+            "runtime_ms": first_result.get("runtime_ms", 0) + remaining_result.get("runtime_ms", 0),
             "memory_kb": None,
             "error_output": "\n".join(error_parts) if error_parts else None,
         }
