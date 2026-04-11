@@ -89,6 +89,15 @@ export default function CodeMirrorEditor({
         '.cm-content': {
           caretColor: '#1a6bff',
         },
+        '.cm-selectionBackground': {
+          backgroundColor: '#bfdbfe !important',
+        },
+        '.cm-focused .cm-selectionBackground': {
+          backgroundColor: '#93c5fd !important',
+        },
+        '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+          backgroundColor: '#93c5fd',
+        },
       }),
     ];
 
