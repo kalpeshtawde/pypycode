@@ -1,7 +1,7 @@
 from celery.exceptions import NotRegistered
 
 from app import db
-from app.models import Problem, Project, Submission
+from app.models import Problem, Project, Submission, TestCase
 
 
 class DummyRunTask:
@@ -81,12 +81,18 @@ def test_get_submission_forbidden(client, auth_headers, app_ctx, user, second_us
         difficulty="easy",
         description="d",
         starter_code="def solution(): pass",
-        test_cases=[{"input": "", "expected": "1"}],
         examples=[{"input": "", "output": "1"}],
         tags=["x"],
     )
+    db.session.add(problem)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(problem_id=problem.id, serial_number=0, function="solution", input="", expected_output="1")
+    db.session.add(tc)
+    
     project = Project(user_id=second_user.id, name="Other", is_default=True)
-    db.session.add_all([problem, project])
+    db.session.add(project)
     db.session.commit()
 
     sub = Submission(user_id=second_user.id, project_id=project.id, problem_id=problem.id, code="x")

@@ -1,5 +1,5 @@
 from app import db
-from app.models import Problem, Submission, User
+from app.models import Problem, Submission, TestCase, User
 
 
 def test_signup_success(client):
@@ -93,7 +93,6 @@ def test_profile_includes_stats_and_activity(client, auth_headers, app_ctx, user
         difficulty="easy",
         description="d",
         starter_code="def solution(): pass",
-        test_cases=[{"input": "", "expected": "1"}],
         examples=[{"input": "", "output": "1"}],
         tags=["x"],
     )
@@ -103,11 +102,16 @@ def test_profile_includes_stats_and_activity(client, auth_headers, app_ctx, user
         difficulty="easy",
         description="d",
         starter_code="def solution(): pass",
-        test_cases=[{"input": "", "expected": "1"}],
         examples=[{"input": "", "output": "1"}],
         tags=["y"],
     )
     db.session.add_all([p1, p2])
+    db.session.flush()
+    
+    # Create test cases separately
+    tc1 = TestCase(problem_id=p1.id, serial_number=0, function="solution", input="", expected_output="1")
+    tc2 = TestCase(problem_id=p2.id, serial_number=0, function="solution", input="", expected_output="1")
+    db.session.add_all([tc1, tc2])
     db.session.commit()
 
     db.session.add_all(

@@ -48,7 +48,7 @@ def test_public_ingest_success(client):
         "description": "desc",
         "starterCode": "def solution(a):\n    return a",
         "examples": [{"input": "1", "output": "1"}],
-        "testCases": [{"function": "solution", "input": "1", "expected": "1"}],
+        "testCases": [{"function": "solution", "input": "1", "expectedOutput": "1"}],
         "tags": ["math"],
     }
     res = client.post("/problems/public-ingest", json=payload)
@@ -58,17 +58,28 @@ def test_public_ingest_success(client):
 
 
 def test_public_ingest_duplicate_slug(client, app_ctx):
+    from app.models import TestCase
     existing = Problem(
         slug="dup-problem",
         title="dup",
         difficulty="easy",
         description="desc",
         starter_code="def solution(): pass",
-        test_cases=[{"input": "1", "expected": "1"}],
         examples=[{"input": "1", "output": "1"}],
         tags=["array"],
     )
     db.session.add(existing)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(
+        problem_id=existing.id,
+        serial_number=0,
+        function="solution",
+        input="1",
+        expected_output="1",
+    )
+    db.session.add(tc)
     db.session.commit()
 
     payload = {
@@ -79,7 +90,7 @@ def test_public_ingest_duplicate_slug(client, app_ctx):
         "description": "desc",
         "starterCode": "def solution(a):\n    return a",
         "examples": [{"input": "1", "output": "1"}],
-        "testCases": [{"function": "solution", "input": "1", "expected": "1"}],
+        "testCases": [{"function": "solution", "input": "1", "expectedOutput": "1"}],
     }
     res = client.post("/problems/public-ingest", json=payload)
     assert res.status_code == 409

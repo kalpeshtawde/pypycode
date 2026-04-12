@@ -1,5 +1,5 @@
 from app import db
-from app.models import Contact, Problem, Submission
+from app.models import Contact, Problem, Submission, TestCase
 
 
 def test_health_endpoint(client):
@@ -57,11 +57,15 @@ def test_leaderboard_returns_ranked_users(client, app_ctx, user):
         difficulty="easy",
         description="d",
         starter_code="def solution(): pass",
-        test_cases=[{"input": "", "expected": "1"}],
         examples=[{"input": "", "output": "1"}],
         tags=["x"],
     )
     db.session.add(p)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(problem_id=p.id, serial_number=0, function="solution", input="", expected_output="1")
+    db.session.add(tc)
     db.session.commit()
 
     sub = Submission(user_id=user.id, project_id=user.id, problem_id=p.id, code="x", status="accepted")

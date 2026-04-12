@@ -10,6 +10,7 @@ from app.models import (
     StripeWebhookEvent,
     Submission,
     Subscription,
+    TestCase,
     User,
 )
 
@@ -34,16 +35,27 @@ def test_problem_model_persists_fields(app_ctx):
         difficulty="easy",
         description="desc",
         starter_code="def solution(s):\n    pass",
-        test_cases=[{"input": '"()"', "expected": "True"}],
         examples=[{"input": 's="()"', "output": "True"}],
         tags=["stack", "string"],
     )
     db.session.add(problem)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(
+        problem_id=problem.id,
+        serial_number=0,
+        function="solution",
+        input='"()"',
+        expected_output="true",
+    )
+    db.session.add(tc)
     db.session.commit()
 
     saved = Problem.query.filter_by(slug="valid-parentheses").first()
     assert saved is not None
     assert saved.tags == ["stack", "string"]
+    assert len(saved.test_cases) == 1
 
 
 def test_project_submission_relationships(app_ctx, user):
@@ -53,12 +65,24 @@ def test_project_submission_relationships(app_ctx, user):
         difficulty="easy",
         description="desc",
         starter_code="def solution(nums):\n    pass",
-        test_cases=[{"input": "[1,2,3]", "expected": "False"}],
         examples=[{"input": "[1,2,3]", "output": "False"}],
         tags=["array"],
     )
+    db.session.add(problem)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(
+        problem_id=problem.id,
+        serial_number=0,
+        function="solution",
+        input="[1,2,3]",
+        expected_output="false",
+    )
+    db.session.add(tc)
+    
     project = Project(user_id=user.id, name="Arrays", is_default=True)
-    db.session.add_all([problem, project])
+    db.session.add(project)
     db.session.commit()
 
     sub = Submission(
