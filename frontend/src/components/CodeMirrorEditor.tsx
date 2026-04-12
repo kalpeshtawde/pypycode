@@ -90,13 +90,32 @@ export default function CodeMirrorEditor({
           caretColor: '#1a6bff',
         },
         '.cm-selectionBackground': {
-          backgroundColor: '#bfdbfe !important',
+          backgroundColor: '#60a5fa !important',
         },
         '.cm-focused .cm-selectionBackground': {
-          backgroundColor: '#93c5fd !important',
+          backgroundColor: '#60a5fa !important',
         },
         '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
-          backgroundColor: '#93c5fd',
+          backgroundColor: '#60a5fa !important',
+        },
+        '.cm-selectionLayer .cm-selectionBackground': {
+          backgroundColor: '#60a5fa !important',
+        },
+        '.cm-content ::selection': {
+          backgroundColor: '#60a5fa !important',
+          color: '#0f172a !important',
+        },
+        '.cm-line ::selection': {
+          backgroundColor: '#60a5fa !important',
+          color: '#0f172a !important',
+        },
+        '.cm-vimMode .cm-content .cm-line::selection': {
+          backgroundColor: '#60a5fa !important',
+          color: '#0f172a !important',
+        },
+        '.cm-vimMode .cm-content .cm-line ::selection': {
+          backgroundColor: '#60a5fa !important',
+          color: '#0f172a !important',
         },
       }),
     ];

@@ -27,7 +27,7 @@
   }
 
   ::selection {
-    @apply bg-accent/30 text-white;
+    @apply bg-blue-300 text-slate-900;
   }
 
   ::-webkit-scrollbar {
