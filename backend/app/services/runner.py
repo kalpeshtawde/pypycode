@@ -123,7 +123,8 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
 def run_code_against_problem(problem: Problem, code: str):
     try:
         client = docker.from_env()
-        logger.info(f"[RUNNER] Problem: {problem.slug if problem else 'None'}, code length: {len(code) if code else 0}")
+        problem_slug = getattr(problem, 'slug', None) if problem else None
+        logger.info(f"[RUNNER] Problem: {problem_slug or 'unknown'}, code length: {len(code) if code else 0}")
         test_cases = _convert_test_cases(problem)
         
         logger.info(f"[RUNNER] Total active test cases: {len(test_cases)}")
