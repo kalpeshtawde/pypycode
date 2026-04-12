@@ -88,7 +88,7 @@ def test_get_submission_forbidden(client, auth_headers, app_ctx, user, second_us
     db.session.flush()
     
     # Create test case separately
-    tc = TestCase(problem_id=problem.id, serial_number=0, function="solution", input="", expected_output="1")
+    tc = TestCase(problem_id=problem.id, serial_number=0, function="solution", input="", expected_output="1", is_active=True)
     db.session.add(tc)
     
     project = Project(user_id=second_user.id, name="Other", is_default=True)

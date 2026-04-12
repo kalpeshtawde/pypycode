@@ -56,6 +56,7 @@ class TestCase(db.Model):
     function = db.Column(db.String(128), nullable=False, default="solution")
     input = db.Column(db.Text, nullable=False)  # Input as string representation
     expected_output = db.Column(db.Text, nullable=False)  # Expected output as JSON string
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     problem = db.relationship("Problem", back_populates="test_cases")

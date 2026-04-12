@@ -4,10 +4,11 @@ from app.services import runner
 
 
 class DummyTestCase:
-    def __init__(self, function="solution", input_str="", expected_output=""):
+    def __init__(self, function="solution", input_str="", expected_output="", is_active=True):
         self.function = function
         self.input = input_str
         self.expected_output = expected_output
+        self.is_active = is_active
 
 
 class DummyProblem:
@@ -19,6 +20,7 @@ class DummyProblem:
                 function=tc.get("function", "solution"),
                 input_str=tc.get("input", ""),
                 expected_output=tc.get("expectedOutput", tc.get("expected", "")),
+                is_active=tc.get("isActive", True),
             ))
 
 

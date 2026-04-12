@@ -109,8 +109,8 @@ def test_profile_includes_stats_and_activity(client, auth_headers, app_ctx, user
     db.session.flush()
     
     # Create test cases separately
-    tc1 = TestCase(problem_id=p1.id, serial_number=0, function="solution", input="", expected_output="1")
-    tc2 = TestCase(problem_id=p2.id, serial_number=0, function="solution", input="", expected_output="1")
+    tc1 = TestCase(problem_id=p1.id, serial_number=0, function="solution", input="", expected_output="1", is_active=True)
+    tc2 = TestCase(problem_id=p2.id, serial_number=0, function="solution", input="", expected_output="1", is_active=True)
     db.session.add_all([tc1, tc2])
     db.session.commit()
 

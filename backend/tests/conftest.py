@@ -108,6 +108,7 @@ def problem(app_ctx):
         function="solution",
         input="[2,7,11,15], 9",
         expected_output="[0,1]",
+        is_active=True,
     )
     db.session.add(tc)
     db.session.commit()

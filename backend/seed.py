@@ -217,6 +217,7 @@ def seed():
                         function=tc.get("function", "solution"),
                         input=tc.get("input", ""),
                         expected_output=tc.get("expectedOutput", ""),
+                        is_active=tc.get("isActive", True),
                     )
                     db.session.add(test_case)
                 

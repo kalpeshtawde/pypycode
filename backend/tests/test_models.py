@@ -48,6 +48,7 @@ def test_problem_model_persists_fields(app_ctx):
         function="solution",
         input='"()"',
         expected_output="true",
+        is_active=True,
     )
     db.session.add(tc)
     db.session.commit()
@@ -78,6 +79,7 @@ def test_project_submission_relationships(app_ctx, user):
         function="solution",
         input="[1,2,3]",
         expected_output="false",
+        is_active=True,
     )
     db.session.add(tc)
     

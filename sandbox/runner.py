@@ -53,8 +53,17 @@ def run_tests(code: str, test_cases: list) -> dict:
                 passed += 1
             else:
                 errors.append(f"Test {i+1}: expected {expected!r}, got {result!r}")
-        except Exception:
-            errors.append(f"Test {i+1}: {traceback.format_exc(limit=3)}")
+        except Exception as e:
+            exc_str = traceback.format_exc(limit=3)
+            errors.append(f"Test {i+1}: {exc_str}")
+            # Capture current output and restore stdout before returning
+            sys.stdout = old_stdout
+            return {
+                "passed": passed,
+                "total": len(test_cases),
+                "error": "\n".join(errors),
+                "output": output_buffer.getvalue()
+            }
 
     sys.stdout = old_stdout
     

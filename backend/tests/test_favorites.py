@@ -26,6 +26,7 @@ def problem2(app_ctx):
         function="solution",
         input='"()"',
         expected_output="true",
+        is_active=True,
     )
     db.session.add(tc)
     db.session.commit()

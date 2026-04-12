@@ -64,7 +64,7 @@ def test_leaderboard_returns_ranked_users(client, app_ctx, user):
     db.session.flush()
     
     # Create test case separately
-    tc = TestCase(problem_id=p.id, serial_number=0, function="solution", input="", expected_output="1")
+    tc = TestCase(problem_id=p.id, serial_number=0, function="solution", input="", expected_output="1", is_active=True)
     db.session.add(tc)
     db.session.commit()
 

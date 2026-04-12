@@ -78,6 +78,7 @@ def test_public_ingest_duplicate_slug(client, app_ctx):
         function="solution",
         input="1",
         expected_output="1",
+        is_active=True,
     )
     db.session.add(tc)
     db.session.commit()

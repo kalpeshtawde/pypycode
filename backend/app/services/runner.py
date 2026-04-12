@@ -16,8 +16,9 @@ CPU_QUOTA = 50000  # 0.5 CPU
 
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
-    # Test cases are now loaded from relationship, already ordered by serial_number
-    for tc in problem.test_cases:
+    # Filter only active test cases, ordered by serial_number
+    active_test_cases = [tc for tc in problem.test_cases if tc.is_active]
+    for tc in active_test_cases:
         expected = tc.expected_output
         if isinstance(expected, str):
             try:
@@ -45,6 +46,7 @@ def _convert_test_cases(problem: Problem):
 
 def _run_tests_batch(client, code: str, test_cases: list) -> dict:
     """Run multiple test cases in sandbox."""
+    logger.info(f"[BATCH] Sending {len(test_cases)} test cases to sandbox: {[tc.get('function', 'solution') for tc in test_cases]}")
     payload = json.dumps({
         "code": code,
         "test_cases": test_cases,
@@ -84,6 +86,9 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
         try:
             result = json.loads(output_str)
             result["runtime_ms"] = int(elapsed_ms)
+            error_val = result.get('error')
+            error_str = error_val[:100] if error_val else 'None'
+            logger.info(f"[BATCH] Sandbox result: passed={result.get('passed')}, total={result.get('total')}, error={error_str}")
             return result
         except json.JSONDecodeError as e:
             return {
@@ -103,6 +108,9 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
         }
     except Exception as e:
         elapsed_ms = (time.monotonic() - start) * 1000
+        import traceback
+        logger.error(f"[BATCH] Exception in _run_tests_batch: {str(e)}")
+        logger.error(f"[BATCH] Traceback: {traceback.format_exc()}")
         return {
             "passed": 0,
             "total": len(test_cases),
@@ -115,7 +123,12 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
 def run_code_against_problem(problem: Problem, code: str):
     try:
         client = docker.from_env()
+        logger.info(f"[RUNNER] Problem: {problem.slug if problem else 'None'}, code length: {len(code) if code else 0}")
         test_cases = _convert_test_cases(problem)
+        
+        logger.info(f"[RUNNER] Total active test cases: {len(test_cases)}")
+        if not test_cases:
+            logger.error("[RUNNER] No test cases found - check is_active flags in database")
 
         if not test_cases:
             return {
@@ -127,25 +140,25 @@ def run_code_against_problem(problem: Problem, code: str):
                 "error_output": "No test cases found",
             }
 
-        # Phase 1: Run first 3 tests
-        first_batch_size = min(3, len(test_cases))
-        first_batch = test_cases[:first_batch_size]
-        first_result = _run_tests_batch(client, code, first_batch)
+        # Run all test cases at once
+        logger.info(f"[RUNNER] Running all {len(test_cases)} test cases")
+        result = _run_tests_batch(client, code, test_cases)
+        logger.info(f"[RUNNER] Result: passed={result.get('passed')}, total={result.get('total')}")
 
-        first_passed = first_result.get("passed", 0)
-        first_total = first_result.get("total", first_batch_size)
-        first_error = first_result.get("error", "")
+        passed = result.get("passed", 0)
+        total = result.get("total", len(test_cases))
+        error = result.get("error", "")
 
-        # Build error output from first batch
+        # Build error output
         error_parts = []
-        if first_result.get("output"):
-            error_parts.append(f"Output:\n{first_result.get('output')}")
-        if first_error:
-            error_parts.append(f"Errors:\n{first_error}")
+        if result.get("output"):
+            error_parts.append(f"Output:\n{result.get('output')}")
+        if error:
+            error_parts.append(f"Errors:\n{error}")
 
-        # Check for runtime errors (container errors, execution errors)
-        if first_error and ("Container error" in first_error or "execution timeout" in first_error.lower()):
-            status = "time_limit" if "timeout" in first_error.lower() else "runtime_error"
+        # Check for runtime errors
+        if error and ("Container error" in error or "execution timeout" in error.lower()):
+            status = "time_limit" if "timeout" in error.lower() else "runtime_error"
             return {
                 "status": status,
                 "passed_tests": 0,
@@ -155,67 +168,31 @@ def run_code_against_problem(problem: Problem, code: str):
                 "error_output": "\n".join(error_parts),
             }
 
-        # If any of first 3 failed, return early (showing results of first 3)
-        if first_passed < first_total:
-            return {
-                "status": "wrong_answer",
-                "passed_tests": first_passed,
-                "total_tests": len(test_cases),
-                "runtime_ms": first_result.get("runtime_ms"),
-                "memory_kb": None,
-                "error_output": "\n".join(error_parts) if error_parts else f"Failed {first_total - first_passed} of first {first_batch_size} tests",
-            }
-
-        # Phase 2: All first 3 passed - run remaining tests
-        remaining_tests = test_cases[first_batch_size:]
-        
-        if not remaining_tests:
-            # All tests were in first batch
-            return {
-                "status": "accepted",
-                "passed_tests": first_passed,
-                "total_tests": len(test_cases),
-                "runtime_ms": first_result.get("runtime_ms"),
-                "memory_kb": None,
-                "error_output": "\n".join(error_parts) if error_parts else None,
-            }
-
-        # Run remaining tests
-        remaining_result = _run_tests_batch(client, code, remaining_tests)
-        
-        # Combine results
-        total_passed = first_passed + remaining_result.get("passed", 0)
-        total_tests = len(test_cases)
-        
-        # Combine error outputs
-        if remaining_result.get("output"):
-            error_parts.append(f"Output:\n{remaining_result.get('output')}")
-        if remaining_result.get("error"):
-            error_parts.append(f"Errors:\n{remaining_result.get('error')}")
-
         return {
-            "status": "accepted" if total_passed == total_tests else "wrong_answer",
-            "passed_tests": total_passed,
-            "total_tests": total_tests,
-            "runtime_ms": first_result.get("runtime_ms", 0) + remaining_result.get("runtime_ms", 0),
+            "status": "accepted" if passed == total else "wrong_answer",
+            "passed_tests": passed,
+            "total_tests": len(test_cases),
+            "runtime_ms": result.get("runtime_ms"),
             "memory_kb": None,
             "error_output": "\n".join(error_parts) if error_parts else None,
         }
     except docker.errors.ContainerError as e:
+        active_count = len([tc for tc in problem.test_cases if tc.is_active])
         return {
             "status": "runtime_error",
             "passed_tests": 0,
-            "total_tests": len(problem.test_cases),
+            "total_tests": active_count,
             "runtime_ms": None,
             "memory_kb": None,
             "error_output": str(e)[:2000],
         }
     except Exception as e:
+        active_count = len([tc for tc in problem.test_cases if tc.is_active])
         status = "time_limit" if "Timeout" in type(e).__name__ or "timeout" in str(e).lower() else "runtime_error"
         return {
             "status": status,
             "passed_tests": 0,
-            "total_tests": len(problem.test_cases),
+            "total_tests": active_count,
             "runtime_ms": None,
             "memory_kb": None,
             "error_output": str(e)[:2000] if status == "runtime_error" else None,
