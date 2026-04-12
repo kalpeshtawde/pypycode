@@ -1,7 +1,7 @@
 import hmac
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Problem, Submission
+from app.models import Problem, Submission, TestCase
 from app import db
 
 problems_bp = Blueprint("problems", __name__)
@@ -50,11 +50,12 @@ def _validate_test_cases(test_cases):
     for test_case in test_cases:
         if not isinstance(test_case, dict):
             return False
-        if "expected" not in test_case:
+        # New format: function, input, expectedOutput
+        if "expectedOutput" not in test_case:
             return False
-        if "input" not in test_case and "args" not in test_case:
+        if "input" not in test_case:
             return False
-        if "function" in test_case and not isinstance(test_case.get("function"), str):
+        if "function" not in test_case or not isinstance(test_case.get("function"), str):
             return False
 
     return True
@@ -175,11 +176,23 @@ def public_ingest_problem():
         difficulty=difficulty,
         description=description,
         starter_code=starter_code,
-        test_cases=test_cases,
         examples=examples,
         tags=tags,
     )
     db.session.add(problem)
+    db.session.flush()  # Get problem.id before committing
+
+    # Create test cases as separate records
+    for idx, tc in enumerate(test_cases):
+        test_case = TestCase(
+            problem_id=problem.id,
+            serial_number=idx,
+            function=tc.get("function", "solution"),
+            input=tc.get("input", ""),
+            expected_output=tc.get("expectedOutput", ""),
+        )
+        db.session.add(test_case)
+
     db.session.commit()
 
     return jsonify(problem_to_dict(problem)), 201
@@ -195,16 +208,30 @@ def get_problem(slug):
 @jwt_required()
 def create_problem():
     data = request.get_json()
+    test_cases_data = data.get("testCases", [])
+    
     p = Problem(
         slug=data["slug"],
         title=data["title"],
         difficulty=data["difficulty"],
         description=data["description"],
         starter_code=data["starterCode"],
-        test_cases=data["testCases"],
         examples=data["examples"],
         tags=data.get("tags", []),
     )
     db.session.add(p)
+    db.session.flush()
+    
+    # Create test cases
+    for idx, tc in enumerate(test_cases_data):
+        test_case = TestCase(
+            problem_id=p.id,
+            serial_number=idx,
+            function=tc.get("function", "solution"),
+            input=tc.get("input", ""),
+            expected_output=tc.get("expectedOutput", ""),
+        )
+        db.session.add(test_case)
+    
     db.session.commit()
     return jsonify(problem_to_dict(p)), 201

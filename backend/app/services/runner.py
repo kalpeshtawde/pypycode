@@ -16,39 +16,29 @@ CPU_QUOTA = 50000  # 0.5 CPU
 
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
-    # Sort test cases by 'key' field if present, otherwise maintain order
-    test_cases = sorted(
-        problem.test_cases,
-        key=lambda tc: tc.get("key", 0) if isinstance(tc.get("key"), (int, float)) else float('inf')
-    )
-    for tc in test_cases:
-        expected = tc.get("expected")
+    # Test cases are now loaded from relationship, already ordered by serial_number
+    for tc in problem.test_cases:
+        expected = tc.expected_output
         if isinstance(expected, str):
             try:
                 expected = json.loads(expected)
             except json.JSONDecodeError:
                 pass  # Keep as string if not valid JSON
         converted_tc = {
-            "function": tc.get("function", "solution"),
+            "function": tc.function or "solution",
             "expected": expected,
         }
-        if "input" in tc:
-            input_str = tc["input"]
+        input_str = tc.input
+        if input_str:
             try:
                 args = json.loads("[" + input_str + "]")
                 converted_tc["args"] = args
             except json.JSONDecodeError:
                 converted_tc["args"] = [input_str]
-        elif "args" in tc:
-            converted_tc["args"] = tc["args"]
         else:
             converted_tc["args"] = []
 
-        if "kwargs" in tc:
-            converted_tc["kwargs"] = tc["kwargs"]
-        else:
-            converted_tc["kwargs"] = {}
-
+        converted_tc["kwargs"] = {}
         converted_test_cases.append(converted_tc)
     return converted_test_cases
 
@@ -61,27 +51,65 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
     })
 
     start = time.monotonic()
-    output = client.containers.run(
-        SANDBOX_IMAGE,
-        command=["python", "/runner/runner.py"],
-        stdin_open=True,
-        environment={"PAYLOAD": payload},
-        network_disabled=True,
-        mem_limit=MEMORY_LIMIT,
-        cpu_quota=CPU_QUOTA,
-        cpu_period=100000,
-        read_only=True,
-        remove=True,
-        detach=False,
-        stdout=True,
-        stderr=True,
-    )
-    elapsed_ms = (time.monotonic() - start) * 1000
+    try:
+        output = client.containers.run(
+            SANDBOX_IMAGE,
+            command=["python", "/runner/runner.py"],
+            stdin_open=True,
+            environment={"PAYLOAD": payload},
+            network_disabled=True,
+            mem_limit=MEMORY_LIMIT,
+            cpu_quota=CPU_QUOTA,
+            cpu_period=100000,
+            read_only=True,
+            remove=True,
+            detach=False,
+            stdout=True,
+            stderr=True,
+        )
+        elapsed_ms = (time.monotonic() - start) * 1000
 
-    output_str = output.decode() if isinstance(output, bytes) else output
-    result = json.loads(output_str)
-    result["runtime_ms"] = int(elapsed_ms)
-    return result
+        output_str = output.decode() if isinstance(output, bytes) else output
+        output_str = output_str.strip()
+        
+        if not output_str:
+            return {
+                "passed": 0,
+                "total": len(test_cases),
+                "error": "Sandbox produced no output (possible crash or timeout)",
+                "output": "",
+                "runtime_ms": int(elapsed_ms),
+            }
+        
+        try:
+            result = json.loads(output_str)
+            result["runtime_ms"] = int(elapsed_ms)
+            return result
+        except json.JSONDecodeError as e:
+            return {
+                "passed": 0,
+                "total": len(test_cases),
+                "error": f"Invalid JSON output from sandbox: {e}",
+                "output": output_str[:1000],
+                "runtime_ms": int(elapsed_ms),
+            }
+    except docker.errors.ContainerError as e:
+        return {
+            "passed": 0,
+            "total": len(test_cases),
+            "error": f"Container error: {e.stderr.decode() if e.stderr else str(e)}",
+            "output": "",
+            "runtime_ms": None,
+        }
+    except Exception as e:
+        elapsed_ms = (time.monotonic() - start) * 1000
+        return {
+            "passed": 0,
+            "total": len(test_cases),
+            "error": f"Execution error: {str(e)}",
+            "output": "",
+            "runtime_ms": int(elapsed_ms),
+        }
 
 
 def run_code_against_problem(problem: Problem, code: str):

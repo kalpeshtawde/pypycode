@@ -41,11 +41,24 @@ class Problem(db.Model):
     difficulty = db.Column(db.String(16), nullable=False)  # easy | medium | hard
     description = db.Column(db.Text, nullable=False)
     starter_code = db.Column(db.Text, nullable=False)
-    test_cases = db.Column(db.JSON, nullable=False)   # hidden from API
     examples = db.Column(db.JSON, nullable=False)     # shown to user
     tags = db.Column(db.ARRAY(db.String), default=list)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="problem")
+    test_cases = db.relationship("TestCase", back_populates="problem", cascade="all, delete-orphan", order_by="TestCase.serial_number")
+
+
+class TestCase(db.Model):
+    __tablename__ = "test_cases"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    problem_id = db.Column(db.String(36), db.ForeignKey("problems.id"), nullable=False, index=True)
+    serial_number = db.Column(db.Integer, nullable=False)  # Starts from 0 for each problem
+    function = db.Column(db.String(128), nullable=False, default="solution")
+    input = db.Column(db.Text, nullable=False)  # Input as string representation
+    expected_output = db.Column(db.Text, nullable=False)  # Expected output as JSON string
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    problem = db.relationship("Problem", back_populates="test_cases")
 
 
 class Project(db.Model):
