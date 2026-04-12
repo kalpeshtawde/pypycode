@@ -132,12 +132,14 @@ export default function ProblemsPage() {
 
   const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
     setLoading(true);
+    const trimmedSearch = searchQuery.trim();
     const params = new URLSearchParams({
       page: page.toString(),
       per_page: "15",
       sort: sort,
       order: order,
-      ...(difficulty !== "all" && { difficulty })
+      ...(difficulty !== "all" && { difficulty }),
+      ...(trimmedSearch && { search: trimmedSearch }),
     });
     
     api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`)
@@ -168,7 +170,7 @@ export default function ProblemsPage() {
   useEffect(() => {
     setCurrentPage(1);
     fetchProblems(1, sortBy, sortOrder, filter);
-  }, [sortBy, sortOrder, filter]);
+  }, [sortBy, sortOrder, filter, searchQuery]);
 
   useEffect(() => {
     if (!token) {

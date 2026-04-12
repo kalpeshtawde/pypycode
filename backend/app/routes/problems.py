@@ -77,6 +77,7 @@ def _validate_test_cases(test_cases):
 def list_problems():
     difficulty = request.args.get("difficulty")
     tag = request.args.get("tag")
+    search = (request.args.get("search") or "").strip()
     sort_by = request.args.get("sort", "id")  # id, difficulty, created_at
     order = request.args.get("order", "asc")  # asc, desc
     page = request.args.get("page", 1, type=int)
@@ -89,6 +90,15 @@ def list_problems():
         q = q.filter_by(difficulty=difficulty)
     if tag:
         q = q.filter(Problem.tags.contains([tag]))
+    if search:
+        pattern = f"%{search}%"
+        q = q.filter(
+            db.or_(
+                Problem.title.ilike(pattern),
+                Problem.slug.ilike(pattern),
+                db.cast(Problem.tags, db.String).ilike(pattern),
+            )
+        )
     
     # Apply sorting
     if sort_by == "difficulty":
