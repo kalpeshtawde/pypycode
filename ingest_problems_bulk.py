@@ -415,7 +415,7 @@ def build_problem(theme: str, action: str, template: dict, difficulty: str, slug
         {
             "function": template["function"],
             "input": test_input,
-            "expected": expected,
+            "expectedOutput": expected,
         }
         for test_input, expected in template["tests"]
     ]

@@ -8,7 +8,7 @@ os.environ.setdefault("CELERY_BROKER_URL", "redis://redis:6379/1")
 os.environ.setdefault("CELERY_RESULT_BACKEND", "redis://redis:6379/2")
 
 from app import create_app, db
-from app.models import Problem, User
+from app.models import Problem, User, TestCase
 
 PROBLEMS = [
     {
@@ -31,9 +31,9 @@ Return the answer in any order.
             {"input": "nums = [3,2,4], target = 6", "output": "[1, 2]"},
         ],
         "test_cases": [
-            {"function": "solution", "args": [[2,7,11,15], 9], "expected": [0,1]},
-            {"function": "solution", "args": [[3,2,4], 6], "expected": [1,2]},
-            {"function": "solution", "args": [[3,3], 6], "expected": [0,1]},
+            {"function": "solution", "input": "[2,7,11,15], 9", "expectedOutput": "[0,1]"},
+            {"function": "solution", "input": "[3,2,4], 6", "expectedOutput": "[1,2]"},
+            {"function": "solution", "input": "[3,3], 6", "expectedOutput": "[0,1]"},
         ],
         "tags": ["array", "hash-table"],
     },
@@ -52,10 +52,10 @@ Return the answer in any order.
             {"input": 's = "Python"', "output": '"nohtyP"'},
         ],
         "test_cases": [
-            {"function": "solution", "args": ["hello"], "expected": "olleh"},
-            {"function": "solution", "args": ["Python"], "expected": "nohtyP"},
-            {"function": "solution", "args": ["a"], "expected": "a"},
-            {"function": "solution", "args": ["abcd"], "expected": "dcba"},
+            {"function": "solution", "input": "\"hello\"", "expectedOutput": "\"olleh\""},
+            {"function": "solution", "input": "\"Python\"", "expectedOutput": "\"nohtyP\""},
+            {"function": "solution", "input": "\"a\"", "expectedOutput": "\"a\""},
+            {"function": "solution", "input": "\"abcd\"", "expectedOutput": "\"dcba\""},
         ],
         "tags": ["string"],
     },
@@ -72,10 +72,10 @@ Given a string `s`, return `True` if it is a palindrome, or `False` otherwise.""
             {"input": 's = "race a car"', "output": "False"},
         ],
         "test_cases": [
-            {"function": "solution", "args": ["A man, a plan, a canal: Panama"], "expected": True},
-            {"function": "solution", "args": ["race a car"], "expected": False},
-            {"function": "solution", "args": [" "], "expected": True},
-            {"function": "solution", "args": ["0P"], "expected": False},
+            {"function": "solution", "input": "\"A man, a plan, a canal: Panama\"", "expectedOutput": "true"},
+            {"function": "solution", "input": "\"race a car\"", "expectedOutput": "false"},
+            {"function": "solution", "input": "\" \"", "expectedOutput": "true"},
+            {"function": "solution", "input": "\"0P\"", "expectedOutput": "false"},
         ],
         "tags": ["string", "two-pointers"],
     },
@@ -96,10 +96,10 @@ Given a string `s`, return `True` if it is a palindrome, or `False` otherwise.""
             {"input": "nums = [1]", "output": "1"},
         ],
         "test_cases": [
-            {"function": "solution", "args": [[-2,1,-3,4,-1,2,1,-5,4]], "expected": 6},
-            {"function": "solution", "args": [[1]], "expected": 1},
-            {"function": "solution", "args": [[5,4,-1,7,8]], "expected": 23},
-            {"function": "solution", "args": [[-1,-2,-3]], "expected": -1},
+            {"function": "solution", "input": "[-2,1,-3,4,-1,2,1,-5,4]", "expectedOutput": "6"},
+            {"function": "solution", "input": "[1]", "expectedOutput": "1"},
+            {"function": "solution", "input": "[5,4,-1,7,8]", "expectedOutput": "23"},
+            {"function": "solution", "input": "[-1,-2,-3]", "expectedOutput": "-1"},
         ],
         "tags": ["array", "dynamic-programming", "divide-and-conquer"],
     },
@@ -120,11 +120,11 @@ An input string is valid if:
             {"input": 's = "(]"', "output": "False"},
         ],
         "test_cases": [
-            {"function": "solution", "args": ["()"], "expected": True},
-            {"function": "solution", "args": ["()[]{}"], "expected": True},
-            {"function": "solution", "args": ["(]"], "expected": False},
-            {"function": "solution", "args": ["([)]"], "expected": False},
-            {"function": "solution", "args": ["{[]}"], "expected": True},
+            {"function": "solution", "input": "\"()\"", "expectedOutput": "true"},
+            {"function": "solution", "input": "\"()[]{}\"", "expectedOutput": "true"},
+            {"function": "solution", "input": "\"(]\"", "expectedOutput": "false"},
+            {"function": "solution", "input": "\"([)]\"", "expectedOutput": "false"},
+            {"function": "solution", "input": "\"{[]}\"", "expectedOutput": "true"},
         ],
         "tags": ["string", "stack"],
     },
@@ -141,10 +141,10 @@ You must write an algorithm with `O(log n)` runtime complexity.""",
             {"input": "nums = [-1,0,3,5,9,12], target = 2", "output": "-1"},
         ],
         "test_cases": [
-            {"function": "solution", "args": [[-1,0,3,5,9,12], 9], "expected": 4},
-            {"function": "solution", "args": [[-1,0,3,5,9,12], 2], "expected": -1},
-            {"function": "solution", "args": [[5], 5], "expected": 0},
-            {"function": "solution", "args": [[1,3,5,7,9], 7], "expected": 3},
+            {"function": "solution", "input": "[-1,0,3,5,9,12], 9", "expectedOutput": "4"},
+            {"function": "solution", "input": "[-1,0,3,5,9,12], 2", "expectedOutput": "-1"},
+            {"function": "solution", "input": "[5], 5", "expectedOutput": "0"},
+            {"function": "solution", "input": "[1,3,5,7,9], 7", "expectedOutput": "3"},
         ],
         "tags": ["array", "binary-search"],
     },
@@ -201,7 +201,25 @@ def seed():
         db.create_all()
         for p in PROBLEMS:
             if not Problem.query.filter_by(slug=p["slug"]).first():
-                db.session.add(Problem(**p))
+                # Extract test cases before creating problem
+                test_cases = p.pop("test_cases", [])
+                
+                # Create problem without test_cases
+                problem = Problem(**p)
+                db.session.add(problem)
+                db.session.flush()
+                
+                # Create test cases as separate records
+                for idx, tc in enumerate(test_cases):
+                    test_case = TestCase(
+                        problem_id=problem.id,
+                        serial_number=idx,
+                        function=tc.get("function", "solution"),
+                        input=tc.get("input", ""),
+                        expected_output=tc.get("expectedOutput", ""),
+                    )
+                    db.session.add(test_case)
+                
                 print(f"  + {p['title']}")
             else:
                 print(f"  ~ {p['title']} (already exists)")

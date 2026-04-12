@@ -20,7 +20,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app, db
-from app.models import Favorite, Problem, Project, User
+from app.models import Favorite, Problem, Project, User, TestCase
 
 
 Problem.__table__.columns["tags"].type = JSON()
@@ -95,11 +95,21 @@ def problem(app_ctx):
         difficulty="easy",
         description="Find indices",
         starter_code="def solution(nums, target):\n    pass",
-        test_cases=[{"function": "solution", "input": "[2,7,11,15], 9", "expected": "[0,1]"}],
         examples=[{"input": "nums=[2,7,11,15], target=9", "output": "[0,1]"}],
         tags=["array"],
     )
     db.session.add(item)
+    db.session.flush()
+    
+    # Create test case as separate record
+    tc = TestCase(
+        problem_id=item.id,
+        serial_number=0,
+        function="solution",
+        input="[2,7,11,15], 9",
+        expected_output="[0,1]",
+    )
+    db.session.add(tc)
     db.session.commit()
     return item
 
