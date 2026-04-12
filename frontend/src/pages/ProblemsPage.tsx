@@ -4,7 +4,7 @@ import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import type { Problem, Project, BillingAccessStatus } from "../types";
 
-const QUICK_FILTERS = ["all", "easy", "medium", "hard", "favorite"] as const;
+const QUICK_FILTERS = ["all", "easy", "medium", "hard", "solved", "favorite"] as const;
 
 function ProblemCell({
   problem,
@@ -98,6 +98,7 @@ export default function ProblemsPage() {
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
   const hasBillingAccess = accessStatus?.accessStatus === "subscribed" || accessStatus?.accessStatus === "trialing";
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [allProblemsForStats, setAllProblemsForStats] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
@@ -133,6 +134,96 @@ export default function ProblemsPage() {
   const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
     setLoading(true);
     const trimmedSearch = searchQuery.trim();
+
+    if (difficulty === "solved") {
+      if (!token) {
+        setProblems([]);
+        setPagination({
+          page: 1,
+          pages: 1,
+          total: 0,
+          per_page: 15,
+          has_prev: false,
+          has_next: false,
+          prev_num: null,
+          next_num: null,
+        });
+        setLoading(false);
+        return;
+      }
+
+      const perPageApi = 50;
+      const fetchAllProblems = async () => {
+        const collected: Problem[] = [];
+        let nextPage = 1;
+        let pages = 1;
+
+        while (nextPage <= pages) {
+          const params = new URLSearchParams({
+            page: String(nextPage),
+            per_page: String(perPageApi),
+            sort,
+            order,
+            ...(trimmedSearch && { search: trimmedSearch }),
+          });
+
+          const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`);
+          collected.push(...data.problems);
+          pages = data.pagination?.pages || 1;
+          nextPage += 1;
+        }
+
+        return collected;
+      };
+
+      fetchAllProblems()
+        .then((allProblems) => {
+          const solvedSet = new Set(solvedProblems);
+          const solvedOnly = allProblems.filter((p) => solvedSet.has(p.id));
+
+          const perPage = 15;
+          const total = solvedOnly.length;
+          const pages = Math.max(1, Math.ceil(total / perPage));
+          const safePage = Math.min(Math.max(page, 1), pages);
+          const start = (safePage - 1) * perPage;
+          const pageItems = solvedOnly.slice(start, start + perPage);
+
+          setProblems(pageItems);
+          setPagination({
+            page: safePage,
+            pages,
+            total,
+            per_page: perPage,
+            has_prev: safePage > 1,
+            has_next: safePage < pages,
+            prev_num: safePage > 1 ? safePage - 1 : null,
+            next_num: safePage < pages ? safePage + 1 : null,
+          });
+
+          const sequence = new Map<number, number>();
+          pageItems.forEach((problem, index) => {
+            sequence.set(problem.id, (safePage - 1) * perPage + index + 1);
+          });
+          setProblemSequence(sequence);
+        })
+        .catch(() => {
+          setProblems([]);
+          setPagination({
+            page: 1,
+            pages: 1,
+            total: 0,
+            per_page: 15,
+            has_prev: false,
+            has_next: false,
+            prev_num: null,
+            next_num: null,
+          });
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
 
     if (difficulty === "favorite" && token) {
       api.get<{ favorites: Array<{ createdAt: string; problem: Problem }> }>("/favorites/", token)
@@ -255,6 +346,34 @@ export default function ProblemsPage() {
 
   useEffect(() => {
     fetchProblems(1, sortBy, sortOrder, filter);
+  }, []);
+
+  useEffect(() => {
+    const fetchAllProblemsForStats = async () => {
+      const collected: Problem[] = [];
+      let page = 1;
+      let pages = 1;
+
+      while (page <= pages) {
+        const params = new URLSearchParams({
+          page: String(page),
+          per_page: "50",
+          sort: "id",
+          order: "asc",
+        });
+
+        const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`);
+        collected.push(...data.problems);
+        pages = data.pagination?.pages || 1;
+        page += 1;
+      }
+
+      setAllProblemsForStats(collected);
+    };
+
+    fetchAllProblemsForStats().catch(() => {
+      setAllProblemsForStats([]);
+    });
   }, []);
 
   useEffect(() => {
@@ -422,7 +541,15 @@ export default function ProblemsPage() {
     }
   };
 
-  const solvedCount = problems.filter((p) => solvedProblems.includes(p.id)).length;
+  const solvedSet = new Set(solvedProblems);
+  const totalProblemCount = allProblemsForStats.length;
+  const solvedCount = allProblemsForStats.filter((p) => solvedSet.has(p.id)).length;
+  const easyTotal = allProblemsForStats.filter((p) => p.difficulty === "easy").length;
+  const mediumTotal = allProblemsForStats.filter((p) => p.difficulty === "medium").length;
+  const hardTotal = allProblemsForStats.filter((p) => p.difficulty === "hard").length;
+  const easySolved = allProblemsForStats.filter((p) => p.difficulty === "easy" && solvedSet.has(p.id)).length;
+  const mediumSolved = allProblemsForStats.filter((p) => p.difficulty === "medium" && solvedSet.has(p.id)).length;
+  const hardSolved = allProblemsForStats.filter((p) => p.difficulty === "hard" && solvedSet.has(p.id)).length;
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
   const hasActiveProject = Boolean(selectedProjectId);
 
@@ -554,7 +681,7 @@ export default function ProblemsPage() {
                   {solvedCount}
                 </div>
                 <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-                  of {problems.length} problems
+                  of {totalProblemCount} problems
                 </div>
               </div>
 
@@ -574,10 +701,10 @@ export default function ProblemsPage() {
                   EASY
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
-                  {problems.filter(p => p.difficulty === 'easy' && solvedProblems.includes(p.id)).length}
+                  {easySolved}
                 </div>
                 <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-                  of {problems.filter(p => p.difficulty === 'easy').length}
+                  of {easyTotal}
                 </div>
               </div>
 
@@ -597,10 +724,10 @@ export default function ProblemsPage() {
                   MEDIUM
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#F59E0B' }}>
-                  {problems.filter(p => p.difficulty === 'medium' && solvedProblems.includes(p.id)).length}
+                  {mediumSolved}
                 </div>
                 <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-                  of {problems.filter(p => p.difficulty === 'medium').length}
+                  of {mediumTotal}
                 </div>
               </div>
 
@@ -620,10 +747,10 @@ export default function ProblemsPage() {
                   HARD
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#EF4444' }}>
-                  {problems.filter(p => p.difficulty === 'hard' && solvedProblems.includes(p.id)).length}
+                  {hardSolved}
                 </div>
                 <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
-                  of {problems.filter(p => p.difficulty === 'hard').length}
+                  of {hardTotal}
                 </div>
               </div>
             </div>
@@ -752,7 +879,12 @@ export default function ProblemsPage() {
           <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm">
           {QUICK_FILTERS.map((d) => {
             const isActive = filter === d;
-            const label = d === "favorite" ? "Favourite" : d.charAt(0).toUpperCase() + d.slice(1);
+            const label =
+              d === "favorite"
+                ? "Favourite"
+                : d === "solved"
+                  ? "Solved"
+                  : d.charAt(0).toUpperCase() + d.slice(1);
             const activeTone =
               d === "easy"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -760,6 +892,8 @@ export default function ProblemsPage() {
                   ? "bg-amber-50 text-amber-700 border-amber-200"
                   : d === "hard"
                     ? "bg-red-50 text-red-700 border-red-200"
+                    : d === "solved"
+                      ? "bg-teal-50 text-teal-700 border-teal-200"
                     : d === "favorite"
                       ? "bg-yellow-50 text-yellow-700 border-yellow-200"
                       : "bg-slate-100 text-slate-700 border-slate-200";
