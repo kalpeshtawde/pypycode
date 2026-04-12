@@ -8,7 +8,7 @@ problems_bp = Blueprint("problems", __name__)
 
 
 def problem_to_dict(p: Problem, hide_tests=True):
-    return {
+    data = {
         "id": p.id,
         "slug": p.slug,
         "title": p.title,
@@ -19,6 +19,18 @@ def problem_to_dict(p: Problem, hide_tests=True):
         "tags": p.tags or [],
         "createdAt": p.created_at.isoformat(),
     }
+    if not hide_tests and p.test_cases:
+        data["testCases"] = [
+            {
+                "serialNumber": tc.serial_number,
+                "function": tc.function,
+                "input": tc.input,
+                "expectedOutput": tc.expected_output,
+            }
+            for tc in p.test_cases
+            if tc.is_active
+        ]
+    return data
 
 
 def _require_non_empty_string(data: dict, field: str):
@@ -202,7 +214,7 @@ def public_ingest_problem():
 @problems_bp.get("/<slug>")
 def get_problem(slug):
     p = Problem.query.filter_by(slug=slug).first_or_404()
-    return jsonify(problem_to_dict(p))
+    return jsonify(problem_to_dict(p, hide_tests=False))
 
 
 @problems_bp.post("/")

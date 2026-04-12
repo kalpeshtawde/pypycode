@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import CodeMirrorEditor from "../components/CodeMirrorEditor";
-import type { Problem, Project, Submission } from "../types";
+import type { Problem, Project, Submission, TestCase } from "../types";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Queued…",
@@ -18,14 +18,23 @@ const STATUS_LABEL: Record<string, string> = {
 type TestCaseRow = {
   index: number;
   passed: boolean;
+  input?: string;
   expected?: string;
   got?: string;
   message?: string;
 };
 
-function buildTestCaseRows(submission: Submission): TestCaseRow[] {
+function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): TestCaseRow[] {
   const total = Math.max(submission.totalTests || 0, 0);
   if (!total) return [];
+  
+  // Create map of serialNumber -> input for lookup
+  const inputByIndex = new Map<number, string>();
+  if (testCases) {
+    for (const tc of testCases) {
+      inputByIndex.set(tc.serialNumber + 1, tc.input); // +1 because test rows are 1-indexed
+    }
+  }
 
   const failedByIndex = new Map<number, Omit<TestCaseRow, "index" | "passed">>();
   const rawDetails = (submission.errorOutput || "").replace(/^Errors:\s*/i, "").trim();
@@ -76,6 +85,7 @@ function buildTestCaseRows(submission: Submission): TestCaseRow[] {
     rows.push({
       index,
       passed,
+      input: inputByIndex.get(index),
       expected: parsedFailure?.expected,
       got: parsedFailure?.got,
       message: parsedFailure?.message ?? (!passed ? rawDetails || undefined : undefined),
@@ -346,7 +356,7 @@ export default function ProblemPage() {
     }
   };
 
-  const testRows = useMemo(() => (submission ? buildTestCaseRows(submission) : []), [submission]);
+  const testRows = useMemo(() => (submission ? buildTestCaseRows(submission, problem?.testCases) : []), [submission, problem?.testCases]);
   const outputTail = useMemo(() => extractOutputTail(submission?.errorOutput), [submission?.errorOutput]);
 
   useEffect(() => {
@@ -767,24 +777,6 @@ export default function ProblemPage() {
             </select>
 
             <button
-              onClick={() => {
-                if (problem?.starterCode) {
-                  setCode(problem.starterCode);
-                  localStorage.removeItem(`pypycode:code:${problem.slug}`);
-                  setToastMessage("Code reset to starter template");
-                  setTimeout(() => setToastMessage(null), 2500);
-                }
-              }}
-              disabled={running || submitting}
-              className={`text-sm py-1.5 px-3 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
-              title="Reset to starter code"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h4.274a.75.75 0 0 0 0-1.5H2.99a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39ZM4.974 5.954a5.5 5.5 0 0 1 9.2-2.466l.31.31h-4.268a.75.75 0 0 0 0 1.5h7.286a.75.75 0 0 0 .75-.75V.712a.75.75 0 0 0-1.5 0v2.43l-.31-.31a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.45.391Z" clipRule="evenodd" />
-              </svg>
-            </button>
-
-            <button
               onClick={handleRun}
               disabled={running || submitting}
               className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
@@ -1038,6 +1030,14 @@ export default function ProblemPage() {
                         }}
                       >
                         <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/70">
+                          {row.input && (
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Input:</div>
+                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                                {row.input}
+                              </pre>
+                            </div>
+                          )}
                           {row.expected !== undefined && (
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Expected:</div>

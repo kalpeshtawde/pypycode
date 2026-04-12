@@ -1,3 +1,10 @@
+export interface TestCase {
+  serialNumber: number;
+  function: string;
+  input: string;
+  expectedOutput: string;
+}
+
 export interface Problem {
   id: number;
   slug: string;
@@ -6,6 +13,7 @@ export interface Problem {
   description: string;
   starterCode: string;
   examples: { input: string; output: string; explanation?: string }[];
+  testCases?: TestCase[];
   tags: string[];
   createdAt: string;
 }
