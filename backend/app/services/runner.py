@@ -16,7 +16,12 @@ CPU_QUOTA = 50000  # 0.5 CPU
 
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
-    for tc in problem.test_cases:
+    # Sort test cases by 'key' field if present, otherwise maintain order
+    test_cases = sorted(
+        problem.test_cases,
+        key=lambda tc: tc.get("key", 0) if isinstance(tc.get("key"), (int, float)) else float('inf')
+    )
+    for tc in test_cases:
         expected = tc.get("expected")
         if isinstance(expected, str):
             try:
