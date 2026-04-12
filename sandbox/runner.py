@@ -37,13 +37,17 @@ def run_tests(code: str, test_cases: list) -> dict:
 
     passed = 0
     errors = []
+    test_outputs = []
 
     for i, tc in enumerate(test_cases):
+        start_pos = output_buffer.tell()
         try:
             fn_name = tc.get("function", "solution")
             fn = namespace.get(fn_name)
             if fn is None:
                 errors.append(f"Test {i+1}: function '{fn_name}' not found")
+                current_output = output_buffer.getvalue()[start_pos:].strip()
+                test_outputs.append(current_output)
                 continue
             args = tc.get("args", [])
             kwargs = tc.get("kwargs", {})
@@ -57,13 +61,17 @@ def run_tests(code: str, test_cases: list) -> dict:
             exc_str = traceback.format_exc(limit=3)
             errors.append(f"Test {i+1}: {exc_str}")
 
+        current_output = output_buffer.getvalue()[start_pos:].strip()
+        test_outputs.append(current_output)
+
     sys.stdout = old_stdout
     
     return {
         "passed": passed,
         "total": len(test_cases),
         "error": "\n".join(errors) if errors else None,
-        "output": output_buffer.getvalue()
+        "output": output_buffer.getvalue(),
+        "test_outputs": test_outputs,
     }
 
 

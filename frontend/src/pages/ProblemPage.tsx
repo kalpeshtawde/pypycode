@@ -15,6 +15,9 @@ const STATUS_LABEL: Record<string, string> = {
   runtime_error: "Runtime Error",
 };
 
+const VIM_MODE_STORAGE_KEY = "pypycode:vimMode";
+const FONT_SIZE_STORAGE_KEY = "pypycode:fontSize";
+
 type TestCaseRow = {
   index: number;
   passed: boolean;
@@ -22,11 +25,28 @@ type TestCaseRow = {
   expected?: string;
   got?: string;
   message?: string;
+  output?: string;
 };
+
+function extractPerTestOutputs(errorOutput: string | null | undefined): string[] {
+  if (!errorOutput) return [];
+
+  const match = errorOutput.match(/PerTestOutputs:\n([\s\S]*?)(?=\n(?:Output:|Errors:)|$)/i);
+  if (!match?.[1]) return [];
+
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((value) => (typeof value === "string" ? value : ""));
+  } catch {
+    return [];
+  }
+}
 
 function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): TestCaseRow[] {
   const total = Math.max(submission.totalTests || 0, 0);
   if (!total) return [];
+  const perTestOutputs = extractPerTestOutputs(submission.errorOutput);
   
   // Create map of serialNumber -> input for lookup
   const inputByIndex = new Map<number, string>();
@@ -89,29 +109,11 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
       expected: parsedFailure?.expected,
       got: parsedFailure?.got,
       message: parsedFailure?.message,
+      output: perTestOutputs[index - 1] || undefined,
     });
   }
 
   return rows;
-}
-
-function extractOutputTail(errorOutput: string | null | undefined, maxLines: number = 10): string | null {
-  if (!errorOutput) return null;
-
-  // Extract only the Output: section, stopping before Errors: or end of string
-  const match = errorOutput.match(/Output:\n([\s\S]*?)(?=\nErrors:|$)/i);
-  if (!match) return null;
-
-  const content = match[1].trim();
-  if (!content) return null;
-
-  const lines = content
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .filter((line) => line.length > 0);
-
-  if (!lines.length) return null;
-  return lines.slice(-maxLines).join("\n");
 }
 
 export default function ProblemPage() {
@@ -135,8 +137,24 @@ export default function ProblemPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSuccessfulRunCode, setLastSuccessfulRunCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
-  const [fontSize, setFontSize] = useState(15);
-  const [vimMode, setVimMode] = useState(false);
+  const [fontSize, setFontSize] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(FONT_SIZE_STORAGE_KEY);
+      if (!raw) return 15;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return 15;
+      return Math.min(24, Math.max(12, Math.round(parsed)));
+    } catch {
+      return 15;
+    }
+  });
+  const [vimMode, setVimMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(VIM_MODE_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [expandedTest, setExpandedTest] = useState<number | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -165,6 +183,22 @@ export default function ProblemPage() {
       .catch(() => setIsFavorite(false))
       .finally(() => setIsCheckingFavorite(false));
   }, [problem?.id, token]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIM_MODE_STORAGE_KEY, vimMode ? "1" : "0");
+    } catch {
+      // no-op if storage unavailable
+    }
+  }, [vimMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(fontSize));
+    } catch {
+      // no-op if storage unavailable
+    }
+  }, [fontSize]);
 
   useEffect(() => {
     if (!token) {
@@ -362,7 +396,6 @@ export default function ProblemPage() {
   };
 
   const testRows = useMemo(() => (submission ? buildTestCaseRows(submission, problem?.testCases) : []), [submission, problem?.testCases]);
-  const outputTail = useMemo(() => extractOutputTail(submission?.errorOutput), [submission?.errorOutput]);
 
   useEffect(() => {
     setExpandedTest(null);
@@ -919,8 +952,9 @@ export default function ProblemPage() {
             </label>
             <button
               onClick={() => {
-                setVimMode(!vimMode);
-                const message = !vimMode ? 'Vim mode enabled' : 'Vim mode disabled';
+                const nextVimMode = !vimMode;
+                setVimMode(nextVimMode);
+                const message = nextVimMode ? 'Vim mode enabled' : 'Vim mode disabled';
                 setToastMessage(message);
                 setTimeout(() => setToastMessage(null), 2500);
               }}
@@ -994,7 +1028,8 @@ export default function ProblemPage() {
             </div>
 
             {statusDone && testRows.length > 0 ? (
-              <div className="px-4 py-3 space-y-2 max-h-72 overflow-auto">
+              <div className="px-4 py-3 space-y-2">
+                <div className="max-h-72 overflow-auto space-y-2 pr-1">
                 {testRows.map((row) => {
                   const isExpanded = expandedTest === row.index;
                   return (
@@ -1057,13 +1092,13 @@ export default function ProblemPage() {
                               {row.got ?? row.message ?? "Passed"}
                             </pre>
                           </div>
-                          {!row.passed && outputTail && (
+                          {row.output && (
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
-                                Output (last lines):
+                                Output:
                               </div>
                               <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
-                                {outputTail}
+                                {row.output}
                               </pre>
                             </div>
                           )}
@@ -1072,6 +1107,7 @@ export default function ProblemPage() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             ) : submission.errorOutput ? (
               <div className="px-4 py-3">

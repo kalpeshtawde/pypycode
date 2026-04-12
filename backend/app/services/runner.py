@@ -162,6 +162,8 @@ def run_code_against_problem(problem: Problem, code: str):
 
         # Build error output
         error_parts = []
+        if result.get("test_outputs") is not None:
+            error_parts.append(f"PerTestOutputs:\n{json.dumps(result.get('test_outputs'))}")
         if result.get("output"):
             error_parts.append(f"Output:\n{result.get('output')}")
         if error:
