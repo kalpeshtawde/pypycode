@@ -4,7 +4,7 @@ import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import type { Problem, Project, BillingAccessStatus } from "../types";
 
-const DIFFS = ["all", "easy", "medium", "hard"] as const;
+const QUICK_FILTERS = ["all", "easy", "medium", "hard", "favorite"] as const;
 
 function ProblemCell({
   problem,
@@ -104,8 +104,8 @@ export default function ProblemsPage() {
     () => localStorage.getItem("selectedProjectId") ?? ""
   );
   const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
-  const [filter, setFilter] = useState<typeof DIFFS[number]>("all");
-  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at" | "favorite">("id");
+  const [filter, setFilter] = useState<typeof QUICK_FILTERS[number]>("all");
+  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
@@ -133,12 +133,102 @@ export default function ProblemsPage() {
   const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
     setLoading(true);
     const trimmedSearch = searchQuery.trim();
+
+    if (difficulty === "favorite" && token) {
+      api.get<{ favorites: Array<{ createdAt: string; problem: Problem }> }>("/favorites/", token)
+        .then((res) => {
+          const enriched = res.favorites
+            .map((f) => ({
+              problem: {
+                ...f.problem,
+                id: Number(f.problem.id),
+              },
+              favoriteCreatedAt: f.createdAt,
+            }))
+            .filter(({ problem }) => {
+              if (!trimmedSearch) return true;
+              const query = trimmedSearch.toLowerCase();
+              return (
+                problem.title.toLowerCase().includes(query) ||
+                problem.slug.toLowerCase().includes(query) ||
+                problem.tags.some((t) => t.toLowerCase().includes(query))
+              );
+            });
+
+          const difficultyRank = (value: string) => {
+            if (value === "easy") return 1;
+            if (value === "medium") return 2;
+            if (value === "hard") return 3;
+            return 4;
+          };
+
+          enriched.sort((a, b) => {
+            if (sort === "difficulty") {
+              const delta = difficultyRank(a.problem.difficulty) - difficultyRank(b.problem.difficulty);
+              return order === "desc" ? -delta : delta;
+            }
+
+            if (sort === "created_at") {
+              const aTime = new Date(a.favoriteCreatedAt).getTime();
+              const bTime = new Date(b.favoriteCreatedAt).getTime();
+              return order === "desc" ? bTime - aTime : aTime - bTime;
+            }
+
+            const delta = a.problem.id - b.problem.id;
+            return order === "desc" ? -delta : delta;
+          });
+
+          const perPage = 15;
+          const total = enriched.length;
+          const pages = Math.max(1, Math.ceil(total / perPage));
+          const safePage = Math.min(Math.max(page, 1), pages);
+          const start = (safePage - 1) * perPage;
+          const pageItems = enriched.slice(start, start + perPage).map((item) => item.problem);
+
+          setProblems(pageItems);
+          setPagination({
+            page: safePage,
+            pages,
+            total,
+            per_page: perPage,
+            has_prev: safePage > 1,
+            has_next: safePage < pages,
+            prev_num: safePage > 1 ? safePage - 1 : null,
+            next_num: safePage < pages ? safePage + 1 : null,
+          });
+
+          const sequence = new Map<number, number>();
+          pageItems.forEach((problem, index) => {
+            sequence.set(problem.id, (safePage - 1) * perPage + index + 1);
+          });
+          setProblemSequence(sequence);
+        })
+        .catch(() => {
+          setProblems([]);
+          setPagination({
+            page: 1,
+            pages: 1,
+            total: 0,
+            per_page: 15,
+            has_prev: false,
+            has_next: false,
+            prev_num: null,
+            next_num: null,
+          });
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
+
+    const difficultyParam = ["easy", "medium", "hard"].includes(difficulty) ? difficulty : "";
     const params = new URLSearchParams({
       page: page.toString(),
       per_page: "15",
       sort: sort,
       order: order,
-      ...(difficulty !== "all" && { difficulty }),
+      ...(difficultyParam && { difficulty: difficultyParam }),
       ...(trimmedSearch && { search: trimmedSearch }),
     });
     
@@ -657,21 +747,38 @@ export default function ProblemsPage() {
           </>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2 mt-6 mb-6">
-          {DIFFS.map((d) => (
+        {/* Quick filters */}
+        <div className="mt-6 mb-6">
+          <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {QUICK_FILTERS.map((d) => {
+            const isActive = filter === d;
+            const label = d === "favorite" ? "Favourite" : d.charAt(0).toUpperCase() + d.slice(1);
+            const activeTone =
+              d === "easy"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : d === "medium"
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : d === "hard"
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : d === "favorite"
+                      ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                      : "bg-slate-100 text-slate-700 border-slate-200";
+
+            return (
             <button
               key={d}
               onClick={() => setFilter(d)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-mono capitalize transition-all ${
-                filter === d
-                  ? "bg-surface border border-accent/30 text-accent"
-                  : "text-slate-500 hover:text-slate-300"
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                isActive
+                  ? activeTone
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               }`}
             >
-              {d}
+              {label}
             </button>
-          ))}
+            );
+          })}
+          </div>
         </div>
 
         {/* Problems List */}
@@ -726,7 +833,6 @@ export default function ProblemsPage() {
                 <option value="id">Default</option>
                 <option value="difficulty">Difficulty</option>
                 <option value="created_at">Date Added</option>
-                <option value="favorite">Favorites</option>
               </select>
               <button
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
@@ -766,31 +872,11 @@ export default function ProblemsPage() {
               <div style={{ textAlign: 'right' }}>Difficulty</div>
             </div>
 
-            {/* Table Rows - with search filter and favorite sorting */}
+            {/* Table Rows */}
             {(() => {
-              // Filter by search query (title and tags)
-              const filtered = searchQuery.trim()
-                ? problems.filter((p) => {
-                    const query = searchQuery.toLowerCase();
-                    const inTitle = p.title.toLowerCase().includes(query);
-                    const inTags = p.tags.some((t) => t.toLowerCase().includes(query));
-                    return inTitle || inTags;
-                  })
-                : problems;
+              const visibleProblems = problems;
 
-              // Sort by favorite if selected (client-side since favorites are user-specific)
-              const sorted = sortBy === "favorite"
-                ? [...filtered].sort((a, b) => {
-                    const aFav = favoriteProblemIds.has(String(a.id));
-                    const bFav = favoriteProblemIds.has(String(b.id));
-                    return sortOrder === "desc"
-                      ? Number(aFav) - Number(bFav)  // Favorites last
-                      : Number(bFav) - Number(aFav); // Favorites first
-                  })
-                : filtered;
-
-              return sorted.map((p) => {
-                const isHidden = filter !== 'all' && p.difficulty !== filter;
+              return visibleProblems.map((p) => {
                 const isSolved = solvedProblems.includes(p.id);
                 const targetPath = selectedProjectId
                   ? `/problems/${p.slug}?projectId=${encodeURIComponent(selectedProjectId)}`
@@ -804,8 +890,6 @@ export default function ProblemsPage() {
                   : hasBillingAccess
                   ? targetPath
                   : pricingRedirectPath;
-
-                if (isHidden) return null;
 
                 const isFavorite = favoriteProblemIds.has(String(p.id));
 
