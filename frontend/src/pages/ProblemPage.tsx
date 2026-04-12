@@ -37,7 +37,9 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
   }
 
   const failedByIndex = new Map<number, Omit<TestCaseRow, "index" | "passed">>();
-  const rawDetails = (submission.errorOutput || "").replace(/^Errors:\s*/i, "").trim();
+  // Extract only the Errors: section for parsing (ignore the Output: section)
+  const errorsSection = submission.errorOutput?.match(/Errors:\n([\s\S]*)$/i);
+  const rawDetails = errorsSection ? errorsSection[1].trim() : "";
   const lines = rawDetails.split("\n");
   let currentIndex: number | null = null;
   let currentChunk: string[] = [];
@@ -77,10 +79,8 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
   const rows: TestCaseRow[] = [];
   for (let index = 1; index <= total; index += 1) {
     const parsedFailure = failedByIndex.get(index);
-    const isFailed = Boolean(parsedFailure);
-    // Mark as failed if: (1) has explicit error, or (2) submission not accepted and test index > passed count
-    const notRunOrFailed = submission.status !== "accepted" && index > submission.passedTests;
-    const passed = !isFailed && !notRunOrFailed;
+    // A test is failed only if the sandbox explicitly reported it in the error string
+    const passed = !parsedFailure;
 
     rows.push({
       index,
@@ -88,7 +88,7 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
       input: inputByIndex.get(index),
       expected: parsedFailure?.expected,
       got: parsedFailure?.got,
-      message: parsedFailure?.message ?? (!passed ? rawDetails || undefined : undefined),
+      message: parsedFailure?.message,
     });
   }
 
@@ -97,10 +97,15 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
 
 function extractOutputTail(errorOutput: string | null | undefined, maxLines: number = 10): string | null {
   if (!errorOutput) return null;
-  const outputMatch = errorOutput.match(/Output:\n([\s\S]*?)(?:\nErrors:\n|$)/i);
-  if (!outputMatch?.[1]) return null;
 
-  const lines = outputMatch[1]
+  // Extract only the Output: section, stopping before Errors: or end of string
+  const match = errorOutput.match(/Output:\n([\s\S]*?)(?=\nErrors:|$)/i);
+  if (!match) return null;
+
+  const content = match[1].trim();
+  if (!content) return null;
+
+  const lines = content
     .split("\n")
     .map((line) => line.trimEnd())
     .filter((line) => line.length > 0);
@@ -372,16 +377,14 @@ export default function ProblemPage() {
   const canSubmit = !running && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-50 relative">
-      {/* Left: Problem panel */}
-      <div className="w-[42%] flex flex-col border-r border-slate-200 overflow-hidden bg-slate-50">
-        {/* Tabs */}
-        <div className="flex border-b border-slate-200 shrink-0 bg-slate-50">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 relative overflow-hidden">
+      <div className="fixed top-16 left-0 right-0 flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 z-40">
+        <div className="flex items-center">
           {(["description", "submissions"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3 text-sm font-body capitalize transition-colors border-b-2 ${
+              className={`px-5 py-2.5 text-sm font-body capitalize transition-colors border-b-2 ${
                 activeTab === tab
                   ? "border-accent text-slate-900"
                   : "border-transparent text-slate-600 hover:text-slate-900"
@@ -392,6 +395,53 @@ export default function ProblemPage() {
           ))}
         </div>
 
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            disabled={!token || projects.length === 0 || submitting}
+            className="px-3 py-1.5 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
+          >
+            {!token && <option value="">Sign in to select project</option>}
+            {token && projects.length === 0 && <option value="">No projects</option>}
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={handleRun}
+            disabled={running || submitting}
+            className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
+            </svg>
+            {running ? "Running..." : "Run"}
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className={`text-sm py-1.5 px-5 rounded-lg bg-indigo-600 text-white transition-colors ${canSubmit ? "hover:bg-indigo-700" : "opacity-60 cursor-not-allowed"}`}
+          >
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <svg className="w-3 h-3 animate-spin-slow" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Submitting...
+              </span>
+            ) : "Submit"}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 min-h-0 pt-[62px]">
+      {/* Left: Problem panel */}
+      <div className="w-[42%] flex flex-col border-r border-slate-200 overflow-hidden bg-slate-50">
         <div className="overflow-y-auto flex-1 p-6">
           {activeTab === "description" ? (
             <>
@@ -757,53 +807,6 @@ export default function ProblemPage() {
 
       {/* Right: Editor + output */}
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
-        {/* Editor header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0 bg-slate-50">
-          <span className="text-xs font-mono text-slate-600">Python 3.12</span>
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              disabled={!token || projects.length === 0 || submitting}
-              className="px-3 py-1.5 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
-            >
-              {!token && <option value="">Sign in to select project</option>}
-              {token && projects.length === 0 && <option value="">No projects</option>}
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={handleRun}
-              disabled={running || submitting}
-              className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
-              </svg>
-              {running ? "Running..." : "Run"}
-            </button>
-
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className={`text-sm py-1.5 px-5 rounded-lg bg-indigo-600 text-white transition-colors ${canSubmit ? "hover:bg-indigo-700" : "opacity-60 cursor-not-allowed"}`}
-            >
-              {submitting ? (
-                <span className="flex items-center gap-2">
-                  <svg className="w-3 h-3 animate-spin-slow" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="12" />
-                  </svg>
-                  Submitting...
-                </span>
-              ) : "Submit"}
-            </button>
-          </div>
-        </div>
-
         {/* Editor toolbar */}
         <div 
           className="shrink-0 flex items-center border-b"
@@ -966,7 +969,7 @@ export default function ProblemPage() {
 
         {/* Result panel */}
         {submission && (
-          <div className="shrink-0 border-t border-slate-200 bg-slate-50 text-sm">
+          <div className="shrink-0 border-t border-slate-200 bg-slate-50 text-sm max-h-[45vh] overflow-y-auto">
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 bg-white/75">
               <div className="flex items-center gap-3 min-w-0">
                 <span
@@ -1023,10 +1026,10 @@ export default function ProblemPage() {
 
                       <div
                         style={{
-                          maxHeight: isExpanded ? "220px" : "0px",
+                          maxHeight: isExpanded ? "500px" : "0px",
                           opacity: isExpanded ? 1 : 0,
                           overflow: "hidden",
-                          transition: "max-height 220ms ease, opacity 180ms ease",
+                          transition: "max-height 300ms ease, opacity 180ms ease",
                         }}
                       >
                         <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/70">
@@ -1081,6 +1084,7 @@ export default function ProblemPage() {
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Toast Notification */}

@@ -83,9 +83,19 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
                 "runtime_ms": int(elapsed_ms),
             }
         
+        # The sandbox always ends with print(json.dumps(result)).
+        # Any lines before the last are user print() output leaking to container stdout.
+        lines = output_str.splitlines()
+        json_line = lines[-1].strip()
+        user_output = "\n".join(lines[:-1]).strip()
+
         try:
-            result = json.loads(output_str)
+            result = json.loads(json_line)
             result["runtime_ms"] = int(elapsed_ms)
+            # Merge any leaked stdout with buffer-captured output
+            if user_output:
+                existing = result.get("output") or ""
+                result["output"] = (user_output + "\n" + existing).strip() if existing else user_output
             error_val = result.get('error')
             error_str = error_val[:100] if error_val else 'None'
             logger.info(f"[BATCH] Sandbox result: passed={result.get('passed')}, total={result.get('total')}, error={error_str}")
