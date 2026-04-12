@@ -1,7 +1,7 @@
 import pytest
 from flask_jwt_extended import create_access_token
 from app import db
-from app.models import Favorite, Problem, User
+from app.models import Favorite, Problem, TestCase, User
 
 
 @pytest.fixture
@@ -13,11 +13,21 @@ def problem2(app_ctx):
         difficulty="medium",
         description="Check if parentheses are valid",
         starter_code="def solution(s):\n    pass",
-        test_cases=[{"input": '"()"', "expected": "True"}],
         examples=[{"input": 's="()"', "output": "True"}],
         tags=["stack", "string"],
     )
     db.session.add(problem)
+    db.session.flush()
+    
+    # Create test case separately
+    tc = TestCase(
+        problem_id=problem.id,
+        serial_number=0,
+        function="solution",
+        input='"()"',
+        expected_output="true",
+    )
+    db.session.add(tc)
     db.session.commit()
     return problem
 

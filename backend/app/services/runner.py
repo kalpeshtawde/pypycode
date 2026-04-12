@@ -134,13 +134,26 @@ def run_code_against_problem(problem: Problem, code: str):
 
         first_passed = first_result.get("passed", 0)
         first_total = first_result.get("total", first_batch_size)
+        first_error = first_result.get("error", "")
 
         # Build error output from first batch
         error_parts = []
         if first_result.get("output"):
             error_parts.append(f"Output:\n{first_result.get('output')}")
-        if first_result.get("error"):
-            error_parts.append(f"Errors:\n{first_result.get('error')}")
+        if first_error:
+            error_parts.append(f"Errors:\n{first_error}")
+
+        # Check for runtime errors (container errors, execution errors)
+        if first_error and ("Container error" in first_error or "execution timeout" in first_error.lower()):
+            status = "time_limit" if "timeout" in first_error.lower() else "runtime_error"
+            return {
+                "status": status,
+                "passed_tests": 0,
+                "total_tests": len(test_cases),
+                "runtime_ms": None,
+                "memory_kb": None,
+                "error_output": "\n".join(error_parts),
+            }
 
         # If any of first 3 failed, return early (showing results of first 3)
         if first_passed < first_total:
