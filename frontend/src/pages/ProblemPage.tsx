@@ -28,6 +28,17 @@ type TestCaseRow = {
   output?: string;
 };
 
+type ProblemSubmissionRow = {
+  id: number;
+  status: Submission["status"];
+  passedTests: number;
+  totalTests: number;
+  runtimeMs: number | null;
+  memoryKb: number | null;
+  code: string;
+  createdAt: string;
+};
+
 function extractPerTestOutputs(errorOutput: string | null | undefined): string[] {
   if (!errorOutput) return [];
 
@@ -133,6 +144,7 @@ export default function ProblemPage() {
   const codeLoadedRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
+  const [problemSubmissions, setProblemSubmissions] = useState<ProblemSubmissionRow[]>([]);
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastSuccessfulRunCode, setLastSuccessfulRunCode] = useState<string | null>(null);
@@ -249,6 +261,7 @@ export default function ProblemPage() {
     if (!slug || !problem) return;
     if (!token) {
       setSubmission(null);
+      setProblemSubmissions([]);
       // Only reset code if we haven't loaded from localStorage yet
       if (!codeLoadedRef.current) {
         setCode(problem.starterCode);
@@ -264,6 +277,7 @@ export default function ProblemPage() {
       token
     )
       .then((submissions) => {
+        setProblemSubmissions(submissions as ProblemSubmissionRow[]);
         if (submissions.length > 0) {
           const latestSubmission = submissions[0];
           setSubmission({
@@ -282,6 +296,7 @@ export default function ProblemPage() {
         }
 
         setSubmission(null);
+        setProblemSubmissions([]);
         if (!codeLoadedRef.current) {
           setCode(problem.starterCode);
         }
@@ -289,6 +304,7 @@ export default function ProblemPage() {
       })
       .catch(() => {
         setSubmission(null);
+        setProblemSubmissions([]);
         if (!codeLoadedRef.current) {
           setCode(problem.starterCode);
         }
@@ -826,13 +842,60 @@ export default function ProblemPage() {
                 ))}
               </div>
             </>
-          ) : (
+          ) : !token ? (
             <div className="text-center py-16 text-slate-500 font-mono text-sm">
-              {!token ? (
-                <p>Sign in to see your submissions.</p>
-              ) : (
-                <p>No submissions yet for this problem.</p>
-              )}
+              <p>Sign in to see your submissions.</p>
+            </div>
+          ) : problemSubmissions.length === 0 ? (
+            <div className="text-center py-16 text-slate-500 font-mono text-sm">
+              <p>No submissions yet for this problem.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {problemSubmissions.map((sub) => {
+                const ok = sub.status === "accepted";
+                const done = !["pending", "running"].includes(sub.status);
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => {
+                      setSubmission({
+                        id: sub.id,
+                        status: sub.status,
+                        passedTests: sub.passedTests,
+                        totalTests: sub.totalTests,
+                        runtimeMs: sub.runtimeMs,
+                        memoryKb: sub.memoryKb,
+                        errorOutput: null,
+                        createdAt: sub.createdAt,
+                      });
+                      setCode(sub.code);
+                    }}
+                    className="w-full text-left rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors px-3 py-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold font-mono border ${
+                          ok
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : done
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
+                        }`}>
+                          {STATUS_LABEL[sub.status] ?? sub.status}
+                        </span>
+                        <span className="text-xs font-mono text-slate-600">
+                          {sub.passedTests}/{sub.totalTests} tests
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-500 whitespace-nowrap">
+                        {new Date(sub.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
