@@ -159,6 +159,7 @@ def run_code_against_problem(problem: Problem, code: str):
         passed = result.get("passed", 0)
         total = result.get("total", len(test_cases))
         error = result.get("error", "")
+        normalized_error = str(error).lower() if error else ""
 
         # Build error output
         error_parts = []
@@ -169,14 +170,26 @@ def run_code_against_problem(problem: Problem, code: str):
         if error:
             error_parts.append(f"Errors:\n{error}")
 
-        # Check for runtime errors
-        if error and ("Container error" in error or "execution timeout" in error.lower()):
-            status = "time_limit" if "timeout" in error.lower() else "runtime_error"
+        # Classify sandbox errors before deciding status.
+        # Any explicit error should never be marked as accepted.
+        if error:
+            if "timeout" in normalized_error or "time limit exceeded" in normalized_error:
+                status = "time_limit"
+            elif (
+                "container error" in normalized_error
+                or "compilation error" in normalized_error
+                or "execution error" in normalized_error
+                or "invalid json output from sandbox" in normalized_error
+            ):
+                status = "runtime_error"
+            else:
+                status = "wrong_answer" if passed < total else "runtime_error"
+
             return {
                 "status": status,
-                "passed_tests": 0,
+                "passed_tests": passed,
                 "total_tests": len(test_cases),
-                "runtime_ms": None,
+                "runtime_ms": result.get("runtime_ms"),
                 "memory_kb": None,
                 "error_output": "\n".join(error_parts),
             }

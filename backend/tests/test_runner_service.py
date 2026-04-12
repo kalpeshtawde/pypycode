@@ -81,3 +81,13 @@ def test_run_code_against_problem_handles_timeout_like_error(mocker):
 
     result = runner.run_code_against_problem(problem, "def solution(): return 1")
     assert result["status"] == "time_limit"
+
+
+def test_run_code_against_problem_never_accepts_when_error_present(mocker):
+    problem = DummyProblem([{"input": "1", "expectedOutput": "1"}])
+    client = mocker.Mock()
+    client.containers.run.return_value = '{"passed": 0, "total": 0, "output": "", "error": "execution error: crash"}'
+    mocker.patch("docker.from_env", return_value=client)
+
+    result = runner.run_code_against_problem(problem, "def solution(): return 1")
+    assert result["status"] == "runtime_error"

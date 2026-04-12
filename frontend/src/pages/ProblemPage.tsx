@@ -107,11 +107,19 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
   }
   commitChunk();
 
+  const shouldFallbackToCountBasedStatus =
+    failedByIndex.size === 0 &&
+    !["accepted", "pending", "running"].includes(submission.status);
+  const safePassedCount = Math.max(0, Math.min(submission.passedTests || 0, total));
+
   const rows: TestCaseRow[] = [];
   for (let index = 1; index <= total; index += 1) {
     const parsedFailure = failedByIndex.get(index);
-    // A test is failed only if the sandbox explicitly reported it in the error string
-    const passed = !parsedFailure;
+    const passed = parsedFailure
+      ? false
+      : shouldFallbackToCountBasedStatus
+        ? index <= safePassedCount
+        : true;
 
     rows.push({
       index,
@@ -119,7 +127,9 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
       input: inputByIndex.get(index),
       expected: parsedFailure?.expected,
       got: parsedFailure?.got,
-      message: parsedFailure?.message,
+      message:
+        parsedFailure?.message ||
+        (!passed && shouldFallbackToCountBasedStatus && rawDetails ? rawDetails : undefined),
       output: perTestOutputs[index - 1] || undefined,
     });
   }
