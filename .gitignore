@@ -13,6 +13,7 @@ dist/
 # Env
 .env
 *.env.local
+backend/.env.db-sync
 
 # Docker volumes
 pgdata/

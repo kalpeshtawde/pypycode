@@ -151,6 +151,64 @@ Exiting with error code 1
 
 ---
 
+### Sync Remote Postgres → Local
+
+Sync a remote Postgres database into your local DB through SSH tunnel.
+
+#### 1. Configure env file
+
+Copy and edit:
+
+```bash
+cd backend
+cp .env.db-sync.example .env.db-sync
+```
+
+Required values in `backend/.env.db-sync`:
+
+- SSH: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, and either `SSH_PRIVATE_KEY` or `SSH_PASSWORD`
+- Remote DB: `REMOTE_DB_HOST`, `REMOTE_DB_PORT`, `REMOTE_DB_NAME`, `REMOTE_DB_USER`, `REMOTE_DB_PASSWORD`
+- Local DB: `LOCAL_DB_HOST`, `LOCAL_DB_PORT`, `LOCAL_DB_NAME`, `LOCAL_DB_USER`, `LOCAL_DB_PASSWORD`
+
+Notes:
+
+- `SSH_HOST` is your remote server IP/domain.
+- `REMOTE_DB_HOST` is from the SSH host's perspective (usually `127.0.0.1` if Postgres runs on that same server).
+- If running command from host machine, local Docker Postgres is typically `LOCAL_DB_HOST=127.0.0.1`.
+- If running command inside `api` container, use `LOCAL_DB_HOST=db`.
+
+#### 2. Run sync command
+
+From `backend/`:
+
+```bash
+# Non-interactive
+make sync-remote-db
+
+# Interactive confirmation
+make sync-remote-db-confirm
+```
+
+Or directly with Flask CLI:
+
+```bash
+DATABASE_URL=postgresql://pypycode:pypycode@127.0.0.1:5432/pypycode \
+flask --app app sync-remote-db --yes
+```
+
+#### 3. Apple Silicon pg_dump version note
+
+If you get a server/client version mismatch error, use Postgres 15 client binaries:
+
+```bash
+brew install postgresql@15
+PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH" make sync-remote-db
+```
+
+The `backend/Makefile` already defaults `PG15_BIN` to `/opt/homebrew/opt/postgresql@15/bin` and prepends it to `PATH`.
+
+---
+
 ## Project Structure
 
 ```

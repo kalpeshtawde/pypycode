@@ -1,7 +1,10 @@
 import os
 import json
 import sys
+import subprocess
+import tempfile
 from flask import Flask
+import click
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
@@ -168,6 +171,140 @@ def create_app():
         else:
             print("All problems validated successfully!")
             sys.exit(0)
+
+    @app.cli.command("sync-remote-db")
+    @click.option("--env-file", default=".env.db-sync", show_default=True, help="Path to env file with SSH and DB settings")
+    @click.option("--yes", is_flag=True, help="Skip confirmation prompt before local DB overwrite")
+    def sync_remote_db(env_file: str, yes: bool):
+        """Sync remote Postgres DB to local DB through SSH tunnel."""
+        from dotenv import dotenv_values
+        from sshtunnel import SSHTunnelForwarder
+
+        cfg = dotenv_values(env_file)
+        required = [
+            "SSH_HOST",
+            "SSH_USER",
+            "REMOTE_DB_HOST",
+            "REMOTE_DB_PORT",
+            "REMOTE_DB_NAME",
+            "REMOTE_DB_USER",
+            "REMOTE_DB_PASSWORD",
+            "LOCAL_DB_HOST",
+            "LOCAL_DB_PORT",
+            "LOCAL_DB_NAME",
+            "LOCAL_DB_USER",
+            "LOCAL_DB_PASSWORD",
+        ]
+        missing = [key for key in required if not cfg.get(key)]
+        if missing:
+            raise click.ClickException(f"Missing required env vars: {', '.join(missing)}")
+
+        if not yes:
+            click.echo(
+                f"This will overwrite local DB '{cfg['LOCAL_DB_NAME']}' on {cfg['LOCAL_DB_HOST']}:{cfg['LOCAL_DB_PORT']}."
+            )
+            if not click.confirm("Continue?"):
+                click.echo("Cancelled")
+                return
+
+        ssh_kwargs = {"ssh_username": cfg["SSH_USER"]}
+        if cfg.get("SSH_PRIVATE_KEY"):
+            ssh_kwargs["ssh_pkey"] = cfg["SSH_PRIVATE_KEY"]
+            if cfg.get("SSH_PRIVATE_KEY_PASSPHRASE"):
+                ssh_kwargs["ssh_private_key_password"] = cfg["SSH_PRIVATE_KEY_PASSPHRASE"]
+        elif cfg.get("SSH_PASSWORD"):
+            ssh_kwargs["ssh_password"] = cfg["SSH_PASSWORD"]
+
+        def run_or_fail(cmd: list[str], env: dict[str, str], step: str):
+            result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+            if result.returncode != 0:
+                stderr = (result.stderr or "").strip()
+                raise click.ClickException(f"{step} failed: {stderr or 'Unknown error'}")
+
+        dump_path = ""
+        with tempfile.NamedTemporaryFile(suffix=".dump", delete=False) as tmp:
+            dump_path = tmp.name
+
+        try:
+            click.echo("Opening SSH tunnel...")
+            with SSHTunnelForwarder(
+                (cfg["SSH_HOST"], int(cfg.get("SSH_PORT") or 22)),
+                remote_bind_address=(cfg["REMOTE_DB_HOST"], int(cfg["REMOTE_DB_PORT"])),
+                local_bind_address=("127.0.0.1", 0),
+                **ssh_kwargs,
+            ) as tunnel:
+                click.echo("Dumping remote database...")
+                dump_env = os.environ.copy()
+                dump_env["PGPASSWORD"] = cfg["REMOTE_DB_PASSWORD"]
+                run_or_fail(
+                    [
+                        "pg_dump",
+                        "-h",
+                        "127.0.0.1",
+                        "-p",
+                        str(tunnel.local_bind_port),
+                        "-U",
+                        cfg["REMOTE_DB_USER"],
+                        "-d",
+                        cfg["REMOTE_DB_NAME"],
+                        "-F",
+                        "c",
+                        "--no-owner",
+                        "--no-privileges",
+                        "-f",
+                        dump_path,
+                    ],
+                    dump_env,
+                    "Remote dump",
+                )
+
+            click.echo("Resetting local schema...")
+            local_env = os.environ.copy()
+            local_env["PGPASSWORD"] = cfg["LOCAL_DB_PASSWORD"]
+            run_or_fail(
+                [
+                    "psql",
+                    "-h",
+                    cfg["LOCAL_DB_HOST"],
+                    "-p",
+                    str(cfg["LOCAL_DB_PORT"]),
+                    "-U",
+                    cfg["LOCAL_DB_USER"],
+                    "-d",
+                    cfg["LOCAL_DB_NAME"],
+                    "-v",
+                    "ON_ERROR_STOP=1",
+                    "-c",
+                    "DROP SCHEMA public CASCADE; CREATE SCHEMA public;",
+                ],
+                local_env,
+                "Local schema reset",
+            )
+
+            click.echo("Restoring dump to local database...")
+            run_or_fail(
+                [
+                    "pg_restore",
+                    "-h",
+                    cfg["LOCAL_DB_HOST"],
+                    "-p",
+                    str(cfg["LOCAL_DB_PORT"]),
+                    "-U",
+                    cfg["LOCAL_DB_USER"],
+                    "-d",
+                    cfg["LOCAL_DB_NAME"],
+                    "--no-owner",
+                    "--no-privileges",
+                    dump_path,
+                ],
+                local_env,
+                "Local restore",
+            )
+
+            click.echo("Remote DB synced to local DB successfully")
+        finally:
+            if dump_path and os.path.exists(dump_path):
+                os.remove(dump_path)
 
     return app
 
