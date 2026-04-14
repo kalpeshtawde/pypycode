@@ -54,10 +54,33 @@ function extractPerTestOutputs(errorOutput: string | null | undefined): string[]
   }
 }
 
+function extractFailedCases(errorOutput: string | null | undefined): Array<{
+  case: number;
+  expected?: unknown;
+  got?: unknown;
+  error?: unknown;
+}> {
+  if (!errorOutput) return [];
+
+  const match = errorOutput.match(/FailedCases:\n([\s\S]*?)(?=\n(?:PerTestOutputs:|Output:|Errors:)|$)/i);
+  if (!match?.[1]) return [];
+
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is { case: number; expected?: unknown; got?: unknown; error?: unknown } => {
+      return typeof item === "object" && item !== null && typeof (item as { case?: unknown }).case === "number";
+    });
+  } catch {
+    return [];
+  }
+}
+
 function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): TestCaseRow[] {
   const total = Math.max(submission.totalTests || 0, 0);
   if (!total) return [];
   const perTestOutputs = extractPerTestOutputs(submission.errorOutput);
+  const failedCases = extractFailedCases(submission.errorOutput);
   
   // Create map of serialNumber -> input for lookup
   const inputByIndex = new Map<number, string>();
@@ -68,9 +91,25 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
   }
 
   const failedByIndex = new Map<number, Omit<TestCaseRow, "index" | "passed">>();
+  for (const failedCase of failedCases) {
+    const message =
+      typeof failedCase.error === "string"
+        ? failedCase.error
+        : failedCase.error != null
+          ? String(failedCase.error)
+          : undefined;
+
+    failedByIndex.set(failedCase.case, {
+      expected: failedCase.expected !== undefined ? String(failedCase.expected) : undefined,
+      got: failedCase.got !== undefined ? String(failedCase.got) : undefined,
+      message,
+    });
+  }
+
   // Extract only the Errors: section for parsing (ignore the Output: section)
   const errorsSection = submission.errorOutput?.match(/Errors:\n([\s\S]*)$/i);
   const rawDetails = errorsSection ? errorsSection[1].trim() : "";
+  const globalErrorDetails = submission.errorOutput?.trim() || "";
   const lines = rawDetails.split("\n");
   let currentIndex: number | null = null;
   let currentChunk: string[] = [];
@@ -129,8 +168,10 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
       got: parsedFailure?.got,
       message:
         parsedFailure?.message ||
-        (!passed && shouldFallbackToCountBasedStatus && rawDetails ? rawDetails : undefined),
-      output: perTestOutputs[index - 1] || undefined,
+        (!passed && shouldFallbackToCountBasedStatus
+          ? (rawDetails || globalErrorDetails || undefined)
+          : undefined),
+      output: perTestOutputs[index - 1],
     });
   }
 
@@ -1162,7 +1203,7 @@ export default function ProblemPage() {
                               {row.got !== undefined ? "Got:" : "Details:"}
                             </div>
                             <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
-                              {row.got ?? row.message ?? "Passed"}
+                              {row.got ?? row.message ?? (row.passed ? "Passed" : "No details available")}
                             </pre>
                           </div>
                           {row.output && (

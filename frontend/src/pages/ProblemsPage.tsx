@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
@@ -121,6 +121,7 @@ export default function ProblemsPage() {
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const fetchRequestIdRef = useRef(0);
 
   const sortProjects = (items: Project[]) => {
     return [...items].sort((a, b) => {
@@ -132,6 +133,8 @@ export default function ProblemsPage() {
   };
 
   const fetchProblems = (page: number = 1, sort: string = sortBy, order: string = sortOrder, difficulty: string = filter) => {
+    const requestId = ++fetchRequestIdRef.current;
+    const isLatestRequest = () => requestId === fetchRequestIdRef.current;
     setLoading(true);
     const trimmedSearch = searchQuery.trim();
 
@@ -178,8 +181,10 @@ export default function ProblemsPage() {
 
       fetchAllProblems()
         .then((allProblems) => {
+          if (!isLatestRequest()) return;
+          const uniqueProblems = Array.from(new Map(allProblems.map((p) => [p.id, p])).values());
           const solvedSet = new Set(solvedProblems);
-          const solvedOnly = allProblems.filter((p) => solvedSet.has(p.id));
+          const solvedOnly = uniqueProblems.filter((p) => solvedSet.has(p.id));
 
           const perPage = 15;
           const total = solvedOnly.length;
@@ -207,6 +212,7 @@ export default function ProblemsPage() {
           setProblemSequence(sequence);
         })
         .catch(() => {
+          if (!isLatestRequest()) return;
           setProblems([]);
           setPagination({
             page: 1,
@@ -220,7 +226,9 @@ export default function ProblemsPage() {
           });
         })
         .finally(() => {
-          setLoading(false);
+          if (isLatestRequest()) {
+            setLoading(false);
+          }
         });
       return;
     }
@@ -244,6 +252,7 @@ export default function ProblemsPage() {
     if (difficulty === "favorite" && token) {
       api.get<{ favorites: Array<{ createdAt: string; problem: Problem }> }>("/favorites/", token)
         .then((res) => {
+          if (!isLatestRequest()) return;
           const enriched = res.favorites
             .map((f) => ({
               problem: {
@@ -262,6 +271,10 @@ export default function ProblemsPage() {
               );
             });
 
+          const dedupedEnriched = Array.from(
+            new Map(enriched.map((item) => [item.problem.id, item])).values()
+          );
+
           const difficultyRank = (value: string) => {
             if (value === "easy") return 1;
             if (value === "medium") return 2;
@@ -269,7 +282,7 @@ export default function ProblemsPage() {
             return 4;
           };
 
-          enriched.sort((a, b) => {
+          dedupedEnriched.sort((a, b) => {
             if (sort === "difficulty") {
               const delta = difficultyRank(a.problem.difficulty) - difficultyRank(b.problem.difficulty);
               return order === "desc" ? -delta : delta;
@@ -286,14 +299,14 @@ export default function ProblemsPage() {
           });
 
           const perPage = 15;
-          const total = enriched.length;
+          const total = dedupedEnriched.length;
           const pages = Math.max(1, Math.ceil(total / perPage));
           const safePage = Math.min(Math.max(page, 1), pages);
           const start = (safePage - 1) * perPage;
-          const pageItems = enriched.slice(start, start + perPage).map((item) => item.problem);
+          const pageItems = dedupedEnriched.slice(start, start + perPage).map((item) => item.problem);
 
           setProblems(pageItems);
-          setFavoriteProblemIds(new Set(enriched.map((item) => item.problem.id)));
+          setFavoriteProblemIds(new Set(dedupedEnriched.map((item) => item.problem.id)));
           setPagination({
             page: safePage,
             pages,
@@ -312,6 +325,7 @@ export default function ProblemsPage() {
           setProblemSequence(sequence);
         })
         .catch(() => {
+          if (!isLatestRequest()) return;
           setProblems([]);
           setPagination({
             page: 1,
@@ -325,7 +339,9 @@ export default function ProblemsPage() {
           });
         })
         .finally(() => {
-          setLoading(false);
+          if (isLatestRequest()) {
+            setLoading(false);
+          }
         });
       return;
     }
@@ -342,6 +358,7 @@ export default function ProblemsPage() {
     
     api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`)
       .then((data) => {
+        if (!isLatestRequest()) return;
         setProblems(data.problems);
         setPagination(data.pagination);
         
@@ -353,11 +370,14 @@ export default function ProblemsPage() {
         setProblemSequence(sequence);
       })
       .catch(() => {
+        if (!isLatestRequest()) return;
         setProblems([]);
         setPagination(null);
       })
       .finally(() => {
-        setLoading(false);
+        if (isLatestRequest()) {
+          setLoading(false);
+        }
       });
   };
 

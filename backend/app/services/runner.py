@@ -1,6 +1,7 @@
 import time
 import os
 import json
+import ast
 import docker
 import logging
 from app import celery_app, db
@@ -9,9 +10,27 @@ from app.models import Submission, Problem
 logger = logging.getLogger(__name__)
 
 SANDBOX_IMAGE = os.environ.get("SANDBOX_IMAGE", "pypycode-sandbox:latest")
-TIMEOUT_SECONDS = 5
 MEMORY_LIMIT = "256m"
 CPU_QUOTA = 50000  # 0.5 CPU
+
+
+def _parse_serialized_value(raw):
+    if not isinstance(raw, str):
+        return raw
+
+    text = raw.strip()
+    if text == "":
+        return raw
+
+    try:
+        return json.loads(text)
+    except (TypeError, json.JSONDecodeError):
+        pass
+
+    try:
+        return ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        return raw
 
 
 def _convert_test_cases(problem: Problem):
@@ -19,12 +38,7 @@ def _convert_test_cases(problem: Problem):
     # Filter only active test cases, ordered by serial_number
     active_test_cases = [tc for tc in problem.test_cases if tc.is_active]
     for tc in active_test_cases:
-        expected = tc.expected_output
-        if isinstance(expected, str):
-            try:
-                expected = json.loads(expected)
-            except json.JSONDecodeError:
-                pass  # Keep as string if not valid JSON
+        expected = _parse_serialized_value(tc.expected_output)
         converted_tc = {
             "function": tc.function or "solution",
             "expected": expected,
@@ -35,7 +49,10 @@ def _convert_test_cases(problem: Problem):
                 args = json.loads("[" + input_str + "]")
                 converted_tc["args"] = args
             except json.JSONDecodeError:
-                converted_tc["args"] = [input_str]
+                try:
+                    converted_tc["args"] = ast.literal_eval("[" + input_str + "]")
+                except (ValueError, SyntaxError):
+                    converted_tc["args"] = [input_str]
         else:
             converted_tc["args"] = []
 
@@ -43,13 +60,10 @@ def _convert_test_cases(problem: Problem):
         converted_test_cases.append(converted_tc)
     return converted_test_cases
 
-
-def _run_tests_batch(client, code: str, test_cases: list) -> dict:
-    """Run multiple test cases in sandbox."""
-    logger.info(f"[BATCH] Sending {len(test_cases)} test cases to sandbox: {[tc.get('function', 'solution') for tc in test_cases]}")
+def _run_tests_in_sandbox(client, code: str, problem_definition: dict) -> dict:
     payload = json.dumps({
         "code": code,
-        "test_cases": test_cases,
+        "problem": problem_definition,
     })
 
     start = time.monotonic()
@@ -57,7 +71,6 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
         output = client.containers.run(
             SANDBOX_IMAGE,
             command=["python", "/runner/runner.py"],
-            stdin_open=True,
             environment={"PAYLOAD": payload},
             network_disabled=True,
             mem_limit=MEMORY_LIMIT,
@@ -69,65 +82,65 @@ def _run_tests_batch(client, code: str, test_cases: list) -> dict:
             stdout=True,
             stderr=True,
         )
-        elapsed_ms = (time.monotonic() - start) * 1000
-
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         output_str = output.decode() if isinstance(output, bytes) else output
         output_str = output_str.strip()
-        
+
         if not output_str:
             return {
-                "passed": 0,
-                "total": len(test_cases),
                 "error": "Sandbox produced no output (possible crash or timeout)",
-                "output": "",
-                "runtime_ms": int(elapsed_ms),
+                "runtime_ms": elapsed_ms,
             }
-        
-        # The sandbox always ends with print(json.dumps(result)).
-        # Any lines before the last are user print() output leaking to container stdout.
+
         lines = output_str.splitlines()
         json_line = lines[-1].strip()
-        user_output = "\n".join(lines[:-1]).strip()
 
         try:
             result = json.loads(json_line)
-            result["runtime_ms"] = int(elapsed_ms)
-            # Merge any leaked stdout with buffer-captured output
-            if user_output:
-                existing = result.get("output") or ""
-                result["output"] = (user_output + "\n" + existing).strip() if existing else user_output
-            error_val = result.get('error')
-            error_str = error_val[:100] if error_val else 'None'
-            logger.info(f"[BATCH] Sandbox result: passed={result.get('passed')}, total={result.get('total')}, error={error_str}")
+            result["runtime_ms"] = elapsed_ms
             return result
         except json.JSONDecodeError as e:
             return {
-                "passed": 0,
-                "total": len(test_cases),
                 "error": f"Invalid JSON output from sandbox: {e}",
                 "output": output_str[:1000],
-                "runtime_ms": int(elapsed_ms),
+                "runtime_ms": elapsed_ms,
             }
     except docker.errors.ContainerError as e:
         return {
-            "passed": 0,
-            "total": len(test_cases),
             "error": f"Container error: {e.stderr.decode() if e.stderr else str(e)}",
-            "output": "",
             "runtime_ms": None,
         }
     except Exception as e:
-        elapsed_ms = (time.monotonic() - start) * 1000
-        import traceback
-        logger.error(f"[BATCH] Exception in _run_tests_batch: {str(e)}")
-        logger.error(f"[BATCH] Traceback: {traceback.format_exc()}")
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         return {
-            "passed": 0,
-            "total": len(test_cases),
             "error": f"Execution error: {str(e)}",
-            "output": "",
-            "runtime_ms": int(elapsed_ms),
+            "runtime_ms": elapsed_ms,
         }
+
+
+def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
+    function_name = "solution"
+    if test_cases:
+        function_name = test_cases[0].get("function") or "solution"
+
+    tags = [str(tag).lower() for tag in (problem.tags or [])]
+    prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
+
+    return {
+        "id": problem.slug,
+        "function_name": function_name,
+        "comparison": "exact",
+        "prelude": prelude,
+        "test_cases": [
+            {
+                "args": tc.get("args", []),
+                "kwargs": tc.get("kwargs", {}),
+                "expected": tc.get("expected"),
+                "arg_types": tc.get("arg_types", []),
+            }
+            for tc in test_cases
+        ],
+    }
 
 
 def run_code_against_problem(problem: Problem, code: str):
@@ -151,66 +164,49 @@ def run_code_against_problem(problem: Problem, code: str):
                 "error_output": "No test cases found",
             }
 
-        # Run all test cases at once
-        logger.info(f"[RUNNER] Running all {len(test_cases)} test cases")
-        result = _run_tests_batch(client, code, test_cases)
-        logger.info(f"[RUNNER] Result: passed={result.get('passed')}, total={result.get('total')}")
+        problem_definition = _build_problem_definition(problem, test_cases)
+        sandbox_result = _run_tests_in_sandbox(client, code, problem_definition)
 
-        passed = result.get("passed", 0)
-        total = result.get("total", len(test_cases))
-        error = result.get("error", "")
-        normalized_error = str(error).lower() if error else ""
-
-        # Build error output
-        error_parts = []
-        if result.get("test_outputs") is not None:
-            error_parts.append(f"PerTestOutputs:\n{json.dumps(result.get('test_outputs'))}")
-        if result.get("output"):
-            error_parts.append(f"Output:\n{result.get('output')}")
-        if error:
-            error_parts.append(f"Errors:\n{error}")
-
-        # Classify sandbox errors before deciding status.
-        # Any explicit error should never be marked as accepted.
-        if error:
+        if sandbox_result.get("error"):
+            normalized_error = str(sandbox_result.get("error", "")).lower()
             if "timeout" in normalized_error or "time limit exceeded" in normalized_error:
                 status = "time_limit"
-            elif (
-                "container error" in normalized_error
-                or "compilation error" in normalized_error
-                or "execution error" in normalized_error
-                or "invalid json output from sandbox" in normalized_error
-            ):
-                status = "runtime_error"
             else:
-                status = "wrong_answer" if passed < total else "runtime_error"
-
+                status = "runtime_error"
             return {
                 "status": status,
-                "passed_tests": passed,
+                "passed_tests": 0,
                 "total_tests": len(test_cases),
-                "runtime_ms": result.get("runtime_ms"),
+                "runtime_ms": sandbox_result.get("runtime_ms"),
                 "memory_kb": None,
-                "error_output": "\n".join(error_parts),
+                "error_output": str(sandbox_result.get("error"))[:2000],
             }
 
+        error_parts = []
+        compile_error = sandbox_result.get("compile_error")
+        runtime_error = sandbox_result.get("runtime_error")
+        if compile_error:
+            error_parts.append(compile_error)
+        if runtime_error:
+            error_parts.append(runtime_error)
+
+        cases = sandbox_result.get("cases", [])
+        failed_cases = [c for c in cases if not c.get("passed")]
+        if failed_cases:
+            error_parts.append(f"FailedCases:\n{json.dumps(failed_cases)}")
+
+        if compile_error or runtime_error:
+            status = "runtime_error"
+        else:
+            status = "accepted" if sandbox_result.get("all_passed") else "wrong_answer"
+
         return {
-            "status": "accepted" if passed == total else "wrong_answer",
-            "passed_tests": passed,
-            "total_tests": len(test_cases),
-            "runtime_ms": result.get("runtime_ms"),
+            "status": status,
+            "passed_tests": sandbox_result.get("passed", 0),
+            "total_tests": sandbox_result.get("total", len(test_cases)),
+            "runtime_ms": sandbox_result.get("runtime_ms"),
             "memory_kb": None,
             "error_output": "\n".join(error_parts) if error_parts else None,
-        }
-    except docker.errors.ContainerError as e:
-        active_count = len([tc for tc in problem.test_cases if tc.is_active])
-        return {
-            "status": "runtime_error",
-            "passed_tests": 0,
-            "total_tests": active_count,
-            "runtime_ms": None,
-            "memory_kb": None,
-            "error_output": str(e)[:2000],
         }
     except Exception as e:
         active_count = len([tc for tc in problem.test_cases if tc.is_active])
