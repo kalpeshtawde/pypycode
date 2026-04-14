@@ -119,7 +119,7 @@ export default function ProblemsPage() {
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
-  const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
+  const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
 
   const sortProjects = (items: Project[]) => {
@@ -225,6 +225,22 @@ export default function ProblemsPage() {
       return;
     }
 
+    if (difficulty === "favorite" && !token) {
+      setProblems([]);
+      setPagination({
+        page: 1,
+        pages: 1,
+        total: 0,
+        per_page: 15,
+        has_prev: false,
+        has_next: false,
+        prev_num: null,
+        next_num: null,
+      });
+      setLoading(false);
+      return;
+    }
+
     if (difficulty === "favorite" && token) {
       api.get<{ favorites: Array<{ createdAt: string; problem: Problem }> }>("/favorites/", token)
         .then((res) => {
@@ -277,6 +293,7 @@ export default function ProblemsPage() {
           const pageItems = enriched.slice(start, start + perPage).map((item) => item.problem);
 
           setProblems(pageItems);
+          setFavoriteProblemIds(new Set(enriched.map((item) => item.problem.id)));
           setPagination({
             page: safePage,
             pages,
@@ -462,9 +479,9 @@ export default function ProblemsPage() {
       return;
     }
     api
-      .get<{ favorites: Array<{ problem: { id: string } }> }>("/favorites/", token)
+      .get<{ favorites: Array<{ problem: { id: string | number } }> }>("/favorites/", token)
       .then((res) => {
-        const ids = new Set(res.favorites.map((f) => f.problem.id));
+        const ids = new Set(res.favorites.map((f) => Number(f.problem.id)));
         setFavoriteProblemIds(ids);
       })
       .catch(() => setFavoriteProblemIds(new Set()));
@@ -1008,7 +1025,9 @@ export default function ProblemsPage() {
 
             {/* Table Rows */}
             {(() => {
-              const visibleProblems = problems;
+              const visibleProblems = filter === "favorite"
+                ? problems.filter((problem) => favoriteProblemIds.has(problem.id))
+                : problems;
 
               return visibleProblems.map((p) => {
                 const isSolved = solvedProblems.includes(p.id);
@@ -1025,7 +1044,7 @@ export default function ProblemsPage() {
                   ? targetPath
                   : pricingRedirectPath;
 
-                const isFavorite = favoriteProblemIds.has(String(p.id));
+                const isFavorite = favoriteProblemIds.has(p.id);
 
                 return (
                   <Link

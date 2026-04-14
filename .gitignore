@@ -24,3 +24,5 @@ pgdata/
 
 # SSL certs (keep out of git)
 nginx/ssl/
+
+ingest_problems*
