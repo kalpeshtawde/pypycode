@@ -43,9 +43,26 @@ class Problem(db.Model):
     starter_code = db.Column(db.Text, nullable=False)
     examples = db.Column(db.JSON, nullable=False)     # shown to user
     tags = db.Column(db.ARRAY(db.String), default=list)
+    comparison_strategy = db.Column(db.String(32), nullable=False, default="exact")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="problem")
     test_cases = db.relationship("TestCase", back_populates="problem", cascade="all, delete-orphan", order_by="TestCase.serial_number")
+    reference_solution = db.relationship("ProblemSolution", back_populates="problem", uselist=False, cascade="all, delete-orphan")
+
+
+class ProblemSolution(db.Model):
+    __tablename__ = "problem_solutions"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    problem_id = db.Column(db.String(36), db.ForeignKey("problems.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    language = db.Column(db.String(16), nullable=False, default="python")
+    function_name = db.Column(db.String(128), nullable=False, default="solution")
+    code = db.Column(db.Text, nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    problem = db.relationship("Problem", back_populates="reference_solution")
 
 
 class TestCase(db.Model):

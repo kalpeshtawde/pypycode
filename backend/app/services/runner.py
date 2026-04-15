@@ -125,11 +125,12 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
 
     tags = [str(tag).lower() for tag in (getattr(problem, "tags", []) or [])]
     prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
+    comparison = getattr(problem, "comparison_strategy", "exact") or "exact"
 
     return {
         "id": getattr(problem, "slug", "unknown"),
         "function_name": function_name,
-        "comparison": "exact",
+        "comparison": comparison,
         "prelude": prelude,
         "test_cases": [
             {

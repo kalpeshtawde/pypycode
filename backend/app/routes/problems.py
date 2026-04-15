@@ -17,6 +17,7 @@ def problem_to_dict(p: Problem, hide_tests=True):
         "starterCode": p.starter_code,
         "examples": p.examples,
         "tags": p.tags or [],
+        "comparisonStrategy": p.comparison_strategy,
         "createdAt": p.created_at.isoformat(),
     }
     if not hide_tests and p.test_cases:
@@ -167,6 +168,7 @@ def public_ingest_problem():
     difficulty = _require_non_empty_string(data, "difficulty")
     description = _require_non_empty_string(data, "description")
     starter_code = _require_non_empty_string(data, "starterCode")
+    comparison_strategy = _require_non_empty_string(data, "comparisonStrategy") or "exact"
     examples = data.get("examples")
     test_cases = data.get("testCases")
     tags = data.get("tags", [])
@@ -184,6 +186,9 @@ def public_ingest_problem():
     if not _validate_test_cases(test_cases):
         return jsonify(error="testCases must be a non-empty array with expected and input or args"), 400
 
+    if comparison_strategy not in {"exact", "unordered", "unordered_nested", "float", "set"}:
+        return jsonify(error="comparisonStrategy must be one of: exact, unordered, unordered_nested, float, set"), 400
+
     if tags is None:
         tags = []
     if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
@@ -198,6 +203,7 @@ def public_ingest_problem():
         difficulty=difficulty,
         description=description,
         starter_code=starter_code,
+        comparison_strategy=comparison_strategy,
         examples=examples,
         tags=tags,
     )
@@ -239,6 +245,7 @@ def create_problem():
         difficulty=data["difficulty"],
         description=data["description"],
         starter_code=data["starterCode"],
+        comparison_strategy=data.get("comparisonStrategy", "exact"),
         examples=data["examples"],
         tags=data.get("tags", []),
     )
