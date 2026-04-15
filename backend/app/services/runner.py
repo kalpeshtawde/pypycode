@@ -123,11 +123,11 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
     if test_cases:
         function_name = test_cases[0].get("function") or "solution"
 
-    tags = [str(tag).lower() for tag in (problem.tags or [])]
+    tags = [str(tag).lower() for tag in (getattr(problem, "tags", []) or [])]
     prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
 
     return {
-        "id": problem.slug,
+        "id": getattr(problem, "slug", "unknown"),
         "function_name": function_name,
         "comparison": "exact",
         "prelude": prelude,
@@ -198,7 +198,10 @@ def run_code_against_problem(problem: Problem, code: str):
         if compile_error or runtime_error:
             status = "runtime_error"
         else:
-            status = "accepted" if sandbox_result.get("all_passed") else "wrong_answer"
+            all_passed = sandbox_result.get("all_passed")
+            if all_passed is None:
+                all_passed = sandbox_result.get("passed", 0) == sandbox_result.get("total", len(test_cases))
+            status = "accepted" if all_passed else "wrong_answer"
 
         return {
             "status": status,
