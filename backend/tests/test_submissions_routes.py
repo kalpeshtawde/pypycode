@@ -1,7 +1,8 @@
 from celery.exceptions import NotRegistered
+from datetime import datetime, timezone
 
 from app import db
-from app.models import Problem, Project, Submission, TestCase
+from app.models import Problem, Project, Submission, TestCase, ProblemProjectStat
 
 
 class DummyRunTask:
@@ -41,9 +42,17 @@ def test_run_code_success(client, auth_headers, app_ctx, user, problem, project,
     )
     assert res.status_code == 200
     assert res.get_json()["status"] == "accepted"
+    stat = ProblemProjectStat.query.filter_by(
+        user_id=user.id,
+        problem_id=problem.id,
+        project_id=project.id,
+    ).first()
+    assert stat is not None
+    assert stat.attempted is True
+    assert stat.submitted is False
 
 
-def test_run_code_handles_not_registered(client, auth_headers, problem, mocker):
+def test_run_code_handles_not_registered(client, auth_headers, problem, project, mocker):
     mocker.patch("app.routes.submissions.run_code_for_problem.delay", return_value=DummyRunTask(raises=NotRegistered("x")))
     res = client.post(
         "/submissions/run",
@@ -63,6 +72,14 @@ def test_submit_creates_submission(client, auth_headers, problem, project, mocke
     )
     assert res.status_code == 202
     assert res.get_json()["taskId"] == "task-999"
+    stat = ProblemProjectStat.query.filter_by(
+        user_id=project.user_id,
+        problem_id=problem.id,
+        project_id=project.id,
+    ).first()
+    assert stat is not None
+    assert stat.attempted is True
+    assert stat.submitted is True
 
 
 def test_submit_requires_project(client, auth_headers, problem):
@@ -147,3 +164,99 @@ def test_submissions_for_problem(client, auth_headers, app_ctx, user, problem):
     res = client.get(f"/submissions/problem/{problem.slug}", headers=auth_headers)
     assert res.status_code == 200
     assert len(res.get_json()) == 1
+
+
+def test_difficulty_stats_aggregates_per_problem(client, auth_headers, app_ctx, user):
+    project_1 = Project(user_id=user.id, name="P1", is_default=True)
+    project_2 = Project(user_id=user.id, name="P2", is_default=False)
+    db.session.add_all([project_1, project_2])
+
+    easy_problem = Problem(
+        slug="easy-problem",
+        title="Easy Problem",
+        difficulty="easy",
+        description="desc",
+        starter_code="def solution(): pass",
+        examples=[{"input": "1", "output": "1"}],
+        tags=["array"],
+    )
+    medium_problem = Problem(
+        slug="medium-problem",
+        title="Medium Problem",
+        difficulty="medium",
+        description="desc",
+        starter_code="def solution(): pass",
+        examples=[{"input": "1", "output": "1"}],
+        tags=["dp"],
+    )
+    hard_problem = Problem(
+        slug="hard-problem",
+        title="Hard Problem",
+        difficulty="hard",
+        description="desc",
+        starter_code="def solution(): pass",
+        examples=[{"input": "1", "output": "1"}],
+        tags=["graph"],
+    )
+    db.session.add_all([easy_problem, medium_problem, hard_problem])
+    db.session.flush()
+
+    db.session.add_all(
+        [
+            ProblemProjectStat(
+                user_id=user.id,
+                project_id=project_1.id,
+                problem_id=easy_problem.id,
+                attempted=True,
+                submitted=False,
+            ),
+            ProblemProjectStat(
+                user_id=user.id,
+                project_id=project_2.id,
+                problem_id=easy_problem.id,
+                attempted=False,
+                submitted=True,
+            ),
+            ProblemProjectStat(
+                user_id=user.id,
+                project_id=project_1.id,
+                problem_id=medium_problem.id,
+                attempted=True,
+                submitted=True,
+            ),
+            ProblemProjectStat(
+                user_id=user.id,
+                project_id=project_1.id,
+                problem_id=hard_problem.id,
+                attempted=True,
+                submitted=False,
+            ),
+        ]
+    )
+    db.session.commit()
+
+    latest_attempt = datetime.now(timezone.utc).replace(tzinfo=None)
+    newest_attempted_stat = ProblemProjectStat.query.filter_by(
+        user_id=user.id,
+        project_id=project_1.id,
+        problem_id=hard_problem.id,
+    ).first()
+    newest_attempted_stat.updated_at = latest_attempt
+    db.session.commit()
+
+    res = client.get(f"/submissions/difficulty-stats?userId={user.id}", headers=auth_headers)
+    assert res.status_code == 200
+    body = res.get_json()
+
+    assert body["easy"]["attempted"] == 1
+    assert body["easy"]["submitted"] == 1
+    assert body["easy"]["score"] == 1.0
+
+    assert body["medium"]["attempted"] == 1
+    assert body["medium"]["submitted"] == 1
+    assert body["medium"]["score"] == 1.0
+
+    assert body["hard"]["attempted"] == 1
+    assert body["hard"]["submitted"] == 0
+    assert body["hard"]["score"] == 0.0
+    assert body["lastAttemptAt"] == latest_attempt.isoformat()

@@ -56,6 +56,7 @@ def create_app():
     from app.routes.favorites import favorites_bp
     from app.routes import auth, problems, projects, submissions, leaderboard, contact, billing, favorites
     from app.routes.contact import contact_bp
+    from app.api_docs import register_api_docs
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(problems_bp, url_prefix="/problems")
@@ -65,6 +66,7 @@ def create_app():
     app.register_blueprint(contact_bp, url_prefix="/contact")
     app.register_blueprint(billing_bp, url_prefix="/billing")
     app.register_blueprint(favorites_bp, url_prefix="/favorites")
+    register_api_docs(app)
 
     from app.admin import init_admin
     init_admin(app)

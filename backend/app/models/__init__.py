@@ -21,6 +21,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     projects = db.relationship("Project", back_populates="user")
     submissions = db.relationship("Submission", back_populates="user")
+    problem_project_stats = db.relationship("ProblemProjectStat", back_populates="user")
     subscriptions = db.relationship("Subscription", back_populates="user")
     favorites = db.relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
 
@@ -46,6 +47,7 @@ class Problem(db.Model):
     comparison_strategy = db.Column(db.String(32), nullable=False, default="exact")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="problem")
+    problem_project_stats = db.relationship("ProblemProjectStat", back_populates="problem")
     test_cases = db.relationship("TestCase", back_populates="problem", cascade="all, delete-orphan", order_by="TestCase.serial_number")
     reference_solution = db.relationship("ProblemSolution", back_populates="problem", uselist=False, cascade="all, delete-orphan")
 
@@ -88,6 +90,7 @@ class Project(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship("User", back_populates="projects")
     submissions = db.relationship("Submission", back_populates="project")
+    problem_project_stats = db.relationship("ProblemProjectStat", back_populates="project")
 
 
 class Submission(db.Model):
@@ -110,6 +113,26 @@ class Submission(db.Model):
     user = db.relationship("User", back_populates="submissions")
     project = db.relationship("Project", back_populates="submissions")
     problem = db.relationship("Problem", back_populates="submissions")
+
+
+class ProblemProjectStat(db.Model):
+    __tablename__ = "problem_project_stats"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "problem_id", "project_id", name="uix_problem_project_stats_user_problem_project"),
+    )
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    problem_id = db.Column(db.String(36), db.ForeignKey("problems.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = db.Column(db.String(36), db.ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempted = db.Column(db.Boolean, nullable=False, default=False)
+    submitted = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship("User", back_populates="problem_project_stats")
+    problem = db.relationship("Problem", back_populates="problem_project_stats")
+    project = db.relationship("Project", back_populates="problem_project_stats")
 
 
 class Contact(db.Model):

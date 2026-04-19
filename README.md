@@ -45,6 +45,7 @@ This will:
 | Service   | URL                       |
 |-----------|---------------------------|
 | App       | http://localhost:81        |
+| API Docs  | http://localhost:81/api/docs |
 | Flower    | http://localhost:5555      |
 | Postgres  | localhost:5432             |
 
@@ -264,6 +265,10 @@ pypycode/
 ---
 
 ## API Reference
+
+Interactive docs (Swagger UI): `http://localhost:81/api/docs`
+
+OpenAPI spec JSON: `http://localhost:81/api/openapi.json`
 
 ### Auth
 | Method | Endpoint          | Auth | Description        |

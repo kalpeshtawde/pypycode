@@ -74,6 +74,27 @@ def _validate_test_cases(test_cases):
     return True
 
 
+def _normalize_string_list(values):
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        return None
+
+    normalized = []
+    for item in values:
+        if not isinstance(item, str) or not item.strip():
+            return None
+        normalized.append(item.strip())
+    return normalized
+
+
+def _parse_non_negative_int(data, key, default=0):
+    value = data.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
 @problems_bp.get("/")
 def list_problems():
     difficulty = request.args.get("difficulty")
@@ -148,6 +169,109 @@ def list_problems():
             "next_num": pagination.next_num
         }
     })
+
+
+@problems_bp.post("/select")
+def select_problems():
+    data = request.get_json(silent=True) or {}
+
+    total = _parse_non_negative_int(data, "total", default=None)
+    if total is None or total <= 0:
+        return jsonify(error="total must be a positive integer"), 400
+
+    tags = _normalize_string_list(data.get("tags"))
+    if tags is None:
+        return jsonify(error="tags must be an array of non-empty strings"), 400
+
+    ignore_slugs = _normalize_string_list(data.get("ignoreSlugs"))
+    if ignore_slugs is None:
+        return jsonify(error="ignoreSlugs must be an array of non-empty strings"), 400
+
+    for deprecated_key in ("easy", "medium", "hard"):
+        if deprecated_key in data:
+            return jsonify(error="Use difficultyCounts.{easy|medium|hard} instead of top-level difficulty fields"), 400
+
+    provided_difficulty_counts = data.get("difficultyCounts")
+    if provided_difficulty_counts is None:
+        provided_difficulty_counts = {}
+    if not isinstance(provided_difficulty_counts, dict):
+        return jsonify(error="difficultyCounts must be an object with easy, medium, and hard"), 400
+
+    difficulty_counts = {"easy": 0, "medium": 0, "hard": 0}
+    for level in ("easy", "medium", "hard"):
+        if level in provided_difficulty_counts:
+            parsed = _parse_non_negative_int(provided_difficulty_counts, level, 0)
+            if parsed is None:
+                return jsonify(error=f"difficultyCounts.{level} must be a non-negative integer"), 400
+            difficulty_counts[level] = parsed
+
+    requested_by_difficulty = sum(difficulty_counts.values())
+    if requested_by_difficulty > total:
+        return jsonify(error="sum of easy, medium, and hard cannot exceed total"), 400
+
+    normalized_ignore_slugs = {slug.lower() for slug in ignore_slugs}
+    normalized_tags = {tag.lower() for tag in tags}
+
+    candidates = Problem.query.order_by(Problem.created_at.desc(), Problem.id.asc()).all()
+
+    filtered_candidates = []
+    for problem in candidates:
+        if problem.slug.lower() in normalized_ignore_slugs:
+            continue
+
+        problem_tags = {tag.lower() for tag in (problem.tags or []) if isinstance(tag, str)}
+        if normalized_tags and not (problem_tags & normalized_tags):
+            continue
+
+        filtered_candidates.append(problem)
+
+    by_difficulty = {"easy": [], "medium": [], "hard": []}
+    for problem in filtered_candidates:
+        level = (problem.difficulty or "").lower()
+        if level in by_difficulty:
+            by_difficulty[level].append(problem)
+
+    unavailable = {}
+    for level, needed in difficulty_counts.items():
+        available = len(by_difficulty[level])
+        if needed > available:
+            unavailable[level] = {
+                "requested": needed,
+                "available": available,
+            }
+
+    if unavailable:
+        return jsonify(
+            error="Not enough problems available for requested difficulty counts",
+            unavailable=unavailable,
+        ), 400
+
+    selected = []
+    selected_ids = set()
+
+    for level in ("easy", "medium", "hard"):
+        for problem in by_difficulty[level][:difficulty_counts[level]]:
+            selected.append(problem)
+            selected_ids.add(problem.id)
+
+    for problem in filtered_candidates:
+        if len(selected) >= total:
+            break
+        if problem.id in selected_ids:
+            continue
+        selected.append(problem)
+        selected_ids.add(problem.id)
+
+    return jsonify(
+        problems=[problem_to_dict(problem) for problem in selected],
+        selection={
+            "requestedTotal": total,
+            "returnedTotal": len(selected),
+            "requestedDifficulty": difficulty_counts,
+            "usedTags": tags,
+            "ignoredSlugs": ignore_slugs,
+        },
+    )
 
 
 @problems_bp.post("/public-ingest")

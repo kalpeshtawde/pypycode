@@ -2,12 +2,35 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db
-from app.models import Project, Submission, Problem
+from app.models import Project, Submission, Problem, ProblemProjectStat
 from app.services.runner import run_submission
 
 
 projects_bp = Blueprint("projects", __name__)
 MAX_PROJECT_NAME_LENGTH = 25
+
+
+def _upsert_problem_project_stat(user_id: str, problem_id: str, project_id: str):
+    stat = ProblemProjectStat.query.filter_by(
+        user_id=user_id,
+        problem_id=problem_id,
+        project_id=project_id,
+    ).first()
+    if not stat:
+        stat = ProblemProjectStat(
+            user_id=user_id,
+            problem_id=problem_id,
+            project_id=project_id,
+            attempted=True,
+            submitted=True,
+        )
+        db.session.add(stat)
+        return
+
+    if not stat.attempted:
+        stat.attempted = True
+    if not stat.submitted:
+        stat.submitted = True
 
 
 def project_to_dict(project: Project):
@@ -127,6 +150,7 @@ def submit_to_project(project_id):
         total_tests=len(problem.test_cases),
     )
     db.session.add(sub)
+    _upsert_problem_project_stat(user_id, problem.id, project.id)
     db.session.commit()
 
     task = run_submission.delay(sub.id)

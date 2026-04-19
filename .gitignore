@@ -26,3 +26,4 @@ pgdata/
 nginx/ssl/
 
 ingest_problems*
+vega/

@@ -1,5 +1,5 @@
 from app import db
-from app.models import Problem, Project, Submission
+from app.models import Problem, Project, Submission, ProblemProjectStat
 
 
 class DummyTask:
@@ -69,3 +69,11 @@ def test_submit_to_project_queues_task(client, auth_headers, app_ctx, user, prob
     assert res.status_code == 202
     body = res.get_json()
     assert body["taskId"] == "task-123"
+    stat = ProblemProjectStat.query.filter_by(
+        user_id=user.id,
+        problem_id=problem.id,
+        project_id=project.id,
+    ).first()
+    assert stat is not None
+    assert stat.attempted is True
+    assert stat.submitted is True
