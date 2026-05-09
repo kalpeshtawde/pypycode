@@ -15,6 +15,26 @@ services:
     networks:
       - pypycode-server
 
+  vega:
+    build:
+      context: ./vega
+      dockerfile: Dockerfile
+    container_name: pypycode_vega
+    command: gunicorn -w 2 -b 0.0.0.0:5001 "vega_service:app"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-pypycode}
+      # Vega's BackendClient calls back to the API service over the docker network
+      - VEGA_BACKEND_BASE_URL=http://api:5000
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - pypycode-server
+
   api:
     build:
       context: ./backend
@@ -37,8 +57,10 @@ services:
       - STRIPE_ANNUAL_PRICE_CENTS=${STRIPE_ANNUAL_PRICE_CENTS}
       - STRIPE_CURRENCY=${STRIPE_CURRENCY}
       - FRONTEND_URL=${FRONTEND_URL}
+      - VEGA_SERVICE_URL=http://vega:5001
     depends_on:
       - redis
+      - vega
     restart: unless-stopped
     networks:
       - pypycode-server
