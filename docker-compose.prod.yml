@@ -60,7 +60,6 @@ services:
       - VEGA_SERVICE_URL=http://vega:5001
     depends_on:
       - redis
-      - vega
     restart: unless-stopped
     networks:
       - pypycode-server
