@@ -41,7 +41,7 @@ deploy_full_stack() {
   docker build -t pypycode-sandbox:latest ./sandbox
 
   echo "→ Building and starting production services..."
-  docker compose -f "$COMPOSE_FILE" up -d --build api worker nginx redis
+  docker compose -f "$COMPOSE_FILE" up -d --build api worker vega nginx redis
 
   echo "→ Running migrations..."
   docker compose -f "$COMPOSE_FILE" exec api flask --app app db upgrade
