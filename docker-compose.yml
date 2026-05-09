@@ -26,6 +26,25 @@ services:
     networks:
       - pypycode
 
+  vega:
+    build:
+      context: ./vega
+      dockerfile: Dockerfile
+    volumes:
+      - ./vega:/vega
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-test-key}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-pypycode}
+      # Vega's BackendClient calls back to the API service over the docker network
+      - VEGA_BACKEND_BASE_URL=${VEGA_BACKEND_BASE_URL:-http://api:5000}
+    networks:
+      - pypycode
+
   api:
     build:
       context: ./backend
@@ -48,10 +67,14 @@ services:
       - STRIPE_ANNUAL_PRICE_CENTS=${STRIPE_ANNUAL_PRICE_CENTS:-3000}
       - STRIPE_CURRENCY=${STRIPE_CURRENCY:-usd}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      # Vega service URL for HTTP calls
+      - VEGA_SERVICE_URL=${VEGA_SERVICE_URL:-http://vega:5001}
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_started
+      vega:
         condition: service_started
     networks:
       - pypycode

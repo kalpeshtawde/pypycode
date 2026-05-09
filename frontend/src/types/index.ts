@@ -114,4 +114,10 @@ export interface Project {
   name: string;
   isDefault: boolean;
   createdAt: string | null;
+  // AI-authored metadata (null for hand-created projects).
+  goal?: string | null;
+  strategy?: string | null;
+  level?: string | null;
+  explanation?: string | null;
+  aiMetadata?: Record<string, unknown> | null;
 }

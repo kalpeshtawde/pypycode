@@ -1,10 +1,162 @@
 import hmac
 from flask import Blueprint, current_app, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Problem, Submission, TestCase
+from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
+from app.models import Problem, ProblemProjectStat, Submission, TestCase
 from app import db
+from collections import defaultdict
+
 
 problems_bp = Blueprint("problems", __name__)
+
+# Structural/data-shape tags. These describe the input/output container of a
+# problem and are not algorithmic techniques. They are excluded from scoring,
+# ranking and quota enforcement so high-frequency tags like "array" cannot
+# dominate selection. They are still preserved on the problem and reported in
+# logging/metadata.
+STRUCTURAL_TAGS = frozenset({
+    "array",
+    "string",
+    "matrix",
+    "stack",
+    "list",
+})
+
+# Lightweight problem-pattern catalog used for secondary diversity.
+# Each entry maps a normalized keyword that may appear in the slug or title to
+# a coarse "pattern" bucket. The first match wins; problems that match nothing
+# fall back to PATTERN_DEFAULT. The catalog is intentionally small and
+# heuristic — it only needs to separate common templates so we can cap
+# repeats per (algorithmic tag, pattern) pair during selection.
+PATTERN_DEFAULT = "misc"
+
+# Tag-combination rules. Each entry is (required_tags, pattern); the first rule
+# whose `required_tags` is a subset of the problem's full tag set (algorithmic
+# + structural) wins. More specific rules (more required tags) are listed
+# first so they win over more general ones. These run BEFORE slug-keyword
+# matching so explicit tag combinations dominate naming.
+TAG_PATTERN_RULES = (
+    # multi-tag (specific) rules first
+    (frozenset({"matrix", "dfs"}), "grid"),
+    (frozenset({"matrix", "bfs"}), "grid"),
+    (frozenset({"matrix", "backtracking"}), "grid"),
+    (frozenset({"graph", "eulerian-path"}), "eulerian"),
+    (frozenset({"graph", "topological-sort"}), "topological"),
+    (frozenset({"graph", "union-find"}), "union-find"),
+    (frozenset({"graph", "dijkstra"}), "shortest-path"),
+    (frozenset({"graph", "bellman-ford"}), "shortest-path"),
+    (frozenset({"graph", "floyd-warshall"}), "shortest-path"),
+    (frozenset({"graph", "dfs"}), "graph-traversal"),
+    (frozenset({"graph", "bfs"}), "graph-traversal"),
+    (frozenset({"trie", "dfs"}), "trie"),
+    (frozenset({"greedy", "interval"}), "interval"),
+    (frozenset({"dp", "knapsack"}), "knapsack"),
+    (frozenset({"dynamic-programming", "knapsack"}), "knapsack"),
+    (frozenset({"heap", "kth-element"}), "kth-element"),
+    (frozenset({"priority-queue", "kth-element"}), "kth-element"),
+    # single-tag (general) rules — last-resort algorithmic mapping
+    (frozenset({"sliding-window"}), "sliding-window"),
+    (frozenset({"two-pointers"}), "two-pointers"),
+    (frozenset({"monotonic-stack"}), "monotonic-stack"),
+    (frozenset({"binary-search"}), "binary-search"),
+    (frozenset({"trie"}), "trie"),
+    (frozenset({"union-find"}), "union-find"),
+    (frozenset({"heap"}), "heap"),
+    (frozenset({"priority-queue"}), "heap"),
+    (frozenset({"bit-manipulation"}), "bit-manipulation"),
+)
+
+PATTERN_KEYWORDS = (
+    ("subset", "subset"),
+    ("permutation", "permutation"),
+    ("permute", "permutation"),
+    ("combination", "combination"),
+    ("combinations", "combination"),
+    ("partition", "partition"),
+    ("palindrom", "palindrome"),
+    ("anagram", "anagram"),
+    ("parenthes", "parentheses"),
+    ("bracket", "parentheses"),
+    ("sliding-window", "sliding-window"),
+    ("substring", "substring-window"),
+    ("subarray", "subarray-window"),
+    ("two-sum", "k-sum"),
+    ("three-sum", "k-sum"),
+    ("k-sum", "k-sum"),
+    ("kth", "kth-element"),
+    ("merge", "merge"),
+    ("interval", "interval"),
+    ("schedule", "interval"),
+    ("island", "grid"),
+    ("grid", "grid"),
+    ("rotate", "grid"),
+    ("course", "graph"),
+    ("clone", "graph"),
+    ("topological", "topological"),
+    ("traversal", "tree"),
+    ("ancestor", "tree"),
+    ("linked", "linked-list"),
+    ("cycle", "linked-list"),
+    ("prefix", "trie"),
+    ("dijkstra", "shortest-path"),
+    ("shortest", "shortest-path"),
+    ("knapsack", "knapsack"),
+    ("coin", "knapsack"),
+    ("stock", "stock"),
+    ("rob", "house-robber"),
+    ("longest", "longest-sequence"),
+    ("buy-sell", "stock"),
+)
+
+
+def _primary_algo_tag(algo_tags, algo_tag_weights=None):
+    """Pick the dominant algorithmic tag for fallback pattern naming.
+
+    If `algo_tag_weights` are provided, prefer the tag with the highest
+    weight; ties break alphabetically. Without weights, fall back to the
+    alphabetically first tag for determinism.
+    """
+    if not algo_tags:
+        return None
+    if algo_tag_weights:
+        return min(
+            algo_tags,
+            key=lambda tag: (-algo_tag_weights.get(tag, 0.0), tag),
+        )
+    return min(algo_tags)
+
+
+def _extract_problem_pattern(slug, title=None, tags=None, primary_algo_tag=None):
+    """Return a coarse pattern bucket for a problem.
+
+    Priority:
+      1. Tag-combination rules (TAG_PATTERN_RULES).
+      2. Slug/title keyword match (PATTERN_KEYWORDS).
+      3. `<primary_algo_tag>-general` fallback so every problem with an
+         algorithmic tag has a meaningful bucket instead of "misc".
+      4. PATTERN_DEFAULT only if the problem has no algorithmic tags at
+         all and no slug/title keyword match.
+    """
+    tag_set = frozenset(tags or [])
+    if tag_set:
+        for required, pattern in TAG_PATTERN_RULES:
+            if required <= tag_set:
+                return pattern
+
+    haystack_parts = []
+    if isinstance(slug, str) and slug.strip():
+        haystack_parts.append(slug.strip().lower())
+    if isinstance(title, str) and title.strip():
+        haystack_parts.append(title.strip().lower())
+    haystack = " ".join(haystack_parts)
+    if haystack:
+        for keyword, pattern in PATTERN_KEYWORDS:
+            if keyword in haystack:
+                return pattern
+
+    if primary_algo_tag:
+        return f"{primary_algo_tag}-general"
+
+    return PATTERN_DEFAULT
 
 
 def problem_to_dict(p: Problem, hide_tests=True):
@@ -88,6 +240,25 @@ def _normalize_string_list(values):
     return normalized
 
 
+def _normalize_tag_weights(values):
+    if values is None:
+        return {}
+    if not isinstance(values, dict):
+        return None
+
+    normalized = {}
+    for tag, weight in values.items():
+        if not isinstance(tag, str) or not tag.strip():
+            return None
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or weight < 0:
+            return None
+
+        normalized_tag = tag.strip().lower()
+        normalized[normalized_tag] = max(float(weight), normalized.get(normalized_tag, 0.0))
+
+    return normalized
+
+
 def _parse_non_negative_int(data, key, default=0):
     value = data.get(key, default)
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
@@ -97,8 +268,11 @@ def _parse_non_negative_int(data, key, default=0):
 
 @problems_bp.get("/")
 def list_problems():
+    verify_jwt_in_request(optional=True)
+    user_id = get_jwt_identity()
     difficulty = request.args.get("difficulty")
     tag = request.args.get("tag")
+    project_id = request.args.get("projectId")
     search = (request.args.get("search") or "").strip()
     sort_by = request.args.get("sort", "id")  # id, difficulty, created_at
     order = request.args.get("order", "asc")  # asc, desc
@@ -107,6 +281,17 @@ def list_problems():
     
     q = Problem.query
     
+    if project_id:
+        if not user_id:
+            return jsonify(error="Authentication required for project filtering"), 401
+        q = q.join(
+            ProblemProjectStat,
+            ProblemProjectStat.problem_id == Problem.id,
+        ).filter(
+            ProblemProjectStat.user_id == user_id,
+            ProblemProjectStat.project_id == project_id,
+        )
+
     # Apply filters
     if difficulty:
         q = q.filter_by(difficulty=difficulty)
@@ -148,7 +333,7 @@ def list_problems():
             q = q.order_by(Problem.id.desc())
         else:
             q = q.order_by(Problem.id.asc())
-    
+
     # Apply pagination
     pagination = q.paginate(
         page=page, 
@@ -179,9 +364,16 @@ def select_problems():
     if total is None or total <= 0:
         return jsonify(error="total must be a positive integer"), 400
 
-    tags = _normalize_string_list(data.get("tags"))
-    if tags is None:
-        return jsonify(error="tags must be an array of non-empty strings"), 400
+    if "tags" in data:
+        return jsonify(error="Use tagWeights instead of tags"), 400
+
+    if "tagWeights" in data and "tag_weights" in data:
+        return jsonify(error="Provide only one of tagWeights or tag_weights"), 400
+
+    raw_tag_weights = data.get("tagWeights") if "tagWeights" in data else data.get("tag_weights")
+    tag_weights = _normalize_tag_weights(raw_tag_weights)
+    if tag_weights is None:
+        return jsonify(error="tagWeights/tag_weights must be an object mapping non-empty tag names to non-negative numbers"), 400
 
     ignore_slugs = _normalize_string_list(data.get("ignoreSlugs"))
     if ignore_slugs is None:
@@ -191,9 +383,7 @@ def select_problems():
         if deprecated_key in data:
             return jsonify(error="Use difficultyCounts.{easy|medium|hard} instead of top-level difficulty fields"), 400
 
-    provided_difficulty_counts = data.get("difficultyCounts")
-    if provided_difficulty_counts is None:
-        provided_difficulty_counts = {}
+    provided_difficulty_counts = data.get("difficultyCounts") or {}
     if not isinstance(provided_difficulty_counts, dict):
         return jsonify(error="difficultyCounts must be an object with easy, medium, and hard"), 400
 
@@ -210,65 +400,205 @@ def select_problems():
         return jsonify(error="sum of easy, medium, and hard cannot exceed total"), 400
 
     normalized_ignore_slugs = {slug.lower() for slug in ignore_slugs}
-    normalized_tags = {tag.lower() for tag in tags}
 
-    candidates = Problem.query.order_by(Problem.created_at.desc(), Problem.id.asc()).all()
+    candidates = Problem.query.order_by(
+        Problem.created_at.desc(),
+        Problem.id.asc(),
+    ).all()
 
-    filtered_candidates = []
-    for problem in candidates:
+    def _problem_tags(problem):
+        return [
+            tag.strip().lower()
+            for tag in (problem.tags or [])
+            if isinstance(tag, str) and tag.strip()
+        ]
+
+    def _algo_tags(tags):
+        # Algorithmic tags only — used for scoring and quota enforcement.
+        # Structural tags are filtered out so they cannot influence ranking
+        # or selection diversity.
+        return [tag for tag in tags if tag not in STRUCTURAL_TAGS]
+
+    # Drop structural tags from tag_weights up-front so all downstream
+    # scoring and quota derivation is algorithmic-only.
+    algo_tag_weights = {
+        tag: weight
+        for tag, weight in tag_weights.items()
+        if tag not in STRUCTURAL_TAGS
+    }
+
+    # ---------------------------------------------------------------
+    # Stage 1: rank by pure tag-weight relevance over algorithmic tags.
+    # Structural tags (array, string, matrix, stack, list) are ignored
+    # for scoring. Tag quotas are NOT used here; they only constrain
+    # selection in stage 2.
+    # Stable tie-break by original DB order (created_at desc, id asc).
+    # ---------------------------------------------------------------
+    ranked_candidates = []
+    for index, problem in enumerate(candidates):
         if problem.slug.lower() in normalized_ignore_slugs:
             continue
+        tags = _problem_tags(problem)
+        algo_tags = _algo_tags(tags)
+        score = sum(algo_tag_weights.get(tag, 0.0) for tag in set(algo_tags))
+        primary = _primary_algo_tag(algo_tags, algo_tag_weights)
+        pattern = _extract_problem_pattern(
+            problem.slug,
+            problem.title,
+            tags=tags,
+            primary_algo_tag=primary,
+        )
+        ranked_candidates.append((problem, score, index, tags, algo_tags, pattern))
 
-        problem_tags = {tag.lower() for tag in (problem.tags or []) if isinstance(tag, str)}
-        if normalized_tags and not (problem_tags & normalized_tags):
-            continue
+    ranked_candidates.sort(key=lambda item: (-item[1], item[2]))
 
-        filtered_candidates.append(problem)
+    # ---------------------------------------------------------------
+    # Derive tagQuota (algorithmic tags only):
+    #   1) Use explicit tagQuotas from request if provided. Structural
+    #      entries are dropped so quotas only apply to algorithmic tags.
+    #   2) Otherwise, compute proportional allocation from
+    #      algo_tag_weights:
+    #         quota[tag] = round(weight[tag] / sum(weights) * total)
+    # ---------------------------------------------------------------
+    raw_tag_quota = data.get("tagQuotas")
+    tag_quota = {}
+    if isinstance(raw_tag_quota, dict) and raw_tag_quota:
+        for tag, limit in raw_tag_quota.items():
+            if (
+                isinstance(tag, str)
+                and tag.strip()
+                and isinstance(limit, int)
+                and not isinstance(limit, bool)
+                and limit >= 0
+            ):
+                normalized = tag.strip().lower()
+                if normalized in STRUCTURAL_TAGS:
+                    continue
+                tag_quota[normalized] = limit
+    elif algo_tag_weights:
+        weight_sum = sum(algo_tag_weights.values())
+        if weight_sum > 0:
+            for tag, weight in algo_tag_weights.items():
+                tag_quota[tag] = max(0, round((weight / weight_sum) * total))
 
-    by_difficulty = {"easy": [], "medium": [], "hard": []}
-    for problem in filtered_candidates:
-        level = (problem.difficulty or "").lower()
-        if level in by_difficulty:
-            by_difficulty[level].append(problem)
-
-    unavailable = {}
-    for level, needed in difficulty_counts.items():
-        available = len(by_difficulty[level])
-        if needed > available:
-            unavailable[level] = {
-                "requested": needed,
-                "available": available,
-            }
-
-    if unavailable:
-        return jsonify(
-            error="Not enough problems available for requested difficulty counts",
-            unavailable=unavailable,
-        ), 400
+    # ---------------------------------------------------------------
+    # Stage 2: greedy selection with HARD per-tag quota enforcement.
+    # A candidate is taken only if adding it does not push any of its
+    # tags past its tagQuota limit. Tags without a quota are
+    # unrestricted. tag_used is incremented only when actually taken.
+    # Difficulty buckets are honored first (in ranked order), then a
+    # global pass fills the remaining slots up to `total` while still
+    # respecting the same hard quota.
+    # ---------------------------------------------------------------
+    # Optional secondary diversity cap per (algorithmic tag, pattern) pair.
+    # `patternCap` in the request controls how many problems sharing the same
+    # algo-tag + pattern bucket may be selected. Default is 2; pass 0 to
+    # disable the secondary cap entirely.
+    raw_pattern_cap = data.get("patternCap", 2)
+    if (
+        isinstance(raw_pattern_cap, bool)
+        or not isinstance(raw_pattern_cap, int)
+        or raw_pattern_cap < 0
+    ):
+        return jsonify(error="patternCap must be a non-negative integer"), 400
+    pattern_cap = raw_pattern_cap
 
     selected = []
     selected_ids = set()
+    tag_used = defaultdict(int)
+    pattern_used = defaultdict(int)  # keyed by (algo_tag, pattern)
+
+    def _fits_quota(algo_tags, pattern):
+        # Tag quota: only algorithmic tags participate.
+        if tag_quota:
+            for tag in algo_tags:
+                if tag in tag_quota and tag_used[tag] + 1 > tag_quota[tag]:
+                    return False
+        # Pattern diversity cap: a candidate cannot push any of its
+        # (algo_tag, pattern) pairs over pattern_cap.
+        if pattern_cap and algo_tags:
+            for tag in algo_tags:
+                if pattern_used[(tag, pattern)] + 1 > pattern_cap:
+                    return False
+        return True
+
+    def _take(problem, algo_tags, pattern):
+        selected.append(problem)
+        selected_ids.add(problem.id)
+        # Only algorithmic tags increment the global usage counter so
+        # structural tags can never trip the quota check.
+        for tag in algo_tags:
+            tag_used[tag] += 1
+            pattern_used[(tag, pattern)] += 1
+
+    by_difficulty = {"easy": [], "medium": [], "hard": []}
+    for entry in ranked_candidates:
+        level = (entry[0].difficulty or "").lower()
+        if level in by_difficulty:
+            by_difficulty[level].append(entry)
 
     for level in ("easy", "medium", "hard"):
-        for problem in by_difficulty[level][:difficulty_counts[level]]:
-            selected.append(problem)
-            selected_ids.add(problem.id)
+        needed = difficulty_counts[level]
+        if needed <= 0:
+            continue
+        for problem, _, _, _, algo_tags, pattern in by_difficulty[level]:
+            if needed <= 0:
+                break
+            if problem.id in selected_ids:
+                continue
+            if not _fits_quota(algo_tags, pattern):
+                continue
+            _take(problem, algo_tags, pattern)
+            needed -= 1
 
-    for problem in filtered_candidates:
+    # Global fill: top up to `total` from the ranked list,
+    # still enforcing tag quotas and the pattern diversity cap.
+    for problem, _, _, _, algo_tags, pattern in ranked_candidates:
         if len(selected) >= total:
             break
         if problem.id in selected_ids:
             continue
-        selected.append(problem)
-        selected_ids.add(problem.id)
+        if not _fits_quota(algo_tags, pattern):
+            continue
+        _take(problem, algo_tags, pattern)
+
+    # ---------------------------------------------------------------
+    # Logging: how many of the selected problems carry each tag.
+    # ---------------------------------------------------------------
+    algo_counts = {}
+    structural_counts = {}
+    pattern_counts = {}
+    selected_id_set = {p.id for p in selected}
+    for problem, _, _, _, algo_tags, pattern in ranked_candidates:
+        if problem.id not in selected_id_set:
+            continue
+        for tag in _problem_tags(problem):
+            bucket = structural_counts if tag in STRUCTURAL_TAGS else algo_counts
+            bucket[tag] = bucket.get(tag, 0) + 1
+        pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+
+    def _sorted_counts(counts):
+        return dict(sorted(counts.items(), key=lambda x: (-x[1], x[0])))
+
+    current_app.logger.info(
+        "Problem selection: selected=%s algorithmic=%s structural=%s patterns=%s quotas=%s patternCap=%s",
+        len(selected),
+        _sorted_counts(algo_counts),
+        _sorted_counts(structural_counts),
+        _sorted_counts(pattern_counts),
+        dict(sorted(tag_quota.items())),
+        pattern_cap,
+    )
 
     return jsonify(
-        problems=[problem_to_dict(problem) for problem in selected],
+        problems=[problem_to_dict(p) for p in selected],
         selection={
             "requestedTotal": total,
             "returnedTotal": len(selected),
             "requestedDifficulty": difficulty_counts,
-            "usedTags": tags,
+            "usedTagWeights": tag_weights,
+            "usedTagQuotas": tag_quota,
+            "patternCap": pattern_cap,
             "ignoredSlugs": ignore_slugs,
         },
     )

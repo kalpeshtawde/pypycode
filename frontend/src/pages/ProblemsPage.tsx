@@ -106,7 +106,7 @@ export default function ProblemsPage() {
   );
   const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
   const [filter, setFilter] = useState<typeof QUICK_FILTERS[number]>("all");
-  const [sortBy, setSortBy] = useState<"id" | "difficulty" | "created_at">("id");
+  const [sortBy, setSortBy] = useState<"id" | "title" | "difficulty" | "created_at">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
@@ -114,8 +114,10 @@ export default function ProblemsPage() {
   const [creatingProject, setCreatingProject] = useState(false);
   const [switchingDefault, setSwitchingDefault] = useState(false);
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectPrompt, setNewProjectPrompt] = useState("");
+  const [newProjectTotal, setNewProjectTotal] = useState<number>(20);
   const [createProjectError, setCreateProjectError] = useState<string | null>(null);
+  const [dismissedExplanationProjectId, setDismissedExplanationProjectId] = useState<string | null>(null);
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
@@ -167,10 +169,15 @@ export default function ProblemsPage() {
             per_page: String(perPageApi),
             sort,
             order,
-            ...(trimmedSearch && { search: trimmedSearch }),
           });
+          if (selectedProjectId) {
+            params.set("projectId", selectedProjectId);
+          }
+          if (trimmedSearch) {
+            params.set("search", trimmedSearch);
+          }
 
-          const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`);
+          const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`, token);
           collected.push(...data.problems);
           pages = data.pagination?.pages || 1;
           nextPage += 1;
@@ -283,6 +290,11 @@ export default function ProblemsPage() {
           };
 
           dedupedEnriched.sort((a, b) => {
+            if (sort === "title") {
+              const delta = a.problem.title.localeCompare(b.problem.title);
+              return order === "desc" ? -delta : delta;
+            }
+
             if (sort === "difficulty") {
               const delta = difficultyRank(a.problem.difficulty) - difficultyRank(b.problem.difficulty);
               return order === "desc" ? -delta : delta;
@@ -352,11 +364,18 @@ export default function ProblemsPage() {
       per_page: "15",
       sort: sort,
       order: order,
-      ...(difficultyParam && { difficulty: difficultyParam }),
-      ...(trimmedSearch && { search: trimmedSearch }),
     });
+    if (selectedProjectId) {
+      params.set("projectId", selectedProjectId);
+    }
+    if (difficultyParam) {
+      params.set("difficulty", difficultyParam);
+    }
+    if (trimmedSearch) {
+      params.set("search", trimmedSearch);
+    }
     
-    api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`)
+    api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`, token)
       .then((data) => {
         if (!isLatestRequest()) return;
         setProblems(data.problems);
@@ -398,8 +417,11 @@ export default function ProblemsPage() {
           sort: "id",
           order: "asc",
         });
+        if (selectedProjectId) {
+          params.set("projectId", selectedProjectId);
+        }
 
-        const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`);
+        const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`, token);
         collected.push(...data.problems);
         pages = data.pagination?.pages || 1;
         page += 1;
@@ -411,12 +433,12 @@ export default function ProblemsPage() {
     fetchAllProblemsForStats().catch(() => {
       setAllProblemsForStats([]);
     });
-  }, []);
+  }, [selectedProjectId]);
 
   useEffect(() => {
     setCurrentPage(1);
     fetchProblems(1, sortBy, sortOrder, filter);
-  }, [sortBy, sortOrder, filter, searchQuery]);
+  }, [sortBy, sortOrder, filter, searchQuery, selectedProjectId]);
 
   useEffect(() => {
     if (!token) {
@@ -509,25 +531,30 @@ export default function ProblemsPage() {
 
   const handleCreateProject = async () => {
     if (!token || creatingProject) return;
-    const name = newProjectName.trim();
+    const prompt = newProjectPrompt.trim();
 
-    if (!name) {
-      setCreateProjectError("Project name is required");
+    if (!prompt) {
+      setCreateProjectError("Please describe what you want to practice");
       return;
     }
-    if (name.length > 25) {
-      setCreateProjectError("Project name must be at most 25 characters");
+    if (prompt.length > 500) {
+      setCreateProjectError("Prompt must be at most 500 characters");
       return;
     }
 
     setCreatingProject(true);
     setCreateProjectError(null);
     try {
-      const project = await api.post<Project>("/projects/", { name }, token);
+      const project = await api.post<Project>(
+        "/projects/from-prompt",
+        { prompt, total: newProjectTotal },
+        token
+      );
       setProjects((prev) => sortProjects([...prev, project]));
       setSelectedProjectId(project.id);
       setShowCreateProjectDialog(false);
-      setNewProjectName("");
+      setNewProjectPrompt("");
+      setNewProjectTotal(20);
     } catch (e: unknown) {
       setCreateProjectError(e instanceof Error ? e.message : "Unable to create project");
     } finally {
@@ -594,7 +621,8 @@ export default function ProblemsPage() {
     if (!token) return;
     setShowCreateProjectDialog(true);
     setCreateProjectError("Please create a project before opening a problem");
-    setNewProjectName("");
+    setNewProjectPrompt("");
+    setNewProjectTotal(20);
   };
 
   return (
@@ -673,12 +701,13 @@ export default function ProblemsPage() {
                   onClick={() => {
                     setShowCreateProjectDialog(true);
                     setCreateProjectError(null);
-                    setNewProjectName("");
+                    setNewProjectPrompt("");
+                    setNewProjectTotal(20);
                   }}
                   disabled={!token || creatingProject || deletingProject}
                   className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
                 >
-                  Create New Project
+                  Create Project
                 </button>
                 <button
                   onClick={() => {
@@ -911,6 +940,66 @@ export default function ProblemsPage() {
           </>
         )}
 
+        {/* Vega explanation banner — shown for AI-generated projects */}
+        {selectedProject?.explanation &&
+          dismissedExplanationProjectId !== selectedProject.id && (
+            <div className="mt-6 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3 sm:gap-4">
+                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className="flex-shrink-0 mt-0.5 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md">
+                    <svg className="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-indigo-900 mb-1.5 sm:mb-2 flex items-center gap-2 flex-wrap">
+                      <span>Why this set</span>
+                      <span className="text-xs font-normal text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                        AI-generated
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed">
+                      {selectedProject.explanation}
+                    </p>
+                    {(selectedProject.strategy || selectedProject.level) && (
+                      <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+                        {selectedProject.level && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 font-medium shadow-sm">
+                            <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                            </svg>
+                            Level: {selectedProject.level}
+                          </span>
+                        )}
+                        {selectedProject.strategy && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 font-medium shadow-sm">
+                            <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Strategy: {selectedProject.strategy.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDismissedExplanationProjectId(selectedProject.id)}
+                  className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-white/50 rounded-lg p-1.5 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <svg className="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* Quick filters */}
         <div className="mt-6 mb-6">
           <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -992,26 +1081,6 @@ export default function ProblemsPage() {
                 </button>
               )}
             </div>
-
-            {/* Sort controls - same line as heading */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono text-slate-600">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-1.5 text-sm font-mono border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="id">Default</option>
-                <option value="difficulty">Difficulty</option>
-                <option value="created_at">Date Added</option>
-              </select>
-              <button
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className="px-3 py-1.5 text-sm font-mono border border-slate-200 rounded-lg bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </button>
-            </div>
           </div>
 
           <div style={{
@@ -1037,10 +1106,46 @@ export default function ProblemsPage() {
             }}>
               <div style={{ textAlign: 'center' }}>★</div>
               <div></div>
-              <div>#</div>
-              <div>Title</div>
+              <div 
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => {
+                  if (sortBy === 'id') {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSortBy('id');
+                    setSortOrder('asc');
+                  }
+                }}
+              >
+                # {sortBy === 'id' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </div>
+              <div 
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => {
+                  if (sortBy === 'title') {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSortBy('title');
+                    setSortOrder('asc');
+                  }
+                }}
+              >
+                Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </div>
               <div>Tags</div>
-              <div style={{ textAlign: 'right' }}>Difficulty</div>
+              <div 
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}
+                onClick={() => {
+                  if (sortBy === 'difficulty') {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSortBy('difficulty');
+                    setSortOrder('asc');
+                  }
+                }}
+              >
+                Difficulty {sortBy === 'difficulty' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </div>
             </div>
 
             {/* Table Rows */}
@@ -1232,54 +1337,98 @@ export default function ProblemsPage() {
 
       {/* Pagination */}
       {isLoggedIn && showCreateProjectDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
-            <div className="px-6 py-5 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Create New Project</h3>
-              <p className="text-sm text-slate-500 mt-1">Track submissions under a dedicated project.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 sm:px-6">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200">
+            <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">Create Project</h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Tell Vega what you want to practice and it will curate a
+                personalized problem set tailored to your level.
+              </p>
             </div>
-            <div className="px-6 py-5">
-              <label className="block text-xs font-semibold text-slate-600 mb-2">Project Name</label>
-              <input
-                autoFocus
-                maxLength={25}
-                value={newProjectName}
-                onChange={(e) => {
-                  setNewProjectName(e.target.value);
-                  setCreateProjectError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleCreateProject();
-                  }
-                }}
-                placeholder="e.g. Interview Prep Jan 2026"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <div className="mt-2 text-xs text-slate-500">{newProjectName.trim().length}/25 characters</div>
+            <div className="px-5 py-4 sm:px-6 sm:py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2">
+                  What do you want to practice?
+                </label>
+                <textarea
+                  autoFocus
+                  maxLength={500}
+                  rows={4}
+                  value={newProjectPrompt}
+                  disabled={creatingProject}
+                  onChange={(e) => {
+                    setNewProjectPrompt(e.target.value);
+                    setCreateProjectError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      handleCreateProject();
+                    }
+                  }}
+                  placeholder="e.g. I have a coding interview in 2 weeks and I'm weak on dynamic programming"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                />
+                <div className="mt-1 text-xs text-slate-500">
+                  {newProjectPrompt.trim().length}/500 characters · ⌘/Ctrl+Enter to submit
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2">
+                  How many problems?
+                </label>
+                <div className="flex items-center gap-2">
+                  {[10, 20, 30].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={creatingProject}
+                      onClick={() => setNewProjectTotal(n)}
+                      className={`flex-1 px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg border transition-colors disabled:opacity-60 ${
+                        newProjectTotal === n
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
+                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {createProjectError && (
-                <div className="mt-2 text-sm text-red-600">{createProjectError}</div>
+                <div className="text-sm text-red-600">{createProjectError}</div>
+              )}
+              {creatingProject && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <svg className="animate-spin h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Vega is reading your stats and building your project. This may take 5–10 seconds…
+                </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div className="px-5 py-4 sm:px-6 sm:py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   if (creatingProject) return;
                   setShowCreateProjectDialog(false);
                   setCreateProjectError(null);
-                  setNewProjectName("");
+                  setNewProjectPrompt("");
+                  setNewProjectTotal(20);
                 }}
-                className="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                disabled={creatingProject}
+                className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateProject}
                 disabled={creatingProject}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+                className="w-full sm:w-auto px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
               >
-                {creatingProject ? "Creating..." : "Create"}
+                {creatingProject ? "Creating…" : "Create with Vega"}
               </button>
             </div>
           </div>

@@ -1,7 +1,10 @@
-from flask import Blueprint, jsonify, request
-from app.models import Contact
+from flask import Blueprint, request, jsonify
 from app import db
+from app.models import Contact
 from datetime import datetime, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 contact_bp = Blueprint("contact", __name__)
 
@@ -53,8 +56,9 @@ def create_contact():
             "contact": contact_to_dict(contact)
         }), 201
         
-    except Exception as e:
+    except Exception:
         db.session.rollback()
+        logger.exception("Failed to create contact")
         return jsonify({"error": "Failed to submit contact query"}), 500
 
 
@@ -64,7 +68,8 @@ def get_contacts():
     try:
         contacts = Contact.query.order_by(Contact.created_at.desc()).all()
         return jsonify([contact_to_dict(contact) for contact in contacts])
-    except Exception as e:
+    except Exception:
+        logger.exception("Failed to fetch contacts")
         return jsonify({"error": "Failed to fetch contacts"}), 500
 
 
@@ -87,6 +92,7 @@ def update_contact_status(contact_id):
         else:
             return jsonify({"error": "Invalid status"}), 400
             
-    except Exception as e:
+    except Exception:
         db.session.rollback()
+        logger.exception("Failed to update contact status", extra={"contact_id": contact_id})
         return jsonify({"error": "Failed to update contact status"}), 500

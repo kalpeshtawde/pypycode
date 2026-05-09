@@ -4,6 +4,7 @@ import sys
 import subprocess
 import tempfile
 from flask import Flask
+from werkzeug.exceptions import HTTPException
 import click
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -68,8 +69,19 @@ def create_app():
     app.register_blueprint(favorites_bp, url_prefix="/favorites")
     register_api_docs(app)
 
+    @app.errorhandler(Exception)
+    def _log_unhandled_exception(error):
+        if isinstance(error, HTTPException):
+            return error
+        app.logger.exception("Unhandled API exception")
+        return {"error": "Internal server error"}, 500
+
     from app.admin import init_admin
     init_admin(app)
+
+    @app.get("/")
+    def root_health():
+        return {"status": "ok"}
 
     @app.get("/health")
     def health():

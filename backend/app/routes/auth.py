@@ -6,8 +6,10 @@ from sqlalchemy import func
 from app import db
 from app.models import User, Submission, Problem
 import os
+import logging
 
 auth_bp = Blueprint("auth", __name__)
+logger = logging.getLogger(__name__)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
@@ -169,6 +171,7 @@ def google_auth():
     except ValueError as e:
         return jsonify(error="Invalid token"), 401
     except Exception as e:
+        logger.exception("Unexpected error during Google auth")
         return jsonify(error=str(e)), 500
 
 

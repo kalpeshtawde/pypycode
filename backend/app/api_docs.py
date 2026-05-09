@@ -52,7 +52,10 @@ _COMPONENT_SCHEMAS = {
         "required": ["total"],
         "properties": {
             "total": {"type": "integer", "minimum": 1},
-            "tags": {"type": "array", "items": {"type": "string"}},
+            "tagWeights": {
+                "type": "object",
+                "additionalProperties": {"type": "number", "minimum": 0},
+            },
             "ignoreSlugs": {"type": "array", "items": {"type": "string"}},
             "difficultyCounts": {
                 "type": "object",
@@ -109,6 +112,7 @@ _COMPONENT_SCHEMAS = {
         "required": ["name"],
         "properties": {
             "name": {"type": "string", "maxLength": 25},
+            "problemIds": {"type": "array", "items": {"type": "string"}},
         },
     },
     "SubmitCodeRequest": {
@@ -192,6 +196,7 @@ _QUERY_PARAMS_BY_OPERATION = {
         {"name": "search", "in": "query", "schema": {"type": "string"}},
         {"name": "sort", "in": "query", "schema": {"type": "string", "enum": ["id", "difficulty", "created_at"]}},
         {"name": "order", "in": "query", "schema": {"type": "string", "enum": ["asc", "desc"]}},
+        {"name": "projectId", "in": "query", "schema": {"type": "string"}},
         {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1}},
         {"name": "per_page", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 50}},
     ],
@@ -206,6 +211,9 @@ _QUERY_PARAMS_BY_OPERATION = {
         {"name": "projectId", "in": "query", "schema": {"type": "string"}},
     ],
     ("GET", "/submissions/difficulty-stats"): [
+        {"name": "userId", "in": "query", "schema": {"type": "string"}},
+    ],
+    ("GET", "/submissions/tag-stats"): [
         {"name": "userId", "in": "query", "schema": {"type": "string"}},
     ],
 }
@@ -227,6 +235,7 @@ _JWT_PROTECTED_OPERATIONS = {
     ("GET", "/submissions/accepted"),
     ("GET", "/submissions/problem/{slug}"),
     ("GET", "/submissions/difficulty-stats"),
+    ("GET", "/submissions/tag-stats"),
     ("GET", "/favorites/"),
     ("POST", "/favorites/"),
     ("DELETE", "/favorites/{problem_id}"),

@@ -19,6 +19,82 @@ def test_create_project_success(client, auth_headers):
     assert res.get_json()["name"] == "Algorithms"
 
 
+def test_create_project_defaults_to_all_problems(client, auth_headers, app_ctx):
+    p1 = Problem(
+        slug="proj-all-1",
+        title="Project All 1",
+        difficulty="easy",
+        description="d",
+        starter_code="def solution():\n    pass",
+        examples=[{"input": "", "output": ""}],
+        tags=["array"],
+    )
+    p2 = Problem(
+        slug="proj-all-2",
+        title="Project All 2",
+        difficulty="medium",
+        description="d",
+        starter_code="def solution():\n    pass",
+        examples=[{"input": "", "output": ""}],
+        tags=["dp"],
+    )
+    db.session.add_all([p1, p2])
+    db.session.commit()
+
+    res = client.post("/projects/", headers=auth_headers, json={"name": "Algorithms All"})
+    assert res.status_code == 201
+
+    project_id = res.get_json()["id"]
+    stats = ProblemProjectStat.query.filter_by(project_id=project_id).all()
+    assert len(stats) >= 2
+    assert {stat.problem_id for stat in stats}.issuperset({p1.id, p2.id})
+
+
+def test_create_project_with_problem_ids_only_adds_selected(client, auth_headers, app_ctx):
+    p1 = Problem(
+        slug="proj-selected-1",
+        title="Project Selected 1",
+        difficulty="easy",
+        description="d",
+        starter_code="def solution():\n    pass",
+        examples=[{"input": "", "output": ""}],
+        tags=["array"],
+    )
+    p2 = Problem(
+        slug="proj-selected-2",
+        title="Project Selected 2",
+        difficulty="hard",
+        description="d",
+        starter_code="def solution():\n    pass",
+        examples=[{"input": "", "output": ""}],
+        tags=["graph"],
+    )
+    db.session.add_all([p1, p2])
+    db.session.commit()
+
+    res = client.post(
+        "/projects/",
+        headers=auth_headers,
+        json={"name": "Algorithms Selected", "problemIds": [p2.id]},
+    )
+    assert res.status_code == 201
+
+    project_id = res.get_json()["id"]
+    stats = ProblemProjectStat.query.filter_by(project_id=project_id).all()
+    assert len(stats) == 1
+    assert stats[0].problem_id == p2.id
+
+
+def test_create_project_rejects_invalid_problem_ids(client, auth_headers):
+    res = client.post(
+        "/projects/",
+        headers=auth_headers,
+        json={"name": "Algorithms Invalid", "problemIds": ["", 123]},
+    )
+    assert res.status_code == 400
+    assert res.get_json()["error"] == "problemIds must be an array of non-empty strings"
+
+
 def test_create_project_duplicate_name(client, auth_headers, project):
     res = client.post("/projects/", headers=auth_headers, json={"name": "Default"})
     assert res.status_code == 409

@@ -184,6 +184,57 @@ def difficulty_stats():
     )
 
 
+@submissions_bp.get("/tag-stats")
+@jwt_required()
+def tag_stats():
+    requested_user_id = request.args.get("userId") or get_jwt_identity()
+    user = User.query.filter_by(id=requested_user_id).first()
+    if not user:
+        return jsonify(error="User not found"), 404
+
+    rows = (
+        db.session.query(
+            Problem.tags.label("tags"),
+            db.func.max(db.case((ProblemProjectStat.attempted.is_(True), 1), else_=0)).label("attempted_flag"),
+            db.func.max(db.case((ProblemProjectStat.submitted.is_(True), 1), else_=0)).label("submitted_flag"),
+        )
+        .join(Problem, Problem.id == ProblemProjectStat.problem_id)
+        .filter(ProblemProjectStat.user_id == requested_user_id)
+        .group_by(ProblemProjectStat.problem_id, Problem.tags)
+        .all()
+    )
+
+    stats = {}
+
+    for row in rows:
+        tags = row.tags or []
+        attempted = int(row.attempted_flag or 0)
+        submitted = int(row.submitted_flag or 0)
+
+        for tag in tags:
+            normalized_tag = (tag or "").strip().lower()
+            if not normalized_tag:
+                continue
+            if normalized_tag not in stats:
+                stats[normalized_tag] = {
+                    "attempted": 0,
+                    "submitted": 0,
+                    "accuracy": 0.0,
+                    "weakness_score": 0.0,
+                }
+            stats[normalized_tag]["attempted"] += attempted
+            stats[normalized_tag]["submitted"] += submitted
+
+    for tag, values in stats.items():
+        attempted = values["attempted"]
+        submitted = values["submitted"]
+        accuracy = round((submitted / attempted), 4) if attempted > 0 else 0.0
+        values["accuracy"] = accuracy
+        values["weakness_score"] = round(1 - accuracy, 4)
+
+    return jsonify(stats)
+
+
 @submissions_bp.get("/<sub_id>")
 @jwt_required()
 def get_submission(sub_id):
