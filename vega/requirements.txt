@@ -1,0 +1,7 @@
+flask==3.0.3
+langgraph
+langchain-openai
+langchain-core
+langsmith
+pydantic
+httpx
