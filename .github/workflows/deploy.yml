@@ -55,7 +55,11 @@ jobs:
               - 'backend/**'
               - 'migrations/**'
               - 'sandbox/**'
+              - 'vega/**'
               - 'docker-compose.prod.yml'
+              - 'docker-compose.yml'
+              - 'vega/Dockerfile'
+              - 'vega/requirements.txt'
               - 'scripts/deploy.sh'
               - 'nginx/**'
             frontend:
