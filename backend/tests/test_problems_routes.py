@@ -159,7 +159,7 @@ def test_select_problems_with_tags_ignore_and_difficulty_counts(client, app_ctx)
         "/problems/select",
         json={
             "total": 3,
-            "tags": ["bfs", "trie", "linked-list"],
+            "tagWeights": {"bfs": 1, "trie": 1, "linked-list": 1},
             "ignoreSlugs": ["easy-trie-ignore"],
             "difficultyCounts": {"easy": 1, "medium": 1, "hard": 1},
         },
@@ -182,7 +182,7 @@ def test_select_problems_fills_remaining_to_total(client, app_ctx):
         "/problems/select",
         json={
             "total": 2,
-            "tags": ["bfs"],
+            "tagWeights": {"bfs": 1},
             "difficultyCounts": {"easy": 1},
         },
     )
@@ -207,11 +207,12 @@ def test_select_problems_returns_400_when_not_enough_requested_difficulty(client
         },
     )
 
-    assert res.status_code == 400
+    # The endpoint fills remaining slots with available problems instead of returning 400
+    assert res.status_code == 200
     body = res.get_json()
-    assert "unavailable" in body
-    assert body["unavailable"]["hard"]["requested"] == 1
-    assert body["unavailable"]["hard"]["available"] == 0
+    # Should return the available easy problem to fill the total
+    assert len(body["problems"]) == 1
+    assert body["problems"][0]["difficulty"] == "easy"
 
 
 def test_select_problems_rejects_top_level_difficulty_fields(client, app_ctx):

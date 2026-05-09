@@ -66,9 +66,19 @@ def test_leaderboard_returns_ranked_users(client, app_ctx, user):
     # Create test case separately
     tc = TestCase(problem_id=p.id, serial_number=0, function="solution", input="", expected_output="1", is_active=True)
     db.session.add(tc)
-    db.session.commit()
+    db.session.flush()
+    
+    # Create a project for the submission
+    from app.models import Project
+    project = Project(
+        name="Leader Project",
+        user_id=user.id,
+        is_default=True,
+    )
+    db.session.add(project)
+    db.session.flush()
 
-    sub = Submission(user_id=user.id, project_id=user.id, problem_id=p.id, code="x", status="accepted")
+    sub = Submission(user_id=user.id, project_id=project.id, problem_id=p.id, code="x", status="accepted")
     db.session.add(sub)
     db.session.commit()
 
