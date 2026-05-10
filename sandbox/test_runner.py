@@ -272,6 +272,9 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
     test_cases = problem.get("test_cases", [])
     result.total = len(test_cases)
 
+    import io
+    import contextlib
+
     for i, tc in enumerate(test_cases):
         case_report: dict[str, Any] = {
             "case": i + 1,
@@ -280,14 +283,17 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
             "expected": tc.get("expected"),
             "got": None,
             "error": None,
+            "stdout": "",
         }
 
         args = copy.deepcopy(tc.get("args", []))
         kwargs = copy.deepcopy(tc.get("kwargs", {}))
         args = _convert_args(args, tc.get("arg_types", []), namespace)
 
+        stdout_buffer = io.StringIO()
         try:
-            got = fn(*args, **kwargs)
+            with contextlib.redirect_stdout(stdout_buffer):
+                got = fn(*args, **kwargs)
             passed = compare_fn(got, tc["expected"])
             case_report["got"] = _normalize(got)
             case_report["passed"] = passed
@@ -300,6 +306,7 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
             case_report["passed"] = False
             result.failed += 1
 
+        case_report["stdout"] = stdout_buffer.getvalue()
         result.cases.append(case_report)
 
     return result

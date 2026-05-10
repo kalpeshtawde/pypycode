@@ -57,6 +57,7 @@ def _convert_test_cases(problem: Problem):
             converted_tc["args"] = []
 
         converted_tc["kwargs"] = {}
+        converted_tc["arg_types"] = tc.arg_types or []
         converted_test_cases.append(converted_tc)
     return converted_test_cases
 
@@ -195,6 +196,11 @@ def run_code_against_problem(problem: Problem, code: str):
         failed_cases = [c for c in cases if not c.get("passed")]
         if failed_cases:
             error_parts.append(f"FailedCases:\n{json.dumps(failed_cases)}")
+
+        # Per-test stdout (printed output from user code), one entry per case in order.
+        per_test_outputs = [c.get("stdout", "") or "" for c in cases]
+        if any(out for out in per_test_outputs):
+            error_parts.append(f"PerTestOutputs:\n{json.dumps(per_test_outputs)}")
 
         if compile_error or runtime_error:
             status = "runtime_error"

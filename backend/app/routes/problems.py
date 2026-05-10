@@ -8,6 +8,29 @@ from collections import defaultdict
 
 problems_bp = Blueprint("problems", __name__)
 
+
+def _derive_arg_types(tags: list, input_str: str) -> list | None:
+    """Return arg_types list based on problem tags, or None for plain problems."""
+    import ast as _ast, json as _json
+    lower_tags = [t.lower() for t in (tags or [])]
+    if any(t in {"tree", "binary-tree"} for t in lower_tags):
+        first = "tree"
+    elif "linked-list" in lower_tags:
+        first = "linked_list"
+    else:
+        return None
+    # Count args to build the full list
+    n = 1
+    if input_str:
+        try:
+            n = len(_json.loads("[" + input_str + "]"))
+        except Exception:
+            try:
+                n = len(_ast.literal_eval("[" + input_str + "]"))
+            except Exception:
+                pass
+    return [first] + [None] * max(0, n - 1)
+
 # Structural/data-shape tags. These describe the input/output container of a
 # problem and are not algorithmic techniques. They are excluded from scoring,
 # ranking and quota enforcement so high-frequency tags like "array" cannot
@@ -666,12 +689,14 @@ def public_ingest_problem():
 
     # Create test cases as separate records
     for idx, tc in enumerate(test_cases):
+        input_str = tc.get("input", "")
         test_case = TestCase(
             problem_id=problem.id,
             serial_number=idx,
             function=tc.get("function", "solution"),
-            input=tc.get("input", ""),
+            input=input_str,
             expected_output=tc.get("expectedOutput", ""),
+            arg_types=tc.get("argTypes") or _derive_arg_types(tags, input_str),
             is_active=tc.get("isActive", True),
         )
         db.session.add(test_case)
@@ -708,12 +733,14 @@ def create_problem():
     
     # Create test cases
     for idx, tc in enumerate(test_cases_data):
+        input_str = tc.get("input", "")
         test_case = TestCase(
             problem_id=p.id,
             serial_number=idx,
             function=tc.get("function", "solution"),
-            input=tc.get("input", ""),
+            input=input_str,
             expected_output=tc.get("expectedOutput", ""),
+            arg_types=tc.get("argTypes") or _derive_arg_types(data.get("tags", []), input_str),
             is_active=tc.get("isActive", True),
         )
         db.session.add(test_case)
