@@ -182,7 +182,19 @@ def classify_user_level(state: AgentState):
 
     # Then, check if user's prompt explicitly requests a specific level
     goal = state.get("goal", "").lower()
-    if "hard" in goal or "advanced" in goal:
+    if "only medium" in goal or "all medium" in goal or "just medium" in goal:
+        # If user explicitly asks for only medium, set custom level
+        logger.info("User requested only medium level, setting custom distribution")
+        return {"level": "medium_only"}
+    elif "only hard" in goal or "all hard" in goal or "just hard" in goal:
+        # If user explicitly asks for only hard, set custom level
+        logger.info("User requested only hard level, setting custom distribution")
+        return {"level": "hard_only"}
+    elif "only easy" in goal or "all easy" in goal or "just easy" in goal:
+        # If user explicitly asks for only easy, set custom level
+        logger.info("User requested only easy level, setting custom distribution")
+        return {"level": "easy_only"}
+    elif "hard" in goal or "advanced" in goal:
         # If user explicitly asks for hard/advanced, upgrade to advanced
         logger.info("User requested hard/advanced level, upgrading classification")
         return {"level": UserLevel.ADVANCED.value}
@@ -202,15 +214,18 @@ async def build_distribution(state: AgentState):
         raise ValueError("level is required")
 
     # --- Base distributions ---
-    if level == "beginner":
+    if level == "medium_only":
+        distribution = {"easy": 0, "medium": 100, "hard": 0}
+    elif level == "hard_only":
+        distribution = {"easy": 0, "medium": 0, "hard": 100}
+    elif level == "easy_only":
+        distribution = {"easy": 100, "medium": 0, "hard": 0}
+    elif level == "beginner":
         distribution = {"easy": 70, "medium": 25, "hard": 5}
-
     elif level == "intermediate":
         distribution = {"easy": 30, "medium": 50, "hard": 20}
-
     elif level == "advanced":
         distribution = {"easy": 10, "medium": 40, "hard": 50}
-
     else:
         raise ValueError(f"Unknown level: {level}")
 
