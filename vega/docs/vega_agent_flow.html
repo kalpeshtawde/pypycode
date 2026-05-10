@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vega Agent — Flow Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      padding: 40px 32px 80px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+      letter-spacing: -0.4px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.8rem;
+      color: #475569;
+      font-weight: 500;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Diagram wrapper ── */
+    .diagram-wrapper {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 40px 24px;
+      overflow-x: auto;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      margin-bottom: 48px;
+    }
+
+    .mermaid {
+      min-width: 1200px;
+    }
+
+    /* ── Info panels ── */
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    @media (max-width: 768px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .panel h2 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* State keys grid */
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .state-key {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+    }
+    .state-key code {
+      color: #6366f1;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .state-key span { color: #64748b; }
+
+    /* Strategy table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      text-align: left;
+      padding: 7px 10px;
+      color: #64748b;
+      font-weight: 600;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+      color: #374151;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    .strat-name {
+      font-weight: 700;
+      color: #7c3aed;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Vega Agent — Flow Diagram</h1>
+<p class="subtitle">LangGraph-based AI agent that builds personalised coding problem sets · Left → Right flow</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#bfdbfe;border:1.5px solid #3b82f6"></div>API Call (Backend)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e9d5ff;border:1.5px solid #9333ea"></div>LLM · GPT-4</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d1fae5;border:1.5px solid #10b981"></div>Logic / Transform</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border:1.5px solid #f59e0b"></div>Decision</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;border:1.5px solid #64748b"></div>Start / End</div>
+</div>
+
+<div class="diagram-wrapper">
+  <div class="mermaid">
+%%{init: {"theme": "base", "themeVariables": {
+  "primaryColor": "#f8fafc",
+  "primaryTextColor": "#1e293b",
+  "primaryBorderColor": "#cbd5e1",
+  "lineColor": "#94a3b8",
+  "secondaryColor": "#f1f5f9",
+  "tertiaryColor": "#fff",
+  "fontSize": "14px"
+}}}%%
+flowchart LR
+
+    START([▶ START\nuser_id · goal · total]):::terminal
+
+    subgraph PROFILE["① Profile"]
+        A["<b>fetch_user_stats</b>\nAPI: GET performance stats\nhard / medium / easy scores"]:::api
+        B["<b>classify_user_level</b>\nbeginner / intermediate\n/ advanced / *_only"]:::logic
+        C["<b>fetch_user_tag_stats</b>\nAPI: GET tag weakness scores\nsorted weakest-first"]:::api
+    end
+
+    subgraph PLAN["② Plan"]
+        D["<b>pick_strategy</b>\nLLM picks: warmup · weakness_fix\ntopic_focus · revision · mixed"]:::llm
+        E["<b>build_distribution</b>\nLevel → difficulty %\ne.g. advanced: 10/40/50"]:::logic
+        F["<b>convert_to_counts</b>\n% → actual counts\ne.g. 2 easy · 8 med · 10 hard"]:::logic
+    end
+
+    subgraph SELECT["③ Select  (retry loop ↺ max 2×)"]
+        G["<b>select_problems</b>\nAPI: problem selector\nwith strategy payload"]:::api
+        H{"<b>should_retry?</b>\nenough problems?"}:::decision
+        I["<b>adjust_inputs</b>\nadd seen slugs\nto ignore list"]:::logic
+    end
+
+    subgraph DELIVER["④ Deliver"]
+        J["<b>assemble_project</b>\nbuild project dict\ntitle · problems · meta"]:::logic
+        K["<b>explain_project</b>\nLLM writes 2-3 sentence\npersonalised explanation"]:::llm
+        L["<b>persist_project</b>\nAPI: POST /projects\nsave to backend DB"]:::api
+    end
+
+    END([⏹ END\nproject object returned]):::terminal
+
+    START --> A
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H -- "✓ good" --> J
+    H -- "↺ retry" --> I
+    H -- "✕ give_up" --> J
+    I --> G
+    J --> K
+    K --> L
+    L --> END
+
+    classDef api      fill:#bfdbfe,stroke:#3b82f6,color:#1e3a5f,rx:8
+    classDef llm      fill:#e9d5ff,stroke:#9333ea,color:#3b0764,rx:8
+    classDef logic    fill:#d1fae5,stroke:#10b981,color:#064e3b,rx:8
+    classDef decision fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef terminal fill:#f1f5f9,stroke:#64748b,color:#1e293b,rx:20
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- State keys -->
+  <div class="panel">
+    <h2>Agent State Keys</h2>
+    <div class="state-grid">
+      <div class="state-key"><code>user_id</code><span>Calling user's UUID</span></div>
+      <div class="state-key"><code>auth_token</code><span>Per-request JWT</span></div>
+      <div class="state-key"><code>goal</code><span>User's free-text prompt</span></div>
+      <div class="state-key"><code>total</code><span>Problems requested</span></div>
+      <div class="state-key"><code>stats</code><span>Hard/medium/easy perf data</span></div>
+      <div class="state-key"><code>level</code><span>beginner / intermediate / advanced / *_only</span></div>
+      <div class="state-key"><code>tag_stats</code><span>Per-tag weakness scores</span></div>
+      <div class="state-key"><code>tag_ranking</code><span>Tags sorted weakest-first</span></div>
+      <div class="state-key"><code>strategy</code><span>Selected strategy name</span></div>
+      <div class="state-key"><code>focus_tags</code><span>LLM-chosen tags for topic_focus</span></div>
+      <div class="state-key"><code>strategy_reason</code><span>LLM one-sentence rationale</span></div>
+      <div class="state-key"><code>difficulty_percent</code><span>{easy:%, medium:%, hard:%}</span></div>
+      <div class="state-key"><code>difficulty_counts</code><span>{easy:n, medium:n, hard:n}</span></div>
+      <div class="state-key"><code>selected_problems</code><span>List of problem objects</span></div>
+      <div class="state-key"><code>selection</code><span>Backend selection metadata</span></div>
+      <div class="state-key"><code>retry_count</code><span>Retry attempt (max 2)</span></div>
+      <div class="state-key"><code>ignore_slugs</code><span>Seen slugs to exclude</span></div>
+      <div class="state-key"><code>project</code><span>Final assembled project dict</span></div>
+      <div class="state-key"><code>project_id</code><span>Backend-assigned UUID</span></div>
+      <div class="state-key"><code>route</code><span>good / retry / give_up</span></div>
+    </div>
+  </div>
+
+  <!-- Strategy table -->
+  <div class="panel">
+    <h2>LLM Strategies (pick_strategy node)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Trigger</th>
+          <th>Behaviour</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="strat-name">warmup</span></td>
+          <td>New user, "easy", "getting started"</td>
+          <td>All-easy distribution</td>
+        </tr>
+        <tr>
+          <td><span class="strat-name">weakness_fix</span></td>
+          <td>"improve", "weak areas", interview prep</td>
+          <td>Heavy weight on lowest-accuracy tags</td>
+        </tr>
+        <tr>
+          <td><span class="strat-name">topic_focus</span></td>
+          <td>User names topics ("DP", "graphs")</td>
+          <td>Restricts to focus_tags only</td>
+        </tr>
+        <tr>
+          <td><span class="strat-name">revision</span></td>
+          <td>"review", "revise", "revisit"</td>
+          <td>Balanced over attempted weak tags</td>
+        </tr>
+        <tr>
+          <td><span class="strat-name">mixed</span></td>
+          <td>Default / LLM fallback</td>
+          <td>Balanced across all difficulties &amp; tags</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:20px">
+      <h2>Difficulty Distributions</h2>
+      <table>
+        <thead>
+          <tr><th>Level</th><th>Easy</th><th>Medium</th><th>Hard</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>beginner</td><td>70%</td><td>25%</td><td>5%</td></tr>
+          <tr><td>intermediate</td><td>30%</td><td>50%</td><td>20%</td></tr>
+          <tr><td>advanced</td><td>10%</td><td>40%</td><td>50%</td></tr>
+          <tr><td>easy_only</td><td>100%</td><td>0%</td><td>0%</td></tr>
+          <tr><td>medium_only</td><td>0%</td><td>100%</td><td>0%</td></tr>
+          <tr><td>hard_only</td><td>0%</td><td>0%</td><td>100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, flowchart: { curve: 'basis', padding: 20 } });
+</script>
+</body>
+</html>

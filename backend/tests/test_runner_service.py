@@ -4,11 +4,12 @@ from app.services import runner
 
 
 class DummyTestCase:
-    def __init__(self, function="solution", input_str="", expected_output="", is_active=True):
+    def __init__(self, function="solution", input_str="", expected_output="", is_active=True, arg_types=None):
         self.function = function
         self.input = input_str
         self.expected_output = expected_output
         self.is_active = is_active
+        self.arg_types = arg_types
 
 
 class DummyProblem:
@@ -46,7 +47,7 @@ def test_convert_test_cases_handles_input():
 def test_run_code_against_problem_accepts_all_passed(mocker):
     problem = DummyProblem([{"input": "1", "expectedOutput": "1"}])
     client = mocker.Mock()
-    client.containers.run.return_value = '{"passed": 1, "total": 1, "output": "", "error": ""}'
+    client.containers.run.return_value = b'{"all_passed": true, "passed": 1, "failed": 0, "total": 1, "compile_error": null, "runtime_error": null, "cases": [{"case": 1, "passed": true, "input": [1], "expected": 1, "got": 1, "error": null, "stdout": ""}]}'
     mocker.patch("docker.from_env", return_value=client)
 
     result = runner.run_code_against_problem(problem, "def solution(): return 1")
@@ -71,12 +72,12 @@ def test_run_code_against_problem_handles_container_error(mocker):
 
 
 def test_run_code_against_problem_handles_timeout_like_error(mocker):
-    class TimeoutException(Exception):
+    class TimeoutError(Exception):
         pass
 
     problem = DummyProblem([{"input": "1", "expectedOutput": "1"}])
     client = mocker.Mock()
-    client.containers.run.side_effect = TimeoutException("execution timeout")
+    client.containers.run.side_effect = TimeoutError("execution timeout")
     mocker.patch("docker.from_env", return_value=client)
 
     result = runner.run_code_against_problem(problem, "def solution(): return 1")
@@ -86,7 +87,7 @@ def test_run_code_against_problem_handles_timeout_like_error(mocker):
 def test_run_code_against_problem_never_accepts_when_error_present(mocker):
     problem = DummyProblem([{"input": "1", "expectedOutput": "1"}])
     client = mocker.Mock()
-    client.containers.run.return_value = '{"passed": 0, "total": 0, "output": "", "error": "execution error: crash"}'
+    client.containers.run.return_value = b'{"all_passed": false, "passed": 0, "failed": 1, "total": 1, "compile_error": null, "runtime_error": null, "error": "execution error: crash", "cases": []}'
     mocker.patch("docker.from_env", return_value=client)
 
     result = runner.run_code_against_problem(problem, "def solution(): return 1")
