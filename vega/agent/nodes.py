@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import List, Literal, Optional
 
 from langgraph.graph import StateGraph, START, END
@@ -19,6 +20,8 @@ from constants import (
     DEFAULT_USER_ID,
     DEFAULT_TOTAL_QUESTIONS,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Initialize our LLM
