@@ -2,15 +2,14 @@ import asyncio
 import logging
 from uuid import uuid4
 
-from vega.constants import (
+from constants import (
     DEFAULT_AUTH_TOKEN,
     DEFAULT_BACKEND_BASE_URL,
     DEFAULT_USER_ID,
-    DEFAULT_TOTAL_QUESTIONS,
 )
-from vega.clients import BackendClient
-from vega.problem_set_generator import ProblemSetGenerator
-from vega.schemas import CreateProjectRequestPayload, DifficultyCountPayload, ProblemSetRequestPayload
+from clients import BackendClient
+from problem_set_generator import ProblemSetGenerator
+from schemas import CreateProjectRequestPayload, DifficultyCountPayload, ProblemSetRequestPayload
 
 
 logger = logging.getLogger(__name__)

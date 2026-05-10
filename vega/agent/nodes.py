@@ -6,13 +6,13 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from vega.clients import BackendClient
-from vega.agent.state import AgentState
-from vega.agent.strategies import STRATEGIES
-from vega.problem_set_generator import ProblemSetGenerator
-from vega.schemas import CreateProjectRequestPayload
+from clients import BackendClient
+from agent.state import AgentState
+from agent.strategies import STRATEGIES
+from problem_set_generator import ProblemSetGenerator
+from schemas import CreateProjectRequestPayload
 
-from vega.constants import (
+from constants import (
     DEFAULT_AUTH_TOKEN,
     DEFAULT_BACKEND_BASE_URL,
     DEFAULT_USER_ID,

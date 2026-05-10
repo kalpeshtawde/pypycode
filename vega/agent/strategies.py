@@ -1,7 +1,7 @@
 import random
 from typing import Dict, Any
 
-from vega.schemas import ProblemSetRequestPayload
+from schemas import ProblemSetRequestPayload
 
 
 def build_tag_weights(

@@ -2,7 +2,7 @@ import logging
 import httpx
 from typing import Any, Dict, Optional
 
-from vega.schemas import CreateProjectRequestPayload, ProblemSetRequestPayload
+from schemas import CreateProjectRequestPayload, ProblemSetRequestPayload
 
 logger = logging.getLogger(__name__)
 

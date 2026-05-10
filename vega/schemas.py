@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from vega.constants import (
+from constants import (
     ADVANCED_DISTRIBUTION,
     BEGINNER_DISTRIBUTION,
     INTERMEDIATE_DISTRIBUTION,

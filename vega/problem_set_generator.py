@@ -1,13 +1,13 @@
 import logging
 from typing import Any, Dict
 
-from vega.constants import (
-    ADVANCED_HARD_ATTEMPT_THRESHOLD,
-    ADVANCED_HARD_SCORE_THRESHOLD,
-    INTERMEDIATE_MEDIUM_SCORE_THRESHOLD,
+from constants import (
+    ADVANCED_DISTRIBUTION,
+    BEGINNER_DISTRIBUTION,
+    INTERMEDIATE_DISTRIBUTION,
 )
-from vega.enums import UserLevel
-from vega.schemas import DifficultyDistro
+from enums import UserLevel
+from schemas import DifficultyDistro
 
 
 logger = logging.getLogger(__name__)
