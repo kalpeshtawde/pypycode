@@ -29,8 +29,8 @@ def generate():
         return jsonify({'error': 'auth_token is required'}), 400
     
     try:
-        from vega.agent.nodes import graph as vega_graph
-        from vega.agent.state import AgentState
+        from agent.nodes import graph as vega_graph
+        from agent.state import AgentState
         
         logger.info(f"Generating project for user {user_id} with prompt: {prompt[:50]}...")
         
