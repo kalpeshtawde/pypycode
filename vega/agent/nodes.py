@@ -11,6 +11,7 @@ from agent.state import AgentState
 from agent.strategies import STRATEGIES
 from problem_set_generator import ProblemSetGenerator
 from schemas import CreateProjectRequestPayload
+from enums import UserLevel
 
 from constants import (
     DEFAULT_AUTH_TOKEN,
@@ -171,9 +172,21 @@ async def pick_strategy(state: AgentState):
 
 
 def classify_user_level(state: AgentState):
+    # First, determine level based on stats
     gen_level = ProblemSetGenerator(
         state["stats"], DEFAULT_TOTAL_QUESTIONS
     ).determine_level()
+
+    # Then, check if user's prompt explicitly requests a specific level
+    goal = state.get("goal", "").lower()
+    if "hard" in goal or "advanced" in goal:
+        # If user explicitly asks for hard/advanced, upgrade to advanced
+        logger.info("User requested hard/advanced level, upgrading classification")
+        return {"level": UserLevel.ADVANCED.value}
+    elif "medium" in goal or "intermediate" in goal:
+        # If user explicitly asks for medium/intermediate, upgrade to at least intermediate
+        logger.info("User requested medium/intermediate level, upgrading classification")
+        return {"level": UserLevel.INTERMEDIATE.value}
 
     return {"level": gen_level.value}
 
