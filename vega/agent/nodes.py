@@ -417,17 +417,29 @@ def _build_project_name(project: dict, goal: str = None) -> str:
             "help me",
             "please help me",
             "can you",
+            "create me a",
+            "create me",
+            "make me a",
+            "make me",
+            "give me a",
+            "give me",
         ]
         for prefix in prefixes_to_remove:
             if base.lower().startswith(prefix):
                 base = base[len(prefix):].strip()
+        # Remove common filler words
+        filler_words = ["a", "an", "the", "with", "for", "to"]
+        words = [w for w in base.split() if w.lower() not in filler_words]
         # Capitalize first letter of each word
-        base = " ".join(word.capitalize() for word in base.split())
+        base = " ".join(word.capitalize() for word in words)
+        # If result is too short or empty, use default
+        if len(base) < 3:
+            base = "Practice Set"
     elif project.get("title"):
         base = project.get("title").strip()
     else:
         base = "Vega Problem Set"
-    
+
     suffix = " · " + datetime.now(timezone.utc).strftime("%Y-%m-%d")
     budget = _MAX_PROJECT_NAME_LENGTH - len(suffix)
     if len(base) > budget:
