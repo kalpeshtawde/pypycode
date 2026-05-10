@@ -44,16 +44,28 @@ except TimeoutError:
         "cases": [],
         "error": "Time limit exceeded",
     }
-except Exception as e:
+except MemoryError:
     result = {
         "all_passed": False,
         "passed": 0,
         "failed": 0,
         "total": 0,
         "compile_error": None,
-        "runtime_error": str(e),
+        "runtime_error": "Memory limit exceeded",
         "cases": [],
-        "error": str(e),
+        "error": "Memory limit exceeded",
+    }
+except Exception as e:
+    err_msg = str(e) or type(e).__name__
+    result = {
+        "all_passed": False,
+        "passed": 0,
+        "failed": 0,
+        "total": 0,
+        "compile_error": None,
+        "runtime_error": err_msg,
+        "cases": [],
+        "error": err_msg,
     }
 
 print(json.dumps(result))

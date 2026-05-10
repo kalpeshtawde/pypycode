@@ -9,7 +9,7 @@ from collections import defaultdict
 problems_bp = Blueprint("problems", __name__)
 
 
-def _derive_arg_types(tags: list, input_str: str) -> list | None:
+def _derive_arg_types(tags: list, input_str: str):
     """Return arg_types list based on problem tags, or None for plain problems."""
     import ast as _ast, json as _json
     lower_tags = [t.lower() for t in (tags or [])]

@@ -301,12 +301,14 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
                 result.passed += 1
             else:
                 result.failed += 1
+        except (TimeoutError, MemoryError, KeyboardInterrupt, SystemExit):
+            raise
         except Exception:
             case_report["error"] = traceback.format_exc()
             case_report["passed"] = False
             result.failed += 1
 
-        case_report["stdout"] = stdout_buffer.getvalue()
+        case_report["stdout"] = stdout_buffer.getvalue()[:4096]
         result.cases.append(case_report)
 
     return result
