@@ -1337,24 +1337,40 @@ export default function ProblemsPage() {
 
       {/* Pagination */}
       {isLoggedIn && showCreateProjectDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 sm:px-6">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200">
-            <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">Create Project</h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Tell Vega what you want to practice and it will curate a
-                personalized problem set tailored to your level.
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 sm:px-6">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Header with AI branding */}
+            <div className="px-6 py-6 sm:px-8 sm:py-7 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-blue-50">
+              <div className="flex items-center gap-4">
+                {/* AI Icon */}
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl sm:text-3xl font-bold text-slate-900">Create Project</h3>
+                    <span className="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 rounded-full border border-emerald-200">
+                      AI-Powered
+                    </span>
+                  </div>
+                  <p className="text-base sm:text-lg text-slate-600 mt-2 leading-relaxed">
+                    Tell Vega what you want to practice and it will curate a
+                    personalized problem set tailored to your level.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="px-5 py-4 sm:px-6 sm:py-5 space-y-4">
+            <div className="px-6 py-6 sm:px-8 sm:py-7 space-y-6">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-2">
+                <label className="block text-base font-bold text-slate-700 mb-3">
                   What do you want to practice?
                 </label>
                 <textarea
                   autoFocus
                   maxLength={500}
-                  rows={4}
+                  rows={5}
                   value={newProjectPrompt}
                   disabled={creatingProject}
                   onChange={(e) => {
@@ -1368,27 +1384,27 @@ export default function ProblemsPage() {
                     }
                   }}
                   placeholder="e.g. I have a coding interview in 2 weeks and I'm weak on dynamic programming"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                  className="w-full px-4 py-3 text-base border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-60 resize-none"
                 />
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-2 text-sm text-slate-500">
                   {newProjectPrompt.trim().length}/500 characters · ⌘/Ctrl+Enter to submit
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-2">
+                <label className="block text-base font-bold text-slate-700 mb-3">
                   How many problems?
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {[10, 20, 30].map((n) => (
                     <button
                       key={n}
                       type="button"
                       disabled={creatingProject}
                       onClick={() => setNewProjectTotal(n)}
-                      className={`flex-1 px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg border transition-colors disabled:opacity-60 ${
+                      className={`flex-1 px-5 py-3 sm:px-6 sm:py-4 text-lg font-semibold rounded-xl border-2 transition-all disabled:opacity-60 ${
                         newProjectTotal === n
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
-                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md"
+                          : "border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                       }`}
                     >
                       {n}
@@ -1397,19 +1413,19 @@ export default function ProblemsPage() {
                 </div>
               </div>
               {createProjectError && (
-                <div className="text-sm text-red-600">{createProjectError}</div>
+                <div className="text-base text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{createProjectError}</div>
               )}
               {creatingProject && (
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  <svg className="animate-spin h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+                <div className="flex items-center gap-4 text-base text-slate-700 bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-xl px-5 py-4">
+                  <svg className="animate-spin h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
-                  Vega is reading your stats and building your project. This may take 5–10 seconds…
+                  <span className="font-medium">Vega is reading your stats and building your project. This may take 5–10 seconds…</span>
                 </div>
               )}
             </div>
-            <div className="px-5 py-4 sm:px-6 sm:py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3">
+            <div className="px-6 py-5 sm:px-8 sm:py-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-4 bg-slate-50">
               <button
                 onClick={() => {
                   if (creatingProject) return;
@@ -1419,14 +1435,14 @@ export default function ProblemsPage() {
                   setNewProjectTotal(20);
                 }}
                 disabled={creatingProject}
-                className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                className="w-full sm:w-auto px-6 py-3 text-base font-semibold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateProject}
                 disabled={creatingProject}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+                className="w-full sm:w-auto px-8 py-3 text-base font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-300 disabled:to-emerald-400 shadow-lg"
               >
                 {creatingProject ? "Creating…" : "Create with Vega"}
               </button>
