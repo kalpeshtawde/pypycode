@@ -90,7 +90,8 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
     }
   }
 
-  const failedByIndex = new Map<number, Omit<TestCaseRow, "index" | "passed">>();
+  type CaseEntry = Omit<TestCaseRow, "index" | "passed"> & { isPassed: boolean };
+  const failedByIndex = new Map<number, CaseEntry>();
   for (const failedCase of failedCases) {
     const message =
       typeof failedCase.error === "string"
@@ -100,6 +101,7 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
           : undefined;
 
     failedByIndex.set(failedCase.case, {
+      isPassed: (failedCase as { passed?: boolean }).passed === true,
       expected: failedCase.expected !== undefined ? String(failedCase.expected) : undefined,
       got: failedCase.got !== undefined ? String(failedCase.got) : undefined,
       message,
@@ -122,13 +124,14 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
     const expectedGotMatch = chunk.match(/^expected\s+(.+),\s*got\s+(.+)$/is);
     if (expectedGotMatch) {
       failedByIndex.set(currentIndex, {
+        isPassed: false,
         expected: expectedGotMatch[1].trim(),
         got: expectedGotMatch[2].trim(),
       });
       return;
     }
 
-    failedByIndex.set(currentIndex, { message: chunk });
+    failedByIndex.set(currentIndex, { isPassed: false, message: chunk });
   };
 
   for (const line of lines) {
@@ -153,9 +156,9 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
 
   const rows: TestCaseRow[] = [];
   for (let index = 1; index <= total; index += 1) {
-    const parsedFailure = failedByIndex.get(index);
-    const passed = parsedFailure
-      ? false
+    const parsedCase = failedByIndex.get(index);
+    const passed = parsedCase
+      ? parsedCase.isPassed
       : shouldFallbackToCountBasedStatus
         ? index <= safePassedCount
         : true;
@@ -164,10 +167,10 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
       index,
       passed,
       input: inputByIndex.get(index),
-      expected: parsedFailure?.expected,
-      got: parsedFailure?.got,
+      expected: parsedCase?.expected,
+      got: parsedCase?.got,
       message:
-        parsedFailure?.message ||
+        parsedCase?.message ||
         (!passed && shouldFallbackToCountBasedStatus
           ? (rawDetails || globalErrorDetails || undefined)
           : undefined),
@@ -1224,6 +1227,14 @@ export default function ProblemPage() {
                               {row.got ?? row.message ?? (row.passed ? "Passed" : "No details available")}
                             </pre>
                           </div>
+                          {row.message && row.got !== undefined && (
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-red-500 mb-1">Error:</div>
+                              <pre className="text-xs font-mono text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                                {row.message}
+                              </pre>
+                            </div>
+                          )}
                           {row.output && (
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">

@@ -193,9 +193,8 @@ def run_code_against_problem(problem: Problem, code: str):
             error_parts.append(runtime_error)
 
         cases = sandbox_result.get("cases", [])
-        failed_cases = [c for c in cases if not c.get("passed")]
-        if failed_cases:
-            error_parts.append(f"FailedCases:\n{json.dumps(failed_cases)}")
+        if cases:
+            error_parts.append(f"FailedCases:\n{json.dumps(cases)}")
 
         # Per-test stdout (printed output from user code), one entry per case in order.
         per_test_outputs = [c.get("stdout", "") or "" for c in cases]
@@ -203,7 +202,11 @@ def run_code_against_problem(problem: Problem, code: str):
             error_parts.append(f"PerTestOutputs:\n{json.dumps(per_test_outputs)}")
 
         if compile_error or runtime_error:
-            status = "runtime_error"
+            re_lower = (runtime_error or "").lower()
+            if "time limit" in re_lower or "timeout" in re_lower:
+                status = "time_limit"
+            else:
+                status = "runtime_error"
         else:
             all_passed = sandbox_result.get("all_passed")
             if all_passed is None:

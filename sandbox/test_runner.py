@@ -301,7 +301,28 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
                 result.passed += 1
             else:
                 result.failed += 1
-        except (TimeoutError, MemoryError, KeyboardInterrupt, SystemExit):
+        except (TimeoutError, MemoryError) as e:
+            err_label = "Time limit exceeded" if isinstance(e, TimeoutError) else "Memory limit exceeded"
+            case_report["error"] = err_label
+            case_report["passed"] = False
+            result.failed += 1
+            case_report["stdout"] = stdout_buffer.getvalue()[:4096]
+            result.cases.append(case_report)
+            result.runtime_error = err_label
+            # Mark all remaining cases as not executed so the frontend doesn't show them as passed
+            for j in range(i + 1, len(test_cases)):
+                result.failed += 1
+                result.cases.append({
+                    "case": j + 1,
+                    "passed": False,
+                    "input": test_cases[j].get("args", []),
+                    "expected": test_cases[j].get("expected"),
+                    "got": None,
+                    "error": f"Not executed (stopped after {err_label})",
+                    "stdout": "",
+                })
+            break
+        except (KeyboardInterrupt, SystemExit):
             raise
         except Exception:
             case_report["error"] = traceback.format_exc()
