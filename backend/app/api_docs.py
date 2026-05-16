@@ -115,6 +115,13 @@ _COMPONENT_SCHEMAS = {
             "problemIds": {"type": "array", "items": {"type": "string"}},
         },
     },
+    "UpdateProjectRequest": {
+        "type": "object",
+        "required": ["problemIds"],
+        "properties": {
+            "problemIds": {"type": "array", "items": {"type": "string"}, "description": "Problem IDs to add to the project"},
+        },
+    },
     "SubmitCodeRequest": {
         "type": "object",
         "required": ["problemSlug", "code"],
@@ -179,6 +186,7 @@ _REQUEST_SCHEMA_BY_OPERATION = {
     ("POST", "/problems/public-ingest"): _schema_ref("ProblemCreateRequest"),
     ("POST", "/problems/"): _schema_ref("ProblemCreateRequest"),
     ("POST", "/projects/"): _schema_ref("CreateProjectRequest"),
+    ("PUT", "/projects/{project_id}"): _schema_ref("UpdateProjectRequest"),
     ("POST", "/projects/{project_id}/submit"): _schema_ref("SubmitCodeRequest"),
     ("POST", "/submissions/run"): _schema_ref("SubmitCodeRequest"),
     ("POST", "/submissions/"): _schema_ref("SubmissionRequest"),
@@ -226,6 +234,7 @@ _JWT_PROTECTED_OPERATIONS = {
     ("GET", "/projects/"),
     ("POST", "/projects/"),
     ("POST", "/projects/{project_id}/set-default"),
+    ("PUT", "/projects/{project_id}"),
     ("DELETE", "/projects/{project_id}"),
     ("POST", "/projects/{project_id}/submit"),
     ("POST", "/submissions/run"),

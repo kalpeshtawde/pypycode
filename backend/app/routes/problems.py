@@ -317,7 +317,7 @@ def list_problems():
 
     # Apply filters
     if difficulty:
-        q = q.filter_by(difficulty=difficulty)
+        q = q.filter(Problem.difficulty == difficulty)
     if tag:
         q = q.filter(Problem.tags.contains([tag]))
     if search:

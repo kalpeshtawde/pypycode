@@ -1,5 +1,5 @@
 from app import db
-from app.models import Problem, TestCase as ProblemTestCase
+from app.models import Problem, ProblemProjectStat, TestCase as ProblemTestCase
 
 
 def _create_problem(slug, difficulty, tags):
@@ -213,6 +213,83 @@ def test_select_problems_returns_400_when_not_enough_requested_difficulty(client
     # Should return the available easy problem to fill the total
     assert len(body["problems"]) == 1
     assert body["problems"][0]["difficulty"] == "easy"
+
+
+# ---------------------------------------------------------------------------
+# Difficulty filter on GET /problems/
+# ---------------------------------------------------------------------------
+
+def test_list_problems_difficulty_filter_easy(client, app_ctx):
+    _create_problem("df-easy-1", "easy", ["array"])
+    _create_problem("df-medium-1", "medium", ["array"])
+    _create_problem("df-hard-1", "hard", ["array"])
+
+    res = client.get("/problems/?difficulty=easy")
+    assert res.status_code == 200
+    problems = res.get_json()["problems"]
+    assert all(p["difficulty"] == "easy" for p in problems)
+    slugs = {p["slug"] for p in problems}
+    assert "df-easy-1" in slugs
+    assert "df-medium-1" not in slugs
+    assert "df-hard-1" not in slugs
+
+
+def test_list_problems_difficulty_filter_medium(client, app_ctx):
+    _create_problem("df-easy-2", "easy", ["array"])
+    _create_problem("df-medium-2", "medium", ["array"])
+
+    res = client.get("/problems/?difficulty=medium")
+    assert res.status_code == 200
+    problems = res.get_json()["problems"]
+    assert all(p["difficulty"] == "medium" for p in problems)
+
+
+def test_list_problems_difficulty_filter_hard(client, app_ctx):
+    _create_problem("df-easy-3", "easy", ["array"])
+    _create_problem("df-hard-3", "hard", ["array"])
+
+    res = client.get("/problems/?difficulty=hard")
+    assert res.status_code == 200
+    problems = res.get_json()["problems"]
+    assert all(p["difficulty"] == "hard" for p in problems)
+
+
+def test_list_problems_difficulty_filter_with_project(client, app_ctx, user, project, auth_headers):
+    """Regression: difficulty filter + projectId used to crash with
+    'Entity namespace for problem_project_stats has no property difficulty'
+    because filter_by() resolved against the joined ProblemProjectStat entity."""
+    easy = _create_problem("df-proj-easy", "easy", ["array"])
+    medium = _create_problem("df-proj-medium", "medium", ["array"])
+
+    for prob in (easy, medium):
+        db.session.add(ProblemProjectStat(
+            user_id=user.id,
+            problem_id=prob.id,
+            project_id=project.id,
+            attempted=False,
+        ))
+    db.session.commit()
+
+    res = client.get(
+        f"/problems/?difficulty=easy&projectId={project.id}",
+        headers=auth_headers,
+    )
+    assert res.status_code == 200
+    problems = res.get_json()["problems"]
+    assert all(p["difficulty"] == "easy" for p in problems)
+    slugs = {p["slug"] for p in problems}
+    assert "df-proj-easy" in slugs
+    assert "df-proj-medium" not in slugs
+
+
+def test_list_problems_no_difficulty_filter_returns_all(client, app_ctx):
+    _create_problem("df-all-easy", "easy", ["array"])
+    _create_problem("df-all-hard", "hard", ["array"])
+
+    res = client.get("/problems/?per_page=50")
+    assert res.status_code == 200
+    difficulties = {p["difficulty"] for p in res.get_json()["problems"]}
+    assert len(difficulties) > 1
 
 
 def test_select_problems_rejects_top_level_difficulty_fields(client, app_ctx):

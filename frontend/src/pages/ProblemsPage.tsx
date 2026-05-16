@@ -626,12 +626,12 @@ export default function ProblemsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-16">
+    <div className="max-w-5xl mx-auto px-6 py-8">
       {/* GitHub-Style Stats Dashboard */}
       <div style={{
         maxWidth: '1000px',
         margin: '0 auto',
-        padding: '0 24px 80px 24px'
+        padding: '0 0 32px 0'
       }}>
         <style>{`
           @keyframes cellEnter {
@@ -664,39 +664,65 @@ export default function ProblemsPage() {
 
         {isLoggedIn && (
           <>
-            {/* Stats Cards Row */}
-            <div style={{
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <div className="flex items-center gap-3">
-                <div style={{
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#0F172A',
-                  margin: 0
-                }}>
+            {/* Project Controls */}
+            <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Active Project Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '1px solid #bbf7d0',
+                borderRadius: '14px',
+                padding: '14px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(16,185,129,0.08)'
+              }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Active Project
                 </div>
-                <select
-                  value={selectedProjectId}
-                  onChange={(e) => handleProjectSelection(e.target.value)}
-                  disabled={!token || projects.length === 0 || switchingDefault}
-                  className="px-3 py-2 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[220px]"
-                >
-                  {projects.length === 0 && <option value="">No projects</option>}
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
+                {/* Select wrapper with chevron */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '520px' }}>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => handleProjectSelection(e.target.value)}
+                    disabled={!token || projects.length === 0 || switchingDefault}
+                    style={{
+                      width: '100%',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: '#0F172A',
+                      background: 'white',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '10px',
+                      padding: '9px 40px 9px 16px',
+                      appearance: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 4px rgba(16,185,129,0.1)',
+                      outline: 'none',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {projects.length === 0 && <option value="">No projects yet</option>}
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Chevron overlay */}
+                  <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#059669' }}>
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                {switchingDefault && (
+                  <div style={{ fontSize: '11px', color: '#6EE7B7' }}>Switching…</div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
+              {/* Action buttons (top right) */}
+              <div className="flex items-center gap-2 justify-end">
                 <button
                   onClick={() => {
                     setShowCreateProjectDialog(true);
@@ -707,7 +733,13 @@ export default function ProblemsPage() {
                   disabled={!token || creatingProject || deletingProject}
                   className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
                 >
-                  Create Project
+                  New Project
+                </button>
+                <button
+                  disabled={!token || !selectedProjectId || creatingProject || deletingProject}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg border border-blue-300 text-blue-600 bg-transparent hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Update Project
                 </button>
                 <button
                   onClick={() => {
@@ -715,7 +747,7 @@ export default function ProblemsPage() {
                     setDeleteProjectError(null);
                   }}
                   disabled={!token || !selectedProjectId || deletingProject || creatingProject}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:bg-red-300"
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 bg-transparent hover:text-red-500 hover:bg-red-50 focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Delete Project
                 </button>
@@ -726,7 +758,7 @@ export default function ProblemsPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '16px',
-              marginBottom: '40px'
+              marginBottom: '24px'
             }}>
               {/* Total Solved Card */}
               <div
@@ -828,7 +860,8 @@ export default function ProblemsPage() {
               borderRadius: '12px',
               border: '1px solid #E2E8F0',
               padding: '24px',
-              boxShadow: '0 2px 8px rgba(15,23,42,0.05)'
+              boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+              marginBottom: '24px'
             }}>
               <h3 style={{
                 fontSize: '16px',
@@ -943,66 +976,62 @@ export default function ProblemsPage() {
         {/* Vega explanation banner — shown for AI-generated projects */}
         {selectedProject?.explanation &&
           dismissedExplanationProjectId !== selectedProject.id && (
-            <div className="mt-6 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3 sm:gap-4">
-                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                  <div className="flex-shrink-0 mt-0.5 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md">
-                    <svg className="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-indigo-900 mb-1.5 sm:mb-2 flex items-center gap-2 flex-wrap">
-                      <span>Why this set</span>
-                      <span className="text-xs font-normal text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
-                        AI-generated
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-700 leading-relaxed">
-                      {selectedProject.explanation}
-                    </p>
-                    {(selectedProject.strategy || selectedProject.level) && (
-                      <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
-                        {selectedProject.level && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 font-medium shadow-sm">
-                            <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                            </svg>
-                            Level: {selectedProject.level}
-                          </span>
-                        )}
-                        {selectedProject.strategy && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 font-medium shadow-sm">
-                            <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                            </svg>
-                            Strategy: {selectedProject.strategy.replace(/_/g, " ")}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setDismissedExplanationProjectId(selectedProject.id)}
-                  className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-white/50 rounded-lg p-1.5 transition-colors"
-                  aria-label="Dismiss"
-                >
-                  <svg className="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
+            <div className="mt-6 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4 shadow-sm">
+              <div className="flex items-start gap-4">
+                {/* Icon */}
+                <div className="flex-shrink-0 mt-0.5 h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md">
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
                   </svg>
-                </button>
+                </div>
+                {/* Left: heading + explanation text (~65%) */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-indigo-900 mb-1.5 flex items-center gap-2">
+                    <span>Why this set</span>
+                    <span className="text-xs font-normal text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      AI-generated
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {selectedProject.explanation}
+                  </p>
+                </div>
+                {/* Right: meta badges + dismiss (~35%) */}
+                <div className="flex-shrink-0 flex flex-col items-end gap-2 ml-4">
+                  {selectedProject.level && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 text-xs font-medium shadow-sm whitespace-nowrap">
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      Level: {selectedProject.level}
+                    </span>
+                  )}
+                  {selectedProject.strategy && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 text-xs font-medium shadow-sm whitespace-nowrap">
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {selectedProject.strategy.replace(/_/g, " ")}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setDismissedExplanationProjectId(selectedProject.id)}
+                    className="mt-1 text-slate-400 hover:text-slate-600 hover:bg-white/50 rounded-lg p-1 transition-colors"
+                    aria-label="Dismiss"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
-        {/* Quick filters */}
-        <div className="mt-6 mb-6">
-          <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Filter + Search bar — unified row */}
+        <div className="flex items-center justify-between gap-4 mb-4 mt-6">
+          {/* Left: filter pills */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm flex-shrink-0">
           {QUICK_FILTERS.map((d) => {
             const isActive = filter === d;
             const label =
@@ -1028,7 +1057,7 @@ export default function ProblemsPage() {
             <button
               key={d}
               onClick={() => setFilter(d)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
                 isActive
                   ? activeTone
                   : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
@@ -1039,50 +1068,33 @@ export default function ProblemsPage() {
             );
           })}
           </div>
+          {/* Right: search */}
+          <div className="flex items-center gap-2 max-w-xs w-full">
+            <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by title or tags..."
+              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-slate-400 hover:text-slate-600 p-1 flex-shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Problems List */}
-        <div style={{ marginTop: '30px' }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: 700,
-              color: '#0F172A',
-              margin: '0'
-            }}>
-              All Problems
-            </h3>
-
-            {/* Search input */}
-            <div className="flex items-center gap-2 flex-1 max-w-md mx-8">
-              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title or tags..."
-                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="text-slate-400 hover:text-slate-600 p-1"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
+        <div style={{ marginTop: '0' }}>
           <div style={{
             background: 'white',
             borderRadius: '12px',

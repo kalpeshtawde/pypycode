@@ -240,6 +240,37 @@ def set_default_project(project_id):
     db.session.commit()
 
     return jsonify(project_to_dict(project)), 200
+ 
+
+@projects_bp.put("/<project_id>")
+@jwt_required()
+def update_project(project_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify(error="Project not found"), 404
+
+    data = request.get_json() or {}
+    problem_ids = data.get("problemIds", [])
+
+    existing_ids = {
+        stat.problem_id
+        for stat in ProblemProjectStat.query.filter_by(
+            user_id=user_id, project_id=project_id
+        ).all()
+    }
+
+    for pid in problem_ids:
+        if pid not in existing_ids:
+            db.session.add(ProblemProjectStat(
+                user_id=user_id,
+                problem_id=pid,
+                project_id=project_id,
+            ))
+
+    db.session.commit()
+
+    return jsonify(project_to_dict(project)), 200
 
 
 @projects_bp.delete("/<project_id>")
