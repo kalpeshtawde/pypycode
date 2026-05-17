@@ -35,7 +35,7 @@ def _client(state: AgentState) -> BackendClient:
     pass the calling user's JWT through to Vega's HTTP calls without any
     global mutation."""
     token = state.get("auth_token") if isinstance(state, dict) else None
-    if token and token != DEFAULT_AUTH_TOKEN:
+    if token:
         return BackendClient(DEFAULT_BACKEND_BASE_URL, token)
     return client
 
@@ -49,6 +49,20 @@ async def fetch_user_stats(state: AgentState):
     user_stats = await _client(state).get_user_stat(user_id)
 
     return {"stats": user_stats, "tags": []}
+
+
+async def fetch_existing_project_problems(state: AgentState):
+    project_id = state.get("project_id")
+
+    if not project_id:
+        raise ValueError("project_id is required")
+
+    project_problems = await _client(state).get_project_problems(project_id)
+
+    return {
+        "project_problems": project_problems,
+        "ignore_slugs": [p["slug"] for p in project_problems],
+    }
 
 
 async def fetch_user_tag_stats(state: AgentState):
@@ -174,34 +188,56 @@ async def pick_strategy(state: AgentState):
     }
 
 
-def classify_user_level(state: AgentState):
-    # First, determine level based on stats
+async def classify_user_level(state: AgentState):
+    # Determine stats-based baseline level
     gen_level = ProblemSetGenerator(
         state["stats"], DEFAULT_TOTAL_QUESTIONS
     ).determine_level()
 
-    # Then, check if user's prompt explicitly requests a specific level
-    goal = state.get("goal", "").lower()
-    if "only medium" in goal or "all medium" in goal or "just medium" in goal:
-        # If user explicitly asks for only medium, set custom level
-        logger.info("User requested only medium level, setting custom distribution")
-        return {"level": "medium_only"}
-    elif "only hard" in goal or "all hard" in goal or "just hard" in goal:
-        # If user explicitly asks for only hard, set custom level
-        logger.info("User requested only hard level, setting custom distribution")
-        return {"level": "hard_only"}
-    elif "only easy" in goal or "all easy" in goal or "just easy" in goal:
-        # If user explicitly asks for only easy, set custom level
-        logger.info("User requested only easy level, setting custom distribution")
-        return {"level": "easy_only"}
-    elif "hard" in goal or "advanced" in goal:
-        # If user explicitly asks for hard/advanced, upgrade to advanced
-        logger.info("User requested hard/advanced level, upgrading classification")
-        return {"level": UserLevel.ADVANCED.value}
-    elif "medium" in goal or "intermediate" in goal:
-        # If user explicitly asks for medium/intermediate, upgrade to at least intermediate
-        logger.info("User requested medium/intermediate level, upgrading classification")
-        return {"level": UserLevel.INTERMEDIATE.value}
+    goal = (state.get("goal") or "").strip()
+    if not goal:
+        return {"level": gen_level.value}
+
+    # Use LLM to detect explicit difficulty preference from the user's prompt
+    try:
+        from pydantic import BaseModel, Field
+        from typing import Optional, Literal
+
+        class DifficultyDetection(BaseModel):
+            level: Optional[Literal[
+                "easy_only", "medium_only", "hard_only",
+                "beginner", "intermediate", "advanced"
+            ]] = Field(
+                default=None,
+                description="Detected difficulty preference, or null if the prompt does not mention one",
+            )
+
+        detector = model.with_structured_output(DifficultyDetection)
+        result = await detector.ainvoke([
+            SystemMessage(content=(
+                "You detect the difficulty preference in a coding practice request.\n\n"
+                "Return one of:\n"
+                "- 'easy_only'    – user wants ONLY easy problems "
+                "(e.g. 'easy problems', 'easy level', 'easy questions')\n"
+                "- 'medium_only'  – user wants ONLY medium problems\n"
+                "- 'hard_only'    – user wants ONLY hard problems "
+                "(e.g. 'hard problems', 'hard level', '15 hard questions')\n"
+                "- 'advanced'     – user says hard/challenging/advanced but mixed difficulty is fine\n"
+                "- 'intermediate' – user says medium/intermediate but mixed is fine\n"
+                "- 'beginner'     – user says easy/beginner but mixed is fine\n"
+                "- null           – no difficulty preference mentioned at all\n\n"
+                "Rule: if the user says '[difficulty] problems/questions/level', "
+                "treat it as *_only."
+            )),
+            HumanMessage(content=goal),
+        ])
+
+        if result.level:
+            logger.info(f"LLM detected difficulty level from prompt: {result.level}")
+            return {"level": result.level}
+
+    except Exception as e:
+        logger.warning(f"LLM difficulty detection failed, falling back to stats-based level: {e}")
 
     return {"level": gen_level.value}
 
@@ -520,6 +556,29 @@ def should_retry_selection(state: AgentState):
     return {"route": "good"}
 
 
+def route_intent(state: AgentState) -> str:
+    return "update" if state.get("project_id") else "create"
+
+
+async def update_project(state: AgentState):
+    project_id = state.get("project_id")
+    selected_problems = state.get("selected_problems") or []
+
+    problem_ids = [
+        p.get("id") or p.get("_id")
+        for p in selected_problems
+        if p.get("id") or p.get("_id")
+    ]
+
+    try:
+        result = await _client(state).update_project(project_id, problem_ids)
+        print(f"#### update_project -> added {len(problem_ids)} problems to project {project_id}")
+        return {"project": result}
+    except Exception as e:
+        print(f"#### update_project FAILED: {type(e).__name__}: {e}")
+        return {"project": {"persistence_error": str(e)}}
+
+
 builder = StateGraph(AgentState)
 
 builder.add_node("fetch_user_stats", fetch_user_stats)
@@ -534,9 +593,16 @@ builder.add_node("fetch_user_tag_stats", fetch_user_tag_stats)
 builder.add_node("pick_strategy", pick_strategy)
 builder.add_node("explain_project", explain_project)
 builder.add_node("persist_project", persist_project)
+builder.add_node("fetch_existing_project_problems", fetch_existing_project_problems)
+builder.add_node("update_project", update_project)
 
 
-builder.add_edge(START, "fetch_user_stats")
+builder.add_conditional_edges(START, route_intent, {
+    "create": "fetch_user_stats",
+    "update": "fetch_existing_project_problems",
+})
+
+builder.add_edge("fetch_existing_project_problems", "fetch_user_stats")
 
 builder.add_edge("fetch_user_stats", "classify_user_level")
 
@@ -564,18 +630,27 @@ builder.add_conditional_edges(
 
 builder.add_edge("adjust_inputs", "select_problems")
 
-builder.add_edge("assemble_project", "explain_project")
+builder.add_conditional_edges(
+    "assemble_project",
+    lambda state: "update" if state.get("project_id") else "create",
+    {
+        "create": "explain_project",
+        "update": "update_project",
+    },
+)
 
 builder.add_edge("explain_project", "persist_project")
 
 builder.add_edge("persist_project", END)
+
+builder.add_edge("update_project", END)
 
 graph = builder.compile()
 
 
 async def main():
     input_state = {
-        "user_id": "5db77ae5-4bd4-465e-9641-4ba8c511f846",
+        "user_id": DEFAULT_USER_ID,
         "goal": "I have a coding interview in 2 weeks",
         "total": 20,
         "retry_count": 0,
@@ -590,4 +665,14 @@ async def main():
 
 
 if __name__ == "__main__":
+    # async def _test():
+    #     state = {
+    #         "project_id": "457411ac-dd0f-424f-a193-751df47fb530",
+    #         "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc3ODk2OTcxMSwianRpIjoiYTQ2YTRlYTMtNDdjMS00Njc1LTk5ZTItODRkNzc4ZGQxYzNhIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjVkYjc3YWU1LTRiZDQtNDY1ZS05NjQxLTRiYThjNTExZjg0NiIsIm5iZiI6MTc3ODk2OTcxMSwiY3NyZiI6IjExNTAwNjc1LWFmYzktNDBhMi1hMWE2LWU5MWEwOGQ1M2ZhNSIsImV4cCI6MTc3OTA1NjExMX0.gPqYhzsojIzbMLNainV42V9yoZssF-31hCLExyKgN38",
+    #     }
+    #     result = await fetch_existing_project_problems(state)
+    #     print(result)
+ 
+    # asyncio.run(_test())
+
     asyncio.run(main())

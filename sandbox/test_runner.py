@@ -137,6 +137,11 @@ def _normalize(val: Any) -> Any:
         return tuple(_normalize(v) for v in val)
     if isinstance(val, dict):
         return {k: _normalize(v) for k, v in val.items()}
+    if not isinstance(val, (int, float, str, bool)):
+        try:
+            return repr(val)
+        except Exception:
+            return str(type(val).__name__)
     return val
 
 
@@ -276,24 +281,34 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
     import contextlib
 
     for i, tc in enumerate(test_cases):
+        is_class_based = "ctor_args" in tc
         case_report: dict[str, Any] = {
             "case": i + 1,
             "passed": False,
-            "input": tc.get("args", []),
+            "input": tc.get("ctor_args", []) + tc.get("method_args", []) if is_class_based else tc.get("args", []),
             "expected": tc.get("expected"),
             "got": None,
             "error": None,
             "stdout": "",
         }
 
-        args = copy.deepcopy(tc.get("args", []))
-        kwargs = copy.deepcopy(tc.get("kwargs", {}))
-        args = _convert_args(args, tc.get("arg_types", []), namespace)
+        if is_class_based:
+            ctor_args = copy.deepcopy(tc.get("ctor_args", []))
+            method_args = copy.deepcopy(tc.get("method_args", []))
+        else:
+            args = copy.deepcopy(tc.get("args", []))
+            kwargs = copy.deepcopy(tc.get("kwargs", {}))
+            args = _convert_args(args, tc.get("arg_types", []), namespace)
 
         stdout_buffer = io.StringIO()
         try:
             with contextlib.redirect_stdout(stdout_buffer):
-                got = fn(*args, **kwargs)
+                if is_class_based:
+                    instance = fn(*ctor_args)
+                    method = getattr(instance, tc["method"])
+                    got = method(*method_args)
+                else:
+                    got = fn(*args, **kwargs)
             passed = compare_fn(got, tc["expected"])
             case_report["got"] = _normalize(got)
             case_report["passed"] = passed

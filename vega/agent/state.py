@@ -36,5 +36,6 @@ class AgentState(TypedDict):
     project: Optional[Dict[str, Any]]
     project_id: Optional[str]
     selection: Optional[Dict[str, Any]]
+    project_problems: Optional[List[Dict[str, Any]]]
 
     retry_count: Optional[int]

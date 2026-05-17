@@ -153,7 +153,7 @@
 <body>
 
 <h1>Vega Agent — Flow Diagram</h1>
-<p class="subtitle">LangGraph-based AI agent that builds personalised coding problem sets · Left → Right flow</p>
+<p class="subtitle">LangGraph-based AI agent that builds personalised coding problem sets · Left → Right flow · v4: unified chat flow, single LLM parse-message (intent + count), difficulty-level detection</p>
 
 <div class="legend">
   <div class="legend-item"><div class="legend-dot" style="background:#bfdbfe;border:1.5px solid #3b82f6"></div>API Call (Backend)</div>
@@ -162,6 +162,88 @@
   <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border:1.5px solid #f59e0b"></div>Decision</div>
   <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;border:1.5px solid #64748b"></div>Start / End</div>
 </div>
+
+<h2 style="font-size:1rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.6px;text-align:center;margin-bottom:16px;">① Frontend Chat &amp; API Interaction</h2>
+
+<div class="diagram-wrapper">
+  <div class="mermaid">
+%%{init: {"theme": "base", "themeVariables": {
+  "primaryColor": "#f8fafc",
+  "primaryTextColor": "#1e293b",
+  "primaryBorderColor": "#cbd5e1",
+  "lineColor": "#94a3b8",
+  "secondaryColor": "#f1f5f9",
+  "tertiaryColor": "#fff",
+  "fontSize": "13px"
+}}}%%
+flowchart LR
+
+    FAB(["⚡ Vega FAB\nalways visible"]):::terminal
+    SHORTCUTS(["� Toolbar Shortcuts\nNew Project / Update Project"]):::terminal
+
+    subgraph CHAT["Vega Chat Widget  (ProblemsPage.tsx)"]
+        CI["step = 'intent'\nUser describes what they want"]:::logic
+        CB["show typing dots\nchatBusy = true"]:::logic
+        CU{"intent\n= unclear?"}:::decision
+        CR["Vega asks to clarify\nstay on intent step"]:::logic
+        CT{"total\n5–50 found?"}:::decision
+        CA["step = 'total'\nAsk how many? (5–50)"]:::logic
+        CC["User types count\nregex extracts number"]:::logic
+        CP["step = 'prompt'\nUser types topic / goal"]:::logic
+        CE["POST /extract-intent\nLLM extracts total"]:::llm
+        CM{"mode =\ncreate | update"}:::decision
+    end
+
+    subgraph BACKEND["Backend  (Flask)"]
+        BP["POST /projects/parse-message\nJWT · 15 s"]:::api
+        BE["POST /projects/extract-intent\nJWT · 15 s"]:::api
+        BC["POST /projects/from-prompt\nJWT · 120 s"]:::api
+        BU["POST /projects/{id}/update-from-prompt\nJWT · 120 s"]:::api
+    end
+
+    subgraph VEGASVC["Vega Service  (Flask :5001)"]
+        VP["POST /parse-message\ngpt-4o-mini\n→ {intent, total}"]:::llm
+        VE["POST /extract-intent\ngpt-4o-mini\n→ {total}"]:::llm
+        VG["POST /generate\nruns LangGraph agent"]:::api
+    end
+
+    FAB -- "opens unified chat" --> CI
+    SHORTCUTS -- "mode=create" --> CP
+    SHORTCUTS -- "mode=update" --> CP
+
+    CI --> CB
+    CB --> BP
+    BP --> VP
+    VP -- "intent + total" --> CU
+    CU -- "unclear" --> CR
+    CR --> CI
+    CU -- "clear" --> CT
+    CT -- "5–50 found" --> CM
+    CT -- "null / out-of-range" --> CA
+    CA --> CC
+    CC --> CM
+    CM -- "create" --> BC
+    CM -- "update" --> BU
+
+    CP --> CE
+    CE --> BE
+    BE --> VE
+    VE -- "total found" --> CM
+    VE -- "null" --> CA
+
+    BC --> VG
+    BU --> VG
+    VG --> AGENT(["LangGraph Agent\nsee diagram ②"]):::terminal
+
+    classDef api      fill:#bfdbfe,stroke:#3b82f6,color:#1e3a5f,rx:8
+    classDef llm      fill:#e9d5ff,stroke:#9333ea,color:#3b0764,rx:8
+    classDef logic    fill:#d1fae5,stroke:#10b981,color:#064e3b,rx:8
+    classDef decision fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef terminal fill:#f1f5f9,stroke:#64748b,color:#1e293b
+  </div>
+</div>
+
+<h2 style="font-size:1rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.6px;text-align:center;margin-bottom:16px;">② LangGraph Agent Pipeline</h2>
 
 <div class="diagram-wrapper">
   <div class="mermaid">
@@ -176,35 +258,79 @@
 }}}%%
 flowchart LR
 
-    START([▶ START\nuser_id · goal · total]):::terminal
+    START(["▶ START
+user_id · goal · total
+± project_id"]):::terminal
+    ROUTE{"project_id
+in state?"}:::decision
+
+    subgraph UPDATE_INIT["⓪ Update Init"]
+        A0["<b>fetch_existing_project_problems</b>
+API: GET /projects/{id}/problems
+populates ignore_slugs"]:::api
+    end
 
     subgraph PROFILE["① Profile"]
-        A["<b>fetch_user_stats</b>\nAPI: GET performance stats\nhard / medium / easy scores"]:::api
-        B["<b>classify_user_level</b>\nbeginner / intermediate\n/ advanced / *_only"]:::logic
-        C["<b>fetch_user_tag_stats</b>\nAPI: GET tag weakness scores\nsorted weakest-first"]:::api
+        A["<b>fetch_user_stats</b>
+API: GET performance stats
+hard / medium / easy scores"]:::api
+        B["<b>classify_user_level</b>
+LLM detects difficulty from prompt
+→ easy_only / medium_only / hard_only
+/ beginner / intermediate / advanced
+fallback: stats-based"]:::llm
+        C["<b>fetch_user_tag_stats</b>
+API: GET tag weakness scores
+sorted weakest-first"]:::api
     end
 
     subgraph PLAN["② Plan"]
-        D["<b>pick_strategy</b>\nLLM picks: warmup · weakness_fix\ntopic_focus · revision · mixed"]:::llm
-        E["<b>build_distribution</b>\nLevel → difficulty %\ne.g. advanced: 10/40/50"]:::logic
-        F["<b>convert_to_counts</b>\n% → actual counts\ne.g. 2 easy · 8 med · 10 hard"]:::logic
+        D["<b>pick_strategy</b>
+LLM picks: warmup · weakness_fix
+topic_focus · revision · mixed"]:::llm
+        E["<b>build_distribution</b>
+Level → difficulty %
+e.g. advanced: 10/40/50"]:::logic
+        F["<b>convert_to_counts</b>
+% → actual counts
+e.g. 2 easy · 8 med · 10 hard"]:::logic
     end
 
     subgraph SELECT["③ Select  (retry loop ↺ max 2×)"]
-        G["<b>select_problems</b>\nAPI: problem selector\nwith strategy payload"]:::api
-        H{"<b>should_retry?</b>\nenough problems?"}:::decision
-        I["<b>adjust_inputs</b>\nadd seen slugs\nto ignore list"]:::logic
+        G["<b>select_problems</b>
+API: problem selector
+with strategy payload"]:::api
+        H{"<b>should_retry?</b>
+enough problems?"}:::decision
+        I["<b>adjust_inputs</b>
+add seen slugs
+to ignore list"]:::logic
     end
 
     subgraph DELIVER["④ Deliver"]
-        J["<b>assemble_project</b>\nbuild project dict\ntitle · problems · meta"]:::logic
-        K["<b>explain_project</b>\nLLM writes 2-3 sentence\npersonalised explanation"]:::llm
-        L["<b>persist_project</b>\nAPI: POST /projects\nsave to backend DB"]:::api
+        J["<b>assemble_project</b>
+build project dict
+title · problems · meta"]:::logic
+        PERSIST_ROUTE{"new
+project?"}:::decision
+        K["<b>explain_project</b>
+LLM writes 2-3 sentence
+personalised explanation"]:::llm
+        L["<b>persist_project</b>
+API: POST /projects
+save to backend DB"]:::api
+        M["<b>update_project</b>
+API: PUT /projects/{id}
+add new problem IDs"]:::api
     end
 
-    END([⏹ END\nproject object returned]):::terminal
+    END(["⏹ END
+project object returned"]):::terminal
 
-    START --> A
+    START --> ROUTE
+    ROUTE -- "create" --> A
+    ROUTE -- "update" --> A0
+    A0 --> A
     A --> B
     B --> C
     C --> D
@@ -216,15 +342,17 @@ flowchart LR
     H -- "↺ retry" --> I
     H -- "✕ give_up" --> J
     I --> G
-    J --> K
+    J --> PERSIST_ROUTE
+    PERSIST_ROUTE -- "create" --> K
+    PERSIST_ROUTE -- "update" --> M
     K --> L
     L --> END
+    M --> END
 
     classDef api      fill:#bfdbfe,stroke:#3b82f6,color:#1e3a5f,rx:8
     classDef llm      fill:#e9d5ff,stroke:#9333ea,color:#3b0764,rx:8
     classDef logic    fill:#d1fae5,stroke:#10b981,color:#064e3b,rx:8
     classDef decision fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    classDef terminal fill:#f1f5f9,stroke:#64748b,color:#1e293b,rx:20
   </div>
 </div>
 
@@ -252,9 +380,36 @@ flowchart LR
       <div class="state-key"><code>retry_count</code><span>Retry attempt (max 2)</span></div>
       <div class="state-key"><code>ignore_slugs</code><span>Seen slugs to exclude</span></div>
       <div class="state-key"><code>project</code><span>Final assembled project dict</span></div>
-      <div class="state-key"><code>project_id</code><span>Backend-assigned UUID</span></div>
+      <div class="state-key"><code>project_id</code><span>Input: existing project UUID (update path); Output: newly created UUID (create path)</span></div>
+      <div class="state-key"><code>project_problems</code><span>Existing problems in project (update path only)</span></div>
       <div class="state-key"><code>route</code><span>good / retry / give_up</span></div>
     </div>
+  </div>
+
+  <!-- API Endpoints -->
+  <div class="panel">
+    <h2>API Endpoints</h2>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>POST</td><td><code>/projects/parse-message</code></td><td>LLM classifies intent (create/update/unclear) &amp; extracts total in one call (gpt-4o-mini, ~1–2 s)</td></tr>
+        <tr><td>POST</td><td><code>/projects/extract-intent</code></td><td>LLM extracts problem count from free-text prompt (gpt-4o-mini, ~1 s, used by toolbar shortcuts)</td></tr>
+        <tr><td>POST</td><td><code>/projects/from-prompt</code></td><td>Create new project via Vega agent (120 s)</td></tr>
+        <tr><td>POST</td><td><code>/projects/{id}/update-from-prompt</code></td><td>Add problems to existing project via Vega agent (120 s)</td></tr>
+        <tr><td>GET</td><td><code>/projects/</code></td><td>List user's projects</td></tr>
+        <tr><td>PUT</td><td><code>/projects/{id}</code></td><td>Add problem IDs to a project (called by Vega internally)</td></tr>
+        <tr><td>DELETE</td><td><code>/projects/{id}</code></td><td>Delete project and its submissions</td></tr>
+        <tr><td>GET</td><td><code>/projects/{id}/problems</code></td><td>Fetch problems in a project (used by update path)</td></tr>
+        <tr><td>POST</td><td><code>/projects/{id}/set-default</code></td><td>Set active project for the user</td></tr>
+        <tr><td colspan="3" style="padding-top:10px;font-weight:700;color:#94a3b8;font-size:0.75rem;">VEGA SERVICE (internal)</td></tr>
+        <tr><td>POST</td><td><code>/parse-message</code></td><td>gpt-4o-mini → <code>{intent: create|update|unclear, total: int|null}</code></td></tr>
+        <tr><td>POST</td><td><code>/extract-intent</code></td><td>gpt-4o-mini → <code>{total: int|null}</code></td></tr>
+        <tr><td>POST</td><td><code>/generate</code></td><td>Run full LangGraph agent pipeline</td></tr>
+        <tr><td>GET</td><td><code>/health</code></td><td>Healthcheck</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- Strategy table -->

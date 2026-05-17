@@ -1,5 +1,6 @@
 import time
 import os
+import re
 import json
 import ast
 import docker
@@ -33,6 +34,37 @@ def _parse_serialized_value(raw):
         return raw
 
 
+def _parse_class_based_input(input_str: str):
+    """Parse 'constructor_args; method_name(method_args)' into structured form.
+    Returns dict with ctor_args, method, method_args, or None if not this format.
+    """
+    sep = '; '
+    if sep not in input_str:
+        return None
+    constructor_str, method_call = input_str.split(sep, 1)
+    m = re.match(r'^(\w+)\((.*)\)$', method_call.strip(), re.DOTALL)
+    if not m:
+        return None
+    method_name, method_args_str = m.group(1), m.group(2)
+    try:
+        ctor_args = json.loads(f'[{constructor_str.strip()}]')
+    except (json.JSONDecodeError, ValueError):
+        try:
+            ctor_args = ast.literal_eval(f'[{constructor_str.strip()}]')
+        except (ValueError, SyntaxError):
+            return None
+    method_args = []
+    if method_args_str.strip():
+        try:
+            method_args = json.loads(f'[{method_args_str}]')
+        except (json.JSONDecodeError, ValueError):
+            try:
+                method_args = ast.literal_eval(f'[{method_args_str}]')
+            except (ValueError, SyntaxError):
+                return None
+    return {"ctor_args": ctor_args, "method": method_name, "method_args": method_args}
+
+
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
     # Filter only active test cases, ordered by serial_number
@@ -52,7 +84,14 @@ def _convert_test_cases(problem: Problem):
                 try:
                     converted_tc["args"] = ast.literal_eval("[" + input_str + "]")
                 except (ValueError, SyntaxError):
-                    converted_tc["args"] = [input_str]
+                    parsed = _parse_class_based_input(input_str)
+                    if parsed:
+                        converted_tc["ctor_args"] = parsed["ctor_args"]
+                        converted_tc["method"] = parsed["method"]
+                        converted_tc["method_args"] = parsed["method_args"]
+                        converted_tc["args"] = []
+                    else:
+                        converted_tc["args"] = [input_str]
         else:
             converted_tc["args"] = []
 
@@ -128,20 +167,25 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
     prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
     comparison = getattr(problem, "comparison_strategy", "exact") or "exact"
 
+    def _tc_entry(tc):
+        entry = {
+            "args": tc.get("args", []),
+            "kwargs": tc.get("kwargs", {}),
+            "expected": tc.get("expected"),
+            "arg_types": tc.get("arg_types", []),
+        }
+        if "ctor_args" in tc:
+            entry["ctor_args"] = tc["ctor_args"]
+            entry["method"] = tc["method"]
+            entry["method_args"] = tc["method_args"]
+        return entry
+
     return {
         "id": getattr(problem, "slug", "unknown"),
         "function_name": function_name,
         "comparison": comparison,
         "prelude": prelude,
-        "test_cases": [
-            {
-                "args": tc.get("args", []),
-                "kwargs": tc.get("kwargs", {}),
-                "expected": tc.get("expected"),
-                "arg_types": tc.get("arg_types", []),
-            }
-            for tc in test_cases
-        ],
+        "test_cases": [_tc_entry(tc) for tc in test_cases],
     }
 
 

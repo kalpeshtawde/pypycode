@@ -100,6 +100,58 @@ class BackendClient:
         )
         return result
 
+    async def get_project_problems(self, project_id: str) -> Dict[str, Any]:
+        logger.info("Getting project problems", extra={"project_id": project_id})
+        response = await self.client.get(
+            f"{self.base_url}/projects/{project_id}/problems",
+            headers=self._headers(),
+        )
+        if response.status_code != 200:
+            logger.error(
+                "Failed to get project problems",
+                extra={
+                    "project_id": project_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text,
+                },
+            )
+            raise Exception(f"Failed to get project problems: {response.text}")
+
+        result = response.json()
+        logger.info(
+            "Got project problems",
+            extra={
+                "project_id": project_id,
+                "problem_count": len(result),
+            },
+        )
+        return result
+
+    async def update_project(self, project_id: str, problem_ids: list[str]) -> dict:
+        logger.info(
+            "Updating project",
+            extra={"project_id": project_id, "problem_ids_count": len(problem_ids)},
+        )
+        response = await self.client.put(
+            f"{self.base_url}/projects/{project_id}",
+            headers=self._headers(),
+            json={"problemIds": problem_ids},
+        )
+        if response.status_code != 200:
+            logger.error(
+                "Failed to update project",
+                extra={
+                    "project_id": project_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text,
+                },
+            )
+            raise Exception(f"Failed to update project: {response.text}")
+
+        result = response.json()
+        logger.info("Updated project", extra={"project_id": project_id})
+        return result
+
     async def create_project(self, payload: CreateProjectRequestPayload) -> dict:
         logger.info(
             "Creating project",

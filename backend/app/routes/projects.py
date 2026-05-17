@@ -227,6 +227,114 @@ def create_project_from_prompt():
     return jsonify(project_to_dict(saved)), 201
 
 
+@projects_bp.post("/<project_id>/update-from-prompt")
+@jwt_required()
+def update_project_from_prompt(project_id):
+    """Add more problems to an existing project using the Vega agent."""
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify(error="Project not found"), 404
+
+    data = request.get_json() or {}
+    prompt = (data.get("prompt") or "").strip()
+    requested_total = data.get("total")
+
+    if not prompt:
+        return jsonify(error="prompt is required"), 400
+    if len(prompt) > MAX_PROMPT_LENGTH:
+        return jsonify(error=f"prompt must be at most {MAX_PROMPT_LENGTH} characters"), 400
+
+    total = DEFAULT_AI_PROJECT_TOTAL
+    if requested_total is not None:
+        if not isinstance(requested_total, int) or isinstance(requested_total, bool):
+            return jsonify(error="total must be an integer"), 400
+        if requested_total < MIN_AI_PROJECT_TOTAL or requested_total > MAX_AI_PROJECT_TOTAL:
+            return jsonify(
+                error=f"total must be between {MIN_AI_PROJECT_TOTAL} and {MAX_AI_PROJECT_TOTAL}",
+            ), 400
+        total = requested_total
+
+    auth_token = create_access_token(identity=user_id)
+    vega_service_url = os.environ.get("VEGA_SERVICE_URL", "http://vega:5001")
+
+    try:
+        response = requests.post(
+            f"{vega_service_url}/generate",
+            json={
+                "prompt": prompt,
+                "problem_count": total,
+                "auth_token": auth_token,
+                "user_id": user_id,
+                "project_id": project_id,
+            },
+            timeout=120,
+        )
+        response.raise_for_status()
+        result = response.json()
+    except requests.RequestException as exc:
+        logger.exception("Vega service call failed")
+        return jsonify(error=f"Project update failed: {exc}"), 503
+
+    project_result = result.get("project") or {}
+    if project_result.get("persistence_error"):
+        return jsonify(error=project_result["persistence_error"]), 502
+
+    saved = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not saved:
+        return jsonify(error="Project could not be loaded after update"), 500
+
+    return jsonify(project_to_dict(saved)), 200
+
+
+@projects_bp.post("/parse-message")
+@jwt_required()
+def parse_prompt_message():
+    """Proxy to Vega's /parse-message: classifies intent and extracts total in one LLM call."""
+    data = request.get_json() or {}
+    prompt = (data.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify(intent="unclear", total=None), 200
+
+    vega_service_url = os.environ.get("VEGA_SERVICE_URL", "http://vega:5001")
+    try:
+        response = requests.post(
+            f"{vega_service_url}/parse-message",
+            json={
+                "prompt": prompt,
+                "has_existing_project": data.get("has_existing_project", False),
+                "project_name": data.get("project_name", ""),
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        return jsonify(response.json()), 200
+    except requests.RequestException:
+        return jsonify(intent="unclear", total=None), 200
+
+
+@projects_bp.post("/extract-intent")
+@jwt_required()
+def extract_prompt_intent():
+    """Proxy to Vega's /extract-intent to parse problem count from a user prompt."""
+    data = request.get_json() or {}
+    prompt = (data.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify(total=None), 200
+
+    vega_service_url = os.environ.get("VEGA_SERVICE_URL", "http://vega:5001")
+    try:
+        response = requests.post(
+            f"{vega_service_url}/extract-intent",
+            json={"prompt": prompt},
+            timeout=15,
+        )
+        response.raise_for_status()
+        return jsonify(response.json()), 200
+    except requests.RequestException:
+        return jsonify(total=None), 200
+
+
 @projects_bp.post("/<project_id>/set-default")
 @jwt_required()
 def set_default_project(project_id):
@@ -241,6 +349,30 @@ def set_default_project(project_id):
 
     return jsonify(project_to_dict(project)), 200
  
+
+@projects_bp.get("/<project_id>/problems")
+@jwt_required()
+def get_project_problems(project_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify(error="Project not found"), 404
+
+    problems = (
+        db.session.query(Problem)
+        .join(ProblemProjectStat, ProblemProjectStat.problem_id == Problem.id)
+        .filter(
+            ProblemProjectStat.project_id == project_id,
+            ProblemProjectStat.user_id == user_id,
+        )
+        .all()
+    )
+
+    return jsonify([
+        {"id": p.id, "slug": p.slug, "title": p.title}
+        for p in problems
+    ])
+
 
 @projects_bp.put("/<project_id>")
 @jwt_required()

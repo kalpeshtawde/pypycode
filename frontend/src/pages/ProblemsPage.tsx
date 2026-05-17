@@ -111,12 +111,15 @@ export default function ProblemsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [creatingProject, setCreatingProject] = useState(false);
   const [switchingDefault, setSwitchingDefault] = useState(false);
-  const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
-  const [newProjectPrompt, setNewProjectPrompt] = useState("");
-  const [newProjectTotal, setNewProjectTotal] = useState<number>(20);
-  const [createProjectError, setCreateProjectError] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<'create' | 'update' | null>(null);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'vega' | 'user'; content: string }>>([]);
+  const [chatStep, setChatStep] = useState<'intent' | 'prompt' | 'total' | 'submitting' | 'error'>('intent');
+  const [chatInput, setChatInput] = useState('');
+  const [chatPrompt, setChatPrompt] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const [dismissedExplanationProjectId, setDismissedExplanationProjectId] = useState<string | null>(null);
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
@@ -529,36 +532,218 @@ export default function ProblemsPage() {
       .catch(() => setFavoriteProblemIds(new Set()));
   }, [token]);
 
-  const handleCreateProject = async () => {
-    if (!token || creatingProject) return;
-    const prompt = newProjectPrompt.trim();
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, chatBusy]);
 
-    if (!prompt) {
-      setCreateProjectError("Please describe what you want to practice");
-      return;
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      setTimeout(() => chatInputRef.current?.focus(), 50);
     }
-    if (prompt.length > 500) {
-      setCreateProjectError("Prompt must be at most 500 characters");
-      return;
-    }
+  }, [chatMessages.length, chatStep]);
 
-    setCreatingProject(true);
-    setCreateProjectError(null);
-    try {
-      const project = await api.post<Project>(
-        "/projects/from-prompt",
-        { prompt, total: newProjectTotal },
-        token
-      );
-      setProjects((prev) => sortProjects([...prev, project]));
-      setSelectedProjectId(project.id);
-      setShowCreateProjectDialog(false);
-      setNewProjectPrompt("");
-      setNewProjectTotal(20);
-    } catch (e: unknown) {
-      setCreateProjectError(e instanceof Error ? e.message : "Unable to create project");
-    } finally {
-      setCreatingProject(false);
+  const openChat = (mode?: 'create' | 'update') => {
+    if (mode) {
+      const greeting = mode === 'create'
+        ? "Hi! I'm Vega. Tell me what you want to practice and I'll build a personalised problem set for you."
+        : `Hi! I'll help you add more problems to "${selectedProject?.name}". What would you like to work on?`;
+      setChatMode(mode);
+      setChatMessages([{ role: 'vega', content: greeting }]);
+      setChatStep('prompt');
+    } else {
+      const greeting = selectedProjectId
+        ? `Hi! I'm Vega. What would you like to do — create a new project, or add problems to "${selectedProject?.name}"?`
+        : "Hi! I'm Vega. Tell me what you'd like to practice and I'll build a personalised project for you.";
+      setChatMode(null);
+      setChatMessages([{ role: 'vega', content: greeting }]);
+      setChatStep('intent');
+    }
+    setChatInput('');
+    setChatPrompt('');
+    setChatBusy(false);
+  };
+
+  const closeChat = () => {
+    if (chatBusy) return;
+    setChatMode(null);
+    setChatMessages([]);
+    setChatInput('');
+    setChatPrompt('');
+    setChatBusy(false);
+  };
+
+  const handleChatSend = async () => {
+    const input = chatInput.trim();
+    if (!input || chatBusy || !token) return;
+    setChatInput('');
+
+    if (chatStep === 'intent') {
+      if (input.length > 500) {
+        setChatMessages(prev => [...prev,
+          { role: 'user', content: input },
+          { role: 'vega', content: "That's a bit long — please keep your message under 500 characters." },
+        ]);
+        return;
+      }
+      setChatMessages(prev => [...prev, { role: 'user', content: input }]);
+      setChatBusy(true);
+
+      try {
+        const { intent, total: extracted } = await api.post<{ intent: string; total: number | null }>(
+          '/projects/parse-message',
+          { prompt: input, has_existing_project: Boolean(selectedProjectId), project_name: selectedProject?.name ?? '' },
+          token
+        );
+
+        if (intent === 'unclear') {
+          setChatMessages(prev => [...prev, {
+            role: 'vega',
+            content: "I wasn't sure what you'd like to do. Could you clarify — would you like to create a new project from scratch, or add problems to your existing one?",
+          }]);
+          setChatBusy(false);
+          return;
+        }
+
+        const resolvedMode = intent as 'create' | 'update';
+        setChatMode(resolvedMode);
+        setChatPrompt(input);
+
+        if (extracted !== null && extracted >= 5 && extracted <= 50) {
+          const confirmMsg = resolvedMode === 'create'
+            ? `Perfect! Building a new project with ${extracted} problems now…`
+            : `Perfect! Adding ${extracted} new problems to your project now…`;
+          setChatMessages(prev => [...prev, { role: 'vega', content: confirmMsg }]);
+          setChatStep('submitting');
+          try {
+            if (resolvedMode === 'create') {
+              const project = await api.post<Project>('/projects/from-prompt', { prompt: input, total: extracted }, token);
+              setProjects((prev) => sortProjects([...prev, project]));
+              setSelectedProjectId(project.id);
+            } else {
+              await api.post<Project>(`/projects/${selectedProjectId}/update-from-prompt`, { prompt: input, total: extracted }, token);
+            }
+            closeChat();
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Something went wrong.';
+            setChatMessages(prev => [...prev, { role: 'vega', content: `Sorry — ${msg} Would you like to try a different number?` }]);
+            setChatStep('error');
+            setChatBusy(false);
+          }
+        } else {
+          const askMsg = resolvedMode === 'create'
+            ? "How many problems would you like in your new project? (5–50)"
+            : "How many problems would you like to add? (5–50)";
+          setChatMessages(prev => [...prev, { role: 'vega', content: askMsg }]);
+          setChatStep('total');
+          setChatBusy(false);
+        }
+      } catch {
+        setChatMessages(prev => [...prev, {
+          role: 'vega',
+          content: "I wasn't sure what you'd like to do. Would you like to create a new project, or add problems to your existing one?",
+        }]);
+        setChatBusy(false);
+      }
+
+    } else if (chatStep === 'prompt') {
+      if (input.length > 500) {
+        setChatMessages(prev => [...prev,
+          { role: 'user', content: input },
+          { role: 'vega', content: "That's a bit long — please keep your message under 500 characters." },
+        ]);
+        return;
+      }
+      setChatPrompt(input);
+      setChatMessages(prev => [...prev, { role: 'user', content: input }]);
+      setChatBusy(true);
+
+      try {
+        const { total: extracted } = await api.post<{ total: number | null }>(
+          '/projects/extract-intent',
+          { prompt: input },
+          token
+        );
+
+        if (extracted !== null && extracted >= 5 && extracted <= 50) {
+          const confirmMsg = chatMode === 'create'
+            ? `Got it! Building your project with ${extracted} problems now…`
+            : `Got it! Adding ${extracted} new problems to your project now…`;
+          setChatMessages(prev => [...prev, { role: 'vega', content: confirmMsg }]);
+          setChatStep('submitting');
+
+          try {
+            if (chatMode === 'create') {
+              const project = await api.post<Project>('/projects/from-prompt', { prompt: input, total: extracted }, token);
+              setProjects((prev) => sortProjects([...prev, project]));
+              setSelectedProjectId(project.id);
+            } else {
+              await api.post<Project>(`/projects/${selectedProjectId}/update-from-prompt`, { prompt: input, total: extracted }, token);
+            }
+            closeChat();
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Something went wrong. Please try again.';
+            setChatMessages(prev => [...prev, { role: 'vega', content: `Sorry — ${msg} Would you like to try a different number?` }]);
+            setChatStep('error');
+            setChatBusy(false);
+          }
+        } else {
+          setChatMessages(prev => [...prev,
+            { role: 'vega', content: "Got it! How many problems would you like? (enter a number between 5 and 50)" },
+          ]);
+          setChatStep('total');
+          setChatBusy(false);
+        }
+      } catch {
+        setChatMessages(prev => [...prev,
+          { role: 'vega', content: "Got it! How many problems would you like? (enter a number between 5 and 50)" },
+        ]);
+        setChatStep('total');
+        setChatBusy(false);
+      }
+
+    } else if (chatStep === 'total' || chatStep === 'error') {
+      setChatMessages(prev => [...prev, { role: 'user', content: input }]);
+
+      const numMatch = input.match(/\b(\d+)\b/);
+      const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
+
+      if (isNaN(num)) {
+        setChatMessages(prev => [...prev,
+          { role: 'vega', content: "I didn't catch a number — how many problems would you like? (5–50)" },
+        ]);
+        setChatStep('total');
+        return;
+      }
+      if (num < 5 || num > 50) {
+        setChatMessages(prev => [...prev,
+          { role: 'vega', content: `${num} is outside the range — please pick a number between 5 and 50.` },
+        ]);
+        setChatStep('total');
+        return;
+      }
+
+      const confirmMsg = chatMode === 'create'
+        ? `Perfect! Building your project with ${num} problems now…`
+        : `Perfect! Adding ${num} new problems to your project now…`;
+      setChatMessages(prev => [...prev, { role: 'vega', content: confirmMsg }]);
+      setChatStep('submitting');
+      setChatBusy(true);
+
+      try {
+        if (chatMode === 'create') {
+          const project = await api.post<Project>('/projects/from-prompt', { prompt: chatPrompt, total: num }, token);
+          setProjects((prev) => sortProjects([...prev, project]));
+          setSelectedProjectId(project.id);
+        } else {
+          await api.post<Project>(`/projects/${selectedProjectId}/update-from-prompt`, { prompt: chatPrompt, total: num }, token);
+        }
+        closeChat();
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Something went wrong. Please try again.';
+        setChatMessages(prev => [...prev, { role: 'vega', content: `Sorry — ${msg} Would you like to try a different number?` }]);
+        setChatStep('error');
+        setChatBusy(false);
+      }
     }
   };
 
@@ -619,10 +804,7 @@ export default function ProblemsPage() {
 
   const promptCreateProject = () => {
     if (!token) return;
-    setShowCreateProjectDialog(true);
-    setCreateProjectError("Please create a project before opening a problem");
-    setNewProjectPrompt("");
-    setNewProjectTotal(20);
+    openChat('create');
   };
 
   return (
@@ -724,19 +906,15 @@ export default function ProblemsPage() {
               {/* Action buttons (top right) */}
               <div className="flex items-center gap-2 justify-end">
                 <button
-                  onClick={() => {
-                    setShowCreateProjectDialog(true);
-                    setCreateProjectError(null);
-                    setNewProjectPrompt("");
-                    setNewProjectTotal(20);
-                  }}
-                  disabled={!token || creatingProject || deletingProject}
+                  onClick={() => openChat('create')}
+                  disabled={!token || chatBusy || deletingProject}
                   className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:bg-emerald-300"
                 >
                   New Project
                 </button>
                 <button
-                  disabled={!token || !selectedProjectId || creatingProject || deletingProject}
+                  onClick={() => openChat('update')}
+                  disabled={!token || !selectedProjectId || chatBusy || deletingProject}
                   className="px-4 py-2 text-sm font-semibold rounded-lg border border-blue-300 text-blue-600 bg-transparent hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Update Project
@@ -746,7 +924,7 @@ export default function ProblemsPage() {
                     setShowDeleteProjectDialog(true);
                     setDeleteProjectError(null);
                   }}
-                  disabled={!token || !selectedProjectId || deletingProject || creatingProject}
+                  disabled={!token || !selectedProjectId || deletingProject || chatBusy}
                   className="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 bg-transparent hover:text-red-500 hover:bg-red-50 focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Delete Project
@@ -1347,118 +1525,141 @@ export default function ProblemsPage() {
         </div>
       </div>
 
-      {/* Pagination */}
-      {isLoggedIn && showCreateProjectDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 sm:px-6">
-          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-            {/* Header with AI branding */}
-            <div className="px-6 py-6 sm:px-8 sm:py-7 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-blue-50">
-              <div className="flex items-center gap-4">
-                {/* AI Icon */}
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-2xl sm:text-3xl font-bold text-slate-900">Create Project</h3>
-                    <span className="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 rounded-full border border-emerald-200">
-                      AI-Powered
-                    </span>
+      {/* Vega Floating Action Button */}
+      {isLoggedIn && chatMessages.length === 0 && (
+        <button
+          onClick={() => openChat()}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border border-slate-700"
+          title="Chat with Vega"
+        >
+          <div className="relative">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+          </div>
+        </button>
+      )}
+
+      {/* Vega Chat Widget — bottom-right */}
+      {isLoggedIn && chatMessages.length > 0 && (
+        <div
+          className="fixed bottom-6 right-6 z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white"
+          style={{ width: '460px', minHeight: '480px', maxHeight: '840px' }}
+        >
+          {/* Header */}
+          <div className="px-4 py-3 bg-gradient-to-r from-slate-900 to-slate-800 flex items-center gap-2.5 flex-shrink-0">
+            <div className="relative flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-semibold text-sm leading-tight">Vega</div>
+              <div className="text-slate-400 text-xs truncate leading-tight">
+                {chatMode === 'create' ? 'New project' : `Updating "${selectedProject?.name}"`}
+              </div>
+            </div>
+            <button
+              onClick={closeChat}
+              disabled={chatBusy}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 flex-shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-slate-50">
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex items-end gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'vega' && (
+                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center flex-shrink-0 mb-0.5">
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
                   </div>
-                  <p className="text-base sm:text-lg text-slate-600 mt-2 leading-relaxed">
-                    Tell Vega what you want to practice and it will curate a
-                    personalized problem set tailored to your level.
-                  </p>
+                )}
+                <div className={`max-w-[240px] px-3 py-2 text-sm leading-relaxed rounded-2xl ${
+                  msg.role === 'vega'
+                    ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'
+                    : chatMode === 'create'
+                      ? 'bg-emerald-600 text-white rounded-tr-sm'
+                      : 'bg-blue-600 text-white rounded-tr-sm'
+                }`}>
+                  {msg.content}
                 </div>
               </div>
-            </div>
-            <div className="px-6 py-6 sm:px-8 sm:py-7 space-y-6">
-              <div>
-                <label className="block text-base font-bold text-slate-700 mb-3">
-                  What do you want to practice?
-                </label>
-                <textarea
-                  autoFocus
-                  maxLength={500}
-                  rows={5}
-                  value={newProjectPrompt}
-                  disabled={creatingProject}
-                  onChange={(e) => {
-                    setNewProjectPrompt(e.target.value);
-                    setCreateProjectError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleCreateProject();
-                    }
-                  }}
-                  placeholder="e.g. I have a coding interview in 2 weeks and I'm weak on dynamic programming"
-                  className="w-full px-4 py-3 text-base border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-60 resize-none"
-                />
-                <div className="mt-2 text-sm text-slate-500">
-                  {newProjectPrompt.trim().length}/500 characters · ⌘/Ctrl+Enter to submit
-                </div>
-              </div>
-              <div>
-                <label className="block text-base font-bold text-slate-700 mb-3">
-                  How many problems?
-                </label>
-                <div className="flex items-center gap-3">
-                  {[10, 20, 30].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={creatingProject}
-                      onClick={() => setNewProjectTotal(n)}
-                      className={`flex-1 px-5 py-3 sm:px-6 sm:py-4 text-lg font-semibold rounded-xl border-2 transition-all disabled:opacity-60 ${
-                        newProjectTotal === n
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md"
-                          : "border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {createProjectError && (
-                <div className="text-base text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{createProjectError}</div>
-              )}
-              {creatingProject && (
-                <div className="flex items-center gap-4 text-base text-slate-700 bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-xl px-5 py-4">
-                  <svg className="animate-spin h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            ))}
+
+            {/* Typing indicator */}
+            {chatBusy && (
+              <div className="flex items-end gap-1.5 justify-start">
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center flex-shrink-0 mb-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <span className="font-medium">Vega is reading your stats and building your project. This may take 5–10 seconds…</span>
                 </div>
-              )}
-            </div>
-            <div className="px-6 py-5 sm:px-8 sm:py-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-4 bg-slate-50">
-              <button
-                onClick={() => {
-                  if (creatingProject) return;
-                  setShowCreateProjectDialog(false);
-                  setCreateProjectError(null);
-                  setNewProjectPrompt("");
-                  setNewProjectTotal(20);
-                }}
-                disabled={creatingProject}
-                className="w-full sm:w-auto px-6 py-3 text-base font-semibold rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateProject}
-                disabled={creatingProject}
-                className="w-full sm:w-auto px-8 py-3 text-base font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-300 disabled:to-emerald-400 shadow-lg"
-              >
-                {creatingProject ? "Creating…" : "Create with Vega"}
-              </button>
-            </div>
+                <div className="bg-white border border-slate-200 px-3 py-2.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-3 py-2.5 border-t border-slate-100 bg-white flex items-end gap-2 flex-shrink-0">
+            <textarea
+              ref={chatInputRef}
+              rows={1}
+              value={chatInput}
+              disabled={chatBusy || chatStep === 'submitting'}
+              onChange={(e) => {
+                setChatInput(e.target.value);
+                e.currentTarget.style.height = 'auto';
+                e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 100) + 'px';
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleChatSend();
+                }
+              }}
+              placeholder={
+                chatStep === 'intent'
+                  ? 'Tell Vega what you’d like to do…'
+                  : chatStep === 'prompt'
+                  ? (chatMode === 'create' ? 'What do you want to practice?' : 'What problems do you want to add?')
+                  : chatStep === 'total' || chatStep === 'error'
+                  ? 'How many problems? (5–50)'
+                  : ''
+              }
+              className="flex-1 resize-none overflow-hidden text-sm px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40"
+              style={{ minHeight: '36px', maxHeight: '100px' }}
+            />
+            <button
+              onClick={handleChatSend}
+              disabled={chatBusy || chatStep === 'submitting' || !chatInput.trim()}
+              className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                chatMode === 'update'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
