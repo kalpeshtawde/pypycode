@@ -30,49 +30,25 @@ def upgrade():
     op.add_column('test_cases', sa.Column('test_input', postgresql.JSONB, nullable=True, server_default='{}'))
     op.add_column('test_cases', sa.Column('comparison_strategy', sa.String(32), nullable=True))
     
-    # Step 3: Migrate data from old format to new format
-    # This uses raw SQL to convert existing data
-    op.execute("""
-        UPDATE test_cases
-        SET test_input = CASE 
-            WHEN "input" IS NOT NULL THEN 
-                jsonb_build_object('args', json_array_elements(
-                    CASE 
-                        WHEN "input" ~ '^\\[' THEN "input"::json
-                        ELSE json_build_array("input")
-                    END
-                ))
-            ELSE '{}'::jsonb
-        END
-        WHERE test_input = '{}'::jsonb OR test_input IS NULL
-    """)
+    # Step 3: Change expected_output type to JSONB first (before data migration)
+    # This allows us to store both old string values and new JSON values
+    op.alter_column('test_cases', 'expected_output', 
+                    existing_type=sa.Text, 
+                    type_=postgresql.JSONB,
+                    existing_nullable=False,
+                    postgresql_using='expected_output::jsonb')
     
-    # Step 4: Convert expected_output to JSONB, handling both JSON and string values
+    # Step 4: Migrate data from old format to new format using simple JSON wrapping
+    # We use a simple approach: wrap input as a single arg in an array
+    # This avoids complex SQL that PostgreSQL doesn't support in UPDATE
     op.execute("""
         UPDATE test_cases
-        SET expected_output = CASE
-            WHEN expected_output IS NULL THEN 'null'::jsonb
-            WHEN expected_output ~ '^\\d+$' THEN expected_output::integer::jsonb
-            WHEN expected_output ~ '^\\[' THEN expected_output::jsonb
-            WHEN expected_output ~ '^{' THEN expected_output::jsonb
-            WHEN expected_output = 'true' OR expected_output = 'false' THEN expected_output::boolean::jsonb
-            ELSE expected_output::text::jsonb
-        END
-        WHERE expected_output IS NOT NULL
+        SET test_input = jsonb_build_object('args', jsonb_build_array("input"))
+        WHERE "input" IS NOT NULL AND (test_input = '{}'::jsonb OR test_input IS NULL)
     """)
     
     # Step 5: Make test_input NOT NULL after migration
     op.alter_column('test_cases', 'test_input', nullable=False)
-    
-    # Step 6: Change expected_output type to JSONB
-    op.alter_column('test_cases', 'expected_output', 
-                    existing_type=sa.Text, 
-                    type_=postgresql.JSONB,
-                    existing_nullable=False)
-    
-    # Step 7: Keep old columns for backward compatibility (optional, can be removed later)
-    # This allows rollback if needed
-    # Don't drop columns yet - keep them for safety
 
 
 def downgrade():
