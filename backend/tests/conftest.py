@@ -105,9 +105,8 @@ def problem(app_ctx):
     tc = TestCase(
         problem_id=item.id,
         serial_number=0,
-        function="solution",
-        input="[2,7,11,15], 9",
-        expected_output="[0,1]",
+        test_input={"args": [[2, 7, 11, 15], 9]},
+        expected_output=[0, 1],
         is_active=True,
     )
     db.session.add(tc)

@@ -45,9 +45,8 @@ def test_problem_model_persists_fields(app_ctx):
     tc = TestCase(
         problem_id=problem.id,
         serial_number=0,
-        function="solution",
-        input='"()"',
-        expected_output="true",
+        test_input={"args": ["()"]},
+        expected_output=True,
         is_active=True,
     )
     db.session.add(tc)
@@ -76,9 +75,8 @@ def test_project_submission_relationships(app_ctx, user):
     tc = TestCase(
         problem_id=problem.id,
         serial_number=0,
-        function="solution",
-        input="[1,2,3]",
-        expected_output="false",
+        test_input={"args": [[1, 2, 3]]},
+        expected_output=False,
         is_active=True,
     )
     db.session.add(tc)

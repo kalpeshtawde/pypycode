@@ -689,13 +689,25 @@ def public_ingest_problem():
     # Create test cases as separate records
     for idx, tc in enumerate(test_cases):
         input_str = tc.get("input", "")
+        # Parse input into structured format
+        try:
+            import json
+            args = json.loads(f"[{input_str}]") if input_str else []
+        except:
+            try:
+                import ast
+                args = ast.literal_eval(f"[{input_str}]") if input_str else []
+            except:
+                args = [input_str] if input_str else []
+        
+        test_input = {"args": args}
+        expected_output = tc.get("expectedOutput", "")
+        
         test_case = TestCase(
             problem_id=problem.id,
             serial_number=idx,
-            function=tc.get("function", "solution"),
-            input=input_str,
-            expected_output=tc.get("expectedOutput", ""),
-            arg_types=tc.get("argTypes") or _derive_arg_types(tags, input_str),
+            test_input=test_input,
+            expected_output=expected_output,
             is_active=tc.get("isActive", True),
         )
         db.session.add(test_case)
@@ -733,13 +745,25 @@ def create_problem():
     # Create test cases
     for idx, tc in enumerate(test_cases_data):
         input_str = tc.get("input", "")
+        # Parse input into structured format
+        try:
+            import json
+            args = json.loads(f"[{input_str}]") if input_str else []
+        except:
+            try:
+                import ast
+                args = ast.literal_eval(f"[{input_str}]") if input_str else []
+            except:
+                args = [input_str] if input_str else []
+        
+        test_input = {"args": args}
+        expected_output = tc.get("expectedOutput", "")
+        
         test_case = TestCase(
             problem_id=p.id,
             serial_number=idx,
-            function=tc.get("function", "solution"),
-            input=input_str,
-            expected_output=tc.get("expectedOutput", ""),
-            arg_types=tc.get("argTypes") or _derive_arg_types(data.get("tags", []), input_str),
+            test_input=test_input,
+            expected_output=expected_output,
             is_active=tc.get("isActive", True),
         )
         db.session.add(test_case)

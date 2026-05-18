@@ -4,12 +4,10 @@ from app.services import runner
 
 
 class DummyTestCase:
-    def __init__(self, function="solution", input_str="", expected_output="", is_active=True, arg_types=None):
-        self.function = function
-        self.input = input_str
+    def __init__(self, test_input=None, expected_output=None, is_active=True):
+        self.test_input = test_input or {"args": []}
         self.expected_output = expected_output
         self.is_active = is_active
-        self.arg_types = arg_types
 
 
 class DummyProblem:
@@ -17,10 +15,23 @@ class DummyProblem:
         # Convert dict test cases to DummyTestCase objects
         self.test_cases = []
         for tc in test_cases_data:
+            # Parse input if it's a string
+            input_val = tc.get("input", "")
+            if isinstance(input_val, str):
+                try:
+                    import json
+                    args = json.loads(f"[{input_val}]")
+                except:
+                    args = [input_val]
+            else:
+                args = [input_val] if input_val else []
+            
+            test_input = {"args": args}
+            expected = tc.get("expectedOutput", tc.get("expected"))
+            
             self.test_cases.append(DummyTestCase(
-                function=tc.get("function", "solution"),
-                input_str=tc.get("input", ""),
-                expected_output=tc.get("expectedOutput", tc.get("expected", "")),
+                test_input=test_input,
+                expected_output=expected,
                 is_active=tc.get("isActive", True),
             ))
 
@@ -33,15 +44,16 @@ class DummySubmission:
 def test_convert_test_cases_handles_input():
     problem = DummyProblem(
         [
-            {"function": "solution", "input": "1, 2", "expectedOutput": "3"},
+            {"input": "1, 2", "expectedOutput": "3"},
             {"input": "[1, 2]", "expectedOutput": "[1, 2]"},
         ]
     )
     converted = runner._convert_test_cases(problem)
 
-    assert converted[0]["function"] == "solution"
     assert converted[0]["args"] == [1, 2]
-    assert converted[1]["function"] == "solution"
+    assert converted[0]["expected"] == "3"
+    assert converted[1]["args"] == [[1, 2]]
+    assert converted[1]["expected"] == "[1, 2]"
 
 
 def test_run_code_against_problem_accepts_all_passed(mocker):

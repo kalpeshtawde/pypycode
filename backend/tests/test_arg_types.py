@@ -144,12 +144,10 @@ def test_ingest_explicit_arg_types_override_auto_derive(client):
 # ---------------------------------------------------------------------------
 
 class DummyTestCase:
-    def __init__(self, function="solution", input_str="", expected_output="", is_active=True, arg_types=None):
-        self.function = function
-        self.input = input_str
+    def __init__(self, test_input=None, expected_output=None, is_active=True):
+        self.test_input = test_input or {"args": []}
         self.expected_output = expected_output
         self.is_active = is_active
-        self.arg_types = arg_types
 
 
 class DummyProblem:
@@ -157,20 +155,21 @@ class DummyProblem:
         self.test_cases = test_cases_data
 
 
-def test_convert_test_cases_includes_arg_types():
+def test_convert_test_cases_includes_test_input():
     problem = DummyProblem([
-        DummyTestCase(input_str="[1,2,3]", expected_output="true", arg_types=["tree"]),
+        DummyTestCase(test_input={"args": [[1,2,3]]}, expected_output=True),
     ])
     converted = runner_module._convert_test_cases(problem)
-    assert converted[0]["arg_types"] == ["tree"]
+    assert converted[0]["args"] == [[1,2,3]]
+    assert converted[0]["expected"] == True
 
 
-def test_convert_test_cases_defaults_arg_types_to_empty():
+def test_convert_test_cases_includes_expected_output():
     problem = DummyProblem([
-        DummyTestCase(input_str="1, 2", expected_output="3", arg_types=None),
+        DummyTestCase(test_input={"args": [1, 2]}, expected_output=3),
     ])
     converted = runner_module._convert_test_cases(problem)
-    assert converted[0]["arg_types"] == []
+    assert converted[0]["expected"] == 3
 
 
 # ---------------------------------------------------------------------------
