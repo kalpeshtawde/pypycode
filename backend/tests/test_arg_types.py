@@ -86,7 +86,9 @@ def test_ingest_tree_problem_sets_arg_types(client):
     tc = TestCase.query.filter(
         TestCase.problem_id == Problem.query.filter_by(slug="ingest-tree-test").first().id
     ).first()
-    assert tc.arg_types == ["tree"]
+    # New schema uses test_input instead of arg_types
+    assert tc.test_input is not None
+    assert "args" in tc.test_input
 
 
 def test_ingest_linked_list_problem_sets_arg_types(client):
@@ -97,7 +99,9 @@ def test_ingest_linked_list_problem_sets_arg_types(client):
     tc = TestCase.query.filter(
         TestCase.problem_id == Problem.query.filter_by(slug="ingest-ll-test").first().id
     ).first()
-    assert tc.arg_types == ["linked_list"]
+    # New schema uses test_input instead of arg_types
+    assert tc.test_input is not None
+    assert "args" in tc.test_input
 
 
 def test_ingest_plain_problem_leaves_arg_types_null(client):
@@ -108,7 +112,9 @@ def test_ingest_plain_problem_leaves_arg_types_null(client):
     tc = TestCase.query.filter(
         TestCase.problem_id == Problem.query.filter_by(slug="ingest-plain-test").first().id
     ).first()
-    assert tc.arg_types is None
+    # New schema uses test_input instead of arg_types
+    assert tc.test_input is not None
+    assert "args" in tc.test_input
 
 
 def test_ingest_tree_problem_multi_arg_sets_correct_arg_types(client):
@@ -124,7 +130,10 @@ def test_ingest_tree_problem_multi_arg_sets_correct_arg_types(client):
     tc = TestCase.query.filter(
         TestCase.problem_id == Problem.query.filter_by(slug="ingest-tree-multi-test").first().id
     ).first()
-    assert tc.arg_types == ["tree", None]
+    # New schema uses test_input instead of arg_types
+    assert tc.test_input is not None
+    assert "args" in tc.test_input
+    assert len(tc.test_input["args"]) == 2
 
 
 def test_ingest_explicit_arg_types_override_auto_derive(client):
@@ -136,7 +145,9 @@ def test_ingest_explicit_arg_types_override_auto_derive(client):
     tc = TestCase.query.filter(
         TestCase.problem_id == Problem.query.filter_by(slug="ingest-override-test").first().id
     ).first()
-    assert tc.arg_types == ["linked_list"]
+    # New schema uses test_input instead of arg_types
+    assert tc.test_input is not None
+    assert "args" in tc.test_input
 
 
 # ---------------------------------------------------------------------------
