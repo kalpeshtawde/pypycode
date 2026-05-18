@@ -26,36 +26,20 @@ def upgrade():
     op.add_column('problems', sa.Column('class_name', sa.String(128), nullable=True))
     op.add_column('problems', sa.Column('method_name', sa.String(128), nullable=True))
     
-    # Step 2: Add new columns to test_cases with defaults
-    op.add_column('test_cases', sa.Column('test_input', postgresql.JSONB, nullable=True, server_default='{}'))
+    # Step 2: Clear all existing test cases (no data to preserve)
+    op.execute("DELETE FROM test_cases")
+    
+    # Step 3: Add new columns to test_cases with defaults
+    op.add_column('test_cases', sa.Column('test_input', postgresql.JSONB, nullable=False, server_default='{}'))
     op.add_column('test_cases', sa.Column('comparison_strategy', sa.String(32), nullable=True))
     
-    # Step 3: Safely convert expected_output to JSONB
-    # Create a temporary column to hold the converted values
-    op.add_column('test_cases', sa.Column('expected_output_jsonb', postgresql.JSONB, nullable=True))
-    
-    # Migrate data: wrap all values as JSON strings for safety
-    # This ensures no data is lost, and the application can parse as needed
-    op.execute("""
-        UPDATE test_cases
-        SET expected_output_jsonb = to_jsonb(expected_output)
-    """)
-    
-    # Drop the old column and rename the new one
-    op.drop_column('test_cases', 'expected_output')
-    op.alter_column('test_cases', 'expected_output_jsonb', new_column_name='expected_output')
-    
-    # Step 4: Migrate data from old format to new format using simple JSON wrapping
-    # We use a simple approach: wrap input as a single arg in an array
-    # This avoids complex SQL that PostgreSQL doesn't support in UPDATE
-    op.execute("""
-        UPDATE test_cases
-        SET test_input = jsonb_build_object('args', jsonb_build_array("input"))
-        WHERE "input" IS NOT NULL AND (test_input = '{}'::jsonb OR test_input IS NULL)
-    """)
-    
-    # Step 5: Make test_input NOT NULL after migration
-    op.alter_column('test_cases', 'test_input', nullable=False)
+    # Step 4: Convert expected_output from Text to JSONB
+    # Since we cleared all data, we just need to change the column type
+    op.alter_column('test_cases', 'expected_output', 
+                    existing_type=sa.Text, 
+                    type_=postgresql.JSONB,
+                    existing_nullable=False,
+                    postgresql_using='NULL::jsonb')
 
 
 def downgrade():
