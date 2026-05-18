@@ -31,12 +31,17 @@ def upgrade():
     op.add_column('test_cases', sa.Column('comparison_strategy', sa.String(32), nullable=True))
     
     # Step 3: Change expected_output type to JSONB first (before data migration)
-    # This allows us to store both old string values and new JSON values
+    # Handle invalid JSON by wrapping non-JSON strings as JSON strings
     op.alter_column('test_cases', 'expected_output', 
                     existing_type=sa.Text, 
                     type_=postgresql.JSONB,
                     existing_nullable=False,
-                    postgresql_using='expected_output::jsonb')
+                    postgresql_using="""
+                        CASE 
+                            WHEN expected_output ~ '^\\s*[\\[{"\-0-9tfn]' THEN expected_output::jsonb
+                            ELSE to_jsonb(expected_output)
+                        END
+                    """)
     
     # Step 4: Migrate data from old format to new format using simple JSON wrapping
     # We use a simple approach: wrap input as a single arg in an array
