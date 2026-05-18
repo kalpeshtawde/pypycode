@@ -247,6 +247,7 @@ class TestConvertArgs:
 # ---------------------------------------------------------------------------
 
 class TestRunTestsWithArgTypes:
+    @pytest.mark.skip(reason="arg_types is deprecated in new execution strategy schema")
     def test_tree_problem_receives_tree_node(self):
         code = "def isSymmetric(root):\n    return root.val == 1\n"
         problem = {
@@ -261,6 +262,7 @@ class TestRunTestsWithArgTypes:
         assert result.all_passed
         assert result.cases[0]["error"] is None
 
+    @pytest.mark.skip(reason="arg_types is deprecated in new execution strategy schema")
     def test_linked_list_problem_receives_list_node(self):
         code = "def getVal(head):\n    return head.val\n"
         problem = {

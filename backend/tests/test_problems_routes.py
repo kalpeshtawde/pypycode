@@ -19,8 +19,7 @@ def _create_problem(slug, difficulty, tags):
         ProblemTestCase(
             problem_id=item.id,
             serial_number=0,
-            function="solution",
-            input="1",
+            test_input={"args": [1]},
             expected_output="1",
             is_active=True,
         )
@@ -102,8 +101,7 @@ def test_public_ingest_duplicate_slug(client, app_ctx):
     tc = TestCase(
         problem_id=existing.id,
         serial_number=0,
-        function="solution",
-        input="1",
+        test_input={"args": [1]},
         expected_output="1",
         is_active=True,
     )

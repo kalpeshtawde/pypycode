@@ -23,9 +23,8 @@ def problem2(app_ctx):
     tc = TestCase(
         problem_id=problem.id,
         serial_number=0,
-        function="solution",
-        input='"()"',
-        expected_output="true",
+        test_input={"args": ["()"]},
+        expected_output=True,
         is_active=True,
     )
     db.session.add(tc)
