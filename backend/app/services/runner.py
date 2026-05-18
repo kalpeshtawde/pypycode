@@ -1,8 +1,6 @@
 import time
 import os
-import re
 import json
-import ast
 import docker
 import logging
 from app import celery_app, db
@@ -34,70 +32,13 @@ def _parse_serialized_value(raw):
         return raw
 
 
-def _parse_class_based_input(input_str: str):
-    """Parse 'constructor_args; method_name(method_args)' into structured form.
-    Returns dict with ctor_args, method, method_args, or None if not this format.
-    """
-    sep = '; '
-    if sep not in input_str:
-        return None
-    constructor_str, method_call = input_str.split(sep, 1)
-    m = re.match(r'^(\w+)\((.*)\)$', method_call.strip(), re.DOTALL)
-    if not m:
-        return None
-    method_name, method_args_str = m.group(1), m.group(2)
-    try:
-        ctor_args = json.loads(f'[{constructor_str.strip()}]')
-    except (json.JSONDecodeError, ValueError):
-        try:
-            ctor_args = ast.literal_eval(f'[{constructor_str.strip()}]')
-        except (ValueError, SyntaxError):
-            return None
-    method_args = []
-    if method_args_str.strip():
-        try:
-            method_args = json.loads(f'[{method_args_str}]')
-        except (json.JSONDecodeError, ValueError):
-            try:
-                method_args = ast.literal_eval(f'[{method_args_str}]')
-            except (ValueError, SyntaxError):
-                return None
-    return {"ctor_args": ctor_args, "method": method_name, "method_args": method_args}
-
-
 def _convert_test_cases(problem: Problem):
     converted_test_cases = []
-    # Filter only active test cases, ordered by serial_number
     active_test_cases = [tc for tc in problem.test_cases if tc.is_active]
     for tc in active_test_cases:
-        expected = _parse_serialized_value(tc.expected_output)
-        converted_tc = {
-            "function": tc.function or "solution",
-            "expected": expected,
-        }
-        input_str = tc.input
-        if input_str:
-            try:
-                args = json.loads("[" + input_str + "]")
-                converted_tc["args"] = args
-            except json.JSONDecodeError:
-                try:
-                    converted_tc["args"] = ast.literal_eval("[" + input_str + "]")
-                except (ValueError, SyntaxError):
-                    parsed = _parse_class_based_input(input_str)
-                    if parsed:
-                        converted_tc["ctor_args"] = parsed["ctor_args"]
-                        converted_tc["method"] = parsed["method"]
-                        converted_tc["method_args"] = parsed["method_args"]
-                        converted_tc["args"] = []
-                    else:
-                        converted_tc["args"] = [input_str]
-        else:
-            converted_tc["args"] = []
-
-        converted_tc["kwargs"] = {}
-        converted_tc["arg_types"] = tc.arg_types or []
-        converted_test_cases.append(converted_tc)
+        test_case = dict(tc.test_input)
+        test_case["expected"] = tc.expected_output
+        converted_test_cases.append(test_case)
     return converted_test_cases
 
 def _run_tests_in_sandbox(client, code: str, problem_definition: dict) -> dict:
@@ -159,33 +100,18 @@ def _run_tests_in_sandbox(client, code: str, problem_definition: dict) -> dict:
 
 
 def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
-    function_name = "solution"
-    if test_cases:
-        function_name = test_cases[0].get("function") or "solution"
-
     tags = [str(tag).lower() for tag in (getattr(problem, "tags", []) or [])]
     prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
-    comparison = getattr(problem, "comparison_strategy", "exact") or "exact"
-
-    def _tc_entry(tc):
-        entry = {
-            "args": tc.get("args", []),
-            "kwargs": tc.get("kwargs", {}),
-            "expected": tc.get("expected"),
-            "arg_types": tc.get("arg_types", []),
-        }
-        if "ctor_args" in tc:
-            entry["ctor_args"] = tc["ctor_args"]
-            entry["method"] = tc["method"]
-            entry["method_args"] = tc["method_args"]
-        return entry
-
+    
     return {
         "id": getattr(problem, "slug", "unknown"),
-        "function_name": function_name,
-        "comparison": comparison,
+        "execution_model": getattr(problem, "execution_model", "function"),
+        "function_name": getattr(problem, "function_name", "solution"),
+        "class_name": getattr(problem, "class_name", None),
+        "method_name": getattr(problem, "method_name", None),
+        "comparison": getattr(problem, "comparison_strategy", "exact") or "exact",
         "prelude": prelude,
-        "test_cases": [_tc_entry(tc) for tc in test_cases],
+        "test_cases": test_cases,
     }
 
 

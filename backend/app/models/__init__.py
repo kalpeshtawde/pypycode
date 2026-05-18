@@ -45,6 +45,10 @@ class Problem(db.Model):
     examples = db.Column(db.JSON, nullable=False)     # shown to user
     tags = db.Column(db.ARRAY(db.String), default=list)
     comparison_strategy = db.Column(db.String(32), nullable=False, default="exact")
+    execution_model = db.Column(db.String(32), nullable=False, default="function")  # function | class | stateful
+    function_name = db.Column(db.String(128), nullable=False, default="solution")
+    class_name = db.Column(db.String(128), nullable=True)  # For class-based problems
+    method_name = db.Column(db.String(128), nullable=True)  # For class-based problems
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     submissions = db.relationship("Submission", back_populates="problem")
     problem_project_stats = db.relationship("ProblemProjectStat", back_populates="problem")
@@ -72,10 +76,9 @@ class TestCase(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     problem_id = db.Column(db.String(36), db.ForeignKey("problems.id"), nullable=False, index=True)
     serial_number = db.Column(db.Integer, nullable=False)  # Starts from 0 for each problem
-    function = db.Column(db.String(128), nullable=False, default="solution")
-    input = db.Column(db.Text, nullable=False)  # Input as string representation
-    expected_output = db.Column(db.Text, nullable=False)  # Expected output as JSON string
-    arg_types = db.Column(db.JSON, nullable=True)  # e.g. ["tree", null] or ["linked_list"]
+    test_input = db.Column(db.JSON, nullable=False)  # Structured input: {args: [...]} or {ctor_args: [...], method: "...", method_args: [...]}
+    expected_output = db.Column(db.JSON, nullable=False)  # Expected output as actual value (not string)
+    comparison_strategy = db.Column(db.String(32), nullable=True)  # Override problem's strategy if set
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

@@ -199,8 +199,7 @@ def problem_to_dict(p: Problem, hide_tests=True):
         data["testCases"] = [
             {
                 "serialNumber": tc.serial_number,
-                "function": tc.function,
-                "input": tc.input,
+                "testInput": tc.test_input,
                 "expectedOutput": tc.expected_output,
             }
             for tc in p.test_cases

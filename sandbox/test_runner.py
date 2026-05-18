@@ -2,6 +2,7 @@ import math
 import copy
 import traceback
 from typing import Any
+from execution_strategies import get_strategy
 
 
 PRELUDE = """
@@ -271,6 +272,9 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
         )
         return result
 
+    execution_model = problem.get("execution_model", "function")
+    execution_strategy = get_strategy(execution_model)
+    
     strategy_name = problem.get("comparison", "exact")
     compare_fn = COMPARISON_STRATEGIES.get(strategy_name, compare_exact)
 
@@ -281,34 +285,22 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
     import contextlib
 
     for i, tc in enumerate(test_cases):
-        is_class_based = "ctor_args" in tc
         case_report: dict[str, Any] = {
             "case": i + 1,
             "passed": False,
-            "input": tc.get("ctor_args", []) + tc.get("method_args", []) if is_class_based else tc.get("args", []),
+            "input": tc.get("args", tc.get("ctor_args", [])),
             "expected": tc.get("expected"),
             "got": None,
             "error": None,
             "stdout": "",
         }
 
-        if is_class_based:
-            ctor_args = copy.deepcopy(tc.get("ctor_args", []))
-            method_args = copy.deepcopy(tc.get("method_args", []))
-        else:
-            args = copy.deepcopy(tc.get("args", []))
-            kwargs = copy.deepcopy(tc.get("kwargs", {}))
-            args = _convert_args(args, tc.get("arg_types", []), namespace)
-
+        tc_copy = copy.deepcopy(tc)
+        
         stdout_buffer = io.StringIO()
         try:
             with contextlib.redirect_stdout(stdout_buffer):
-                if is_class_based:
-                    instance = fn(*ctor_args)
-                    method = getattr(instance, tc["method"])
-                    got = method(*method_args)
-                else:
-                    got = fn(*args, **kwargs)
+                got = execution_strategy.execute(fn, tc_copy, namespace)
             passed = compare_fn(got, tc["expected"])
             case_report["got"] = _normalize(got)
             case_report["passed"] = passed
