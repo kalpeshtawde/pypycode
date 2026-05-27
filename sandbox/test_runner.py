@@ -135,7 +135,7 @@ def _normalize(val: Any) -> Any:
     if isinstance(val, list):
         return [_normalize(v) for v in val]
     if isinstance(val, tuple):
-        return tuple(_normalize(v) for v in val)
+        return [_normalize(v) for v in val]
     if isinstance(val, dict):
         return {k: _normalize(v) for k, v in val.items()}
     if not isinstance(val, (int, float, str, bool)):

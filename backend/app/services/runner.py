@@ -103,6 +103,15 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
     tags = [str(tag).lower() for tag in (getattr(problem, "tags", []) or [])]
     prelude = any(tag in {"linked-list", "tree", "binary-tree"} for tag in tags)
     
+    # Enable prelude if test cases explicitly use linked_list or tree types
+    has_type_in_test_cases = False
+    for tc in test_cases:
+        arg_types = tc.get("arg_types", [])
+        if arg_types and any(atype in {"linked_list", "tree"} for atype in arg_types):
+            has_type_in_test_cases = True
+            break
+    prelude = prelude or has_type_in_test_cases
+    
     return {
         "id": getattr(problem, "slug", "unknown"),
         "execution_model": getattr(problem, "execution_model", "function"),
