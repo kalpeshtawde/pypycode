@@ -6,6 +6,17 @@ import { useAuthStore } from "../hooks/useAuth";
 import CodeMirrorEditor from "../components/CodeMirrorEditor";
 import type { Problem, Project, Submission, TestCase } from "../types";
 
+const TREE_NODE_DEF = `class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right`;
+
+const LIST_NODE_DEF = `class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next`;
+
 const STATUS_LABEL: Record<string, string> = {
   pending: "Queued…",
   running: "Running…",
@@ -179,6 +190,64 @@ function buildTestCaseRows(submission: Submission, testCases?: TestCase[]): Test
   }
 
   return rows;
+}
+
+function DataStructuresPanel({ showTree, showLinkedList, fontSize }: { showTree: boolean; showLinkedList: boolean; fontSize: number }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const defs = [
+    ...(showTree ? [TREE_NODE_DEF] : []),
+    ...(showLinkedList ? [LIST_NODE_DEF] : []),
+  ];
+
+  return (
+    <div style={{ borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '5px 14px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#64748B',
+          fontFamily: 'inherit',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: '9px', transition: 'transform 0.15s', display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+        Available classes: {[showTree && 'TreeNode', showLinkedList && 'ListNode'].filter(Boolean).join(', ')}
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 14px 10px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {defs.map((def, i) => (
+            <pre
+              key={i}
+              style={{
+                margin: 0,
+                padding: '8px 12px',
+                backgroundColor: '#F1F5F9',
+                border: '1px solid #E2E8F0',
+                borderRadius: '6px',
+                fontSize: `${fontSize}px`,
+                fontFamily: "'JetBrains Mono', monospace",
+                color: '#334155',
+                lineHeight: 1.6,
+                whiteSpace: 'pre',
+              }}
+            >
+              {def}
+            </pre>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProblemPage() {
@@ -1114,6 +1183,15 @@ export default function ProblemPage() {
             )}
           </div>
         </div>
+
+        {/* Data Structures Reference */}
+        {problem && (problem.tags?.some(t => ['tree','binary-tree','binary-search-tree'].includes(t)) || problem.tags?.some(t => t === 'linked-list')) && (
+          <DataStructuresPanel
+            showTree={problem.tags?.some(t => ['tree','binary-tree','binary-search-tree'].includes(t)) ?? false}
+            showLinkedList={problem.tags?.some(t => t === 'linked-list') ?? false}
+            fontSize={fontSize}
+          />
+        )}
 
         {/* CodeMirror Editor */}
         <div className="flex-1 overflow-auto bg-slate-50">
