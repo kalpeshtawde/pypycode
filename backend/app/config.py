@@ -1,12 +1,22 @@
 import os
+from sqlalchemy.pool import NullPool
 
 
 class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-    }
+
+    if os.environ.get("CELERY_WORKER") == "1":
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "poolclass": NullPool,
+        }
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_size": 3,
+            "max_overflow": 2,
+        }
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev")
     JWT_SECRET_KEY = os.environ.get("SECRET_KEY", "dev")

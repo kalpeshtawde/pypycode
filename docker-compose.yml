@@ -94,6 +94,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - SECRET_KEY=dev-secret-key-change-in-prod
       - SANDBOX_IMAGE=pypycode-sandbox:latest
+      - CELERY_WORKER=1
     depends_on:
       - redis
       - db

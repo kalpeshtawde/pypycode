@@ -420,6 +420,146 @@ The JMeter container fetches that properties file before running, so changing va
 
 ---
 
+## Solution Verification (Playwright)
+
+A Playwright-based browser automation script that logs in as a dedicated `perfuser`, loads the reference solution for every problem into the code editor, clicks **Run**, and asserts all tests pass. Runs against a live local dev environment — no mocking.
+
+### Prerequisites
+
+- Local dev stack running (`./scripts/dev.sh`)
+- Python 3.11+ on the **host** machine (for Playwright)
+- `DEV_ENDPOINTS_ENABLED=true` set in the backend environment
+
+> **Execution model:** `create_perfuser.py` runs **inside the `api` Docker container** (needs Flask + DB).  
+> `perf_test.py` runs on the **host machine** (controls a real Chrome browser talking to your containers via `localhost`).
+
+### Step 1 — Enable dev endpoints in backend
+
+Add to `backend/.env` (already gitignored):
+
+```bash
+DEV_ENDPOINTS_ENABLED=true
+PERF_USER_EMAIL=perfuser@local.test
+PERF_USER_PASSWORD=your_strong_password
+```
+
+Then restart the backend so it picks up the new env var:
+
+```bash
+docker compose restart api
+```
+
+### Step 2 — Create the perfuser (one time)
+
+Run inside the `api` container (where Flask + DB dependencies live):
+
+```bash
+docker compose exec \
+  -e PERF_USER_EMAIL=perfuser@local.test \
+  -e PERF_USER_PASSWORD=your_strong_password \
+  api python create_perfuser.py
+```
+
+Or if you added the vars to your root `.env` file, just:
+
+```bash
+docker compose exec api python create_perfuser.py
+```
+
+This creates:
+- A `User` row with email `perfuser@local.test` and the hashed password
+- A default `Project` for that user (required by the submissions/run endpoint)
+
+Re-running is safe — it updates the password if the user already exists.
+
+### Step 3 — Configure Playwright
+
+```bash
+cp perf/playwright/.env.example perf/playwright/.env.local
+```
+
+Edit `perf/playwright/.env.local`:
+
+```bash
+BASE_URL=http://localhost:81           # Frontend (via Nginx)
+API_URL=http://localhost:81/api       # Backend API (Nginx strips /api/ prefix before forwarding to Flask)
+PERF_USER_EMAIL=perfuser@local.test
+PERF_USER_PASSWORD=your_strong_password
+HEADLESS=true                         # false = watch the browser live
+SLOW_MO_MS=0                          # increase (e.g. 300) to slow down for debugging
+RUN_TIMEOUT_MS=45000                  # max ms to wait for run results per problem
+```
+
+### Step 4 — Run
+
+```bash
+./perf/playwright/run.sh
+```
+
+The script installs Python dependencies and the Chromium browser automatically on first run.
+
+**Watch mode (headed browser):**
+```bash
+HEADLESS=false ./perf/playwright/run.sh
+```
+
+**Slow-motion debugging:**
+```bash
+HEADLESS=false SLOW_MO_MS=500 ./perf/playwright/run.sh
+```
+
+### Output
+
+```
+Logging in as perfuser@local.test...
+Login OK
+Fetching problem solutions...
+Found 42 problem(s) with solutions
+
+[  1/42] two-sum ...           ✓  3/3 passed  38ms  (2.4s)
+[  2/42] range-sum-query ...   ✓  3/3 passed  41ms  (1.9s)
+[  3/42] binary-tree-bfs ...   ✓  4/4 passed  55ms  (2.8s)
+...
+
+============================================================
+SUMMARY
+============================================================
+  Total    : 42
+  Passed   : 42 ✓
+  Failed   : 0 ✗
+
+All problems passed!
+```
+
+Exit code `0` = all passed, `1` = one or more failed (suitable for CI).
+
+### How it works
+
+1. Calls `POST /auth/login` with perfuser credentials → JWT
+2. Calls `GET /dev/problem-solutions` → list of `{slug, solutionCode}` from `problem_solutions` table
+3. For each problem:
+   - Injects `token` and the solution code into `localStorage` before navigating (avoids typing into the CodeMirror editor)
+   - Navigates to `/problems/{slug}` — React reads the solution from `localStorage` and pre-fills the editor
+   - Clicks **Run**
+   - Waits for the result panel (`X/Y tests passed`)
+   - Asserts `passed == total`
+
+### Files
+
+```
+backend/
+├── create_perfuser.py          # One-time seed: creates perfuser + default project
+└── app/routes/dev.py           # GET /dev/problem-solutions (DEV_ENDPOINTS_ENABLED only)
+
+perf/playwright/
+├── perf_test.py                # Main Playwright automation script
+├── run.sh                      # Runner: installs deps + runs perf_test.py
+├── requirements.txt            # playwright, requests, python-dotenv
+└── .env.example                # Config template — copy to .env.local
+```
+
+---
+
 ## Adding Problems
 
 Problems can be added via the API (POST `/problems/`) or directly via `seed.py`.

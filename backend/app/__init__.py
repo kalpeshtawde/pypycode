@@ -44,7 +44,10 @@ def create_app():
     class ContextTask(celery_app.Task):
         def __call__(self, *args, **kwargs):
             with app.app_context():
-                return self.run(*args, **kwargs)
+                try:
+                    return self.run(*args, **kwargs)
+                finally:
+                    db.session.remove()
 
     celery_app.Task = ContextTask
 
@@ -68,6 +71,10 @@ def create_app():
     app.register_blueprint(billing_bp, url_prefix="/billing")
     app.register_blueprint(favorites_bp, url_prefix="/favorites")
     register_api_docs(app)
+
+    if os.environ.get("DEV_ENDPOINTS_ENABLED", "false").lower() == "true":
+        from app.routes.dev import dev_bp
+        app.register_blueprint(dev_bp, url_prefix="/dev")
 
     @app.errorhandler(Exception)
     def _log_unhandled_exception(error):
