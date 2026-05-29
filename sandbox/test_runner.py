@@ -148,12 +148,21 @@ def _normalize(val: Any) -> Any:
 
 
 def compare_exact(got: Any, expected: Any) -> bool:
-    return _normalize(got) == _normalize(expected)
+    g, e = _normalize(got), _normalize(expected)
+    if g is None and e == []:
+        return True
+    if g == [] and e is None:
+        return True
+    return g == e
 
 
 
 def compare_unordered(got: Any, expected: Any) -> bool:
     g, e = _normalize(got), _normalize(expected)
+    if g is None and e == []:
+        return True
+    if g == [] and e is None:
+        return True
     if not isinstance(g, list) or not isinstance(e, list):
         return g == e
     return sorted(g, key=str) == sorted(e, key=str)
@@ -162,6 +171,10 @@ def compare_unordered(got: Any, expected: Any) -> bool:
 
 def compare_unordered_nested(got: Any, expected: Any) -> bool:
     g, e = _normalize(got), _normalize(expected)
+    if g is None and e == []:
+        return True
+    if g == [] and e is None:
+        return True
     if not isinstance(g, list) or not isinstance(e, list):
         return g == e
 

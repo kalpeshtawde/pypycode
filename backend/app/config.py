@@ -6,10 +6,15 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    db_url = os.environ.get("DATABASE_URL", "")
     if os.environ.get("CELERY_WORKER") == "1":
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_pre_ping": True,
             "poolclass": NullPool,
+        }
+    elif db_url.startswith("sqlite") or not db_url:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
         }
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {
