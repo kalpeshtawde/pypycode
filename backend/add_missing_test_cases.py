@@ -116,6 +116,16 @@ def generate_new_input_arg(existing_values: list[Any]) -> Any:
     return sample
 
 
+def is_json_serializable(value: Any) -> bool:
+    """Checks if a given value is JSON-serializable."""
+    try:
+        import json
+        json.dumps(value)
+        return True
+    except (TypeError, OverflowError):
+        return False
+
+
 def add_missing_test_cases(target_minimum_tests: int = 5):
     """
     Scans the database for problems with fewer than target_minimum_tests active test cases.
@@ -136,6 +146,10 @@ def add_missing_test_cases(target_minimum_tests: int = 5):
             num_active = len(active_tcs)
 
             if num_active >= target_minimum_tests:
+                continue
+
+            if problem.execution_model and problem.execution_model != "function":
+                print(f"  [Skip] Non-function execution model '{problem.execution_model}' is not supported for auto-generation.")
                 continue
 
             print(f"\nProblem '{problem.slug}' has only {num_active} active test cases.")
@@ -211,6 +225,9 @@ def add_missing_test_cases(target_minimum_tests: int = 5):
                     expected_output = func(*args_copy)
                 except Exception as e:
                     # If it raises an exception (e.g. invalid inputs generated), skip this attempt
+                    continue
+
+                if not is_json_serializable(expected_output):
                     continue
 
                 # Create and persist new test case
