@@ -193,7 +193,7 @@ def problem_to_dict(p: Problem, hide_tests=True):
         "examples": p.examples,
         "tags": p.tags or [],
         "comparisonStrategy": p.comparison_strategy,
-        "createdAt": p.created_at.isoformat(),
+        "createdAt": p.created_at.isoformat() if p.created_at else None,
     }
     if not hide_tests and p.test_cases:
         data["testCases"] = [
