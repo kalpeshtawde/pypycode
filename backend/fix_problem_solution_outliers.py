@@ -75,9 +75,9 @@ def _validate(problem: Problem, code: str, function_name: str):
         "prelude": any(tag in {"linked-list", "tree", "binary-tree"} for tag in (problem.tags or [])),
         "test_cases": [
             {
-                "args": _parse_args(tc.input),
-                "kwargs": {},
-                "expected": _parse_value(tc.expected_output),
+                "args": tc.test_input.get("args", []),
+                "kwargs": tc.test_input.get("kwargs", {}),
+                "expected": tc.expected_output,
             }
             for tc in tcs
         ],
@@ -102,13 +102,12 @@ def fix_generate_parentheses(problem: Problem):
     return res
 """
     for tc in [x for x in problem.test_cases if x.is_active]:
-        args = _parse_args(tc.input)
+        args = tc.test_input.get("args", [])
         n = args[0] if args else 0
         namespace = {}
         exec(code, namespace)
         expected = namespace["generateParentheses"](n)
-        tc.function = "generateParentheses"
-        tc.expected_output = _serialize(expected)
+        tc.expected_output = expected
 
     problem.comparison_strategy = "unordered"
     _ensure_solution(problem, "generateParentheses", code, "Hand-authored fix for non-standard expected outputs")
@@ -144,11 +143,10 @@ def fix_n_queens(problem: Problem):
     exec(code, namespace)
 
     for tc in [x for x in problem.test_cases if x.is_active]:
-        args = _parse_args(tc.input)
+        args = tc.test_input.get("args", [])
         n = args[0] if args else 0
         expected = namespace["nQueens"](n)
-        tc.function = "nQueens"
-        tc.expected_output = _serialize(expected)
+        tc.expected_output = expected
 
     problem.comparison_strategy = "exact"
     _ensure_solution(problem, "nQueens", code, "Hand-authored fix for count-based expected outputs")
@@ -174,11 +172,10 @@ def fix_permutations(problem: Problem):
     exec(code, namespace)
 
     for tc in [x for x in problem.test_cases if x.is_active]:
-        args = _parse_args(tc.input)
+        args = tc.test_input.get("args", [])
         arr = args[0] if args else []
         expected = namespace["permute"](arr[:])
-        tc.function = "permute"
-        tc.expected_output = _serialize(expected)
+        tc.expected_output = expected
 
     problem.comparison_strategy = "unordered_nested"
     _ensure_solution(problem, "permute", code, "Hand-authored fix for mixed permutation expectations")
@@ -197,11 +194,10 @@ def fix_rotate_image(problem: Problem):
     exec(code, namespace)
 
     for tc in [x for x in problem.test_cases if x.is_active]:
-        args = _parse_args(tc.input)
+        args = tc.test_input.get("args", [])
         mat = args[0] if args else []
         expected = namespace["rotate"](mat)
-        tc.function = "rotate"
-        tc.expected_output = _serialize(expected)
+        tc.expected_output = expected
 
     problem.comparison_strategy = "exact"
     _ensure_solution(problem, "rotate", code, "Hand-authored fix for row-assertion expected outputs")
@@ -212,19 +208,44 @@ def fix_serialize_tree(problem: Problem):
     return values
 """
     for tc in [x for x in problem.test_cases if x.is_active]:
-        args = _parse_args(tc.input)
+        args = tc.test_input.get("args", [])
         value = args[0] if args else []
-        tc.function = "solution"
-        tc.expected_output = _serialize(value)
+        tc.expected_output = value
 
     problem.comparison_strategy = "exact"
     _ensure_solution(problem, "solution", code, "Hand-authored fix for invalid function name in test cases")
+
+
+def fix_generate_all_subsets(problem: Problem):
+    code = """def subsets(nums):
+    res = []
+    def backtrack(start, path):
+        res.append(path[:])
+        for i in range(start, len(nums)):
+            path.append(nums[i])
+            backtrack(i + 1, path)
+            path.pop()
+    backtrack(0, [])
+    return res
+"""
+    namespace = {}
+    exec(code, namespace)
+
+    for tc in [x for x in problem.test_cases if x.is_active]:
+        args = tc.test_input.get("args", [])
+        arr = args[0] if args else []
+        expected = namespace["subsets"](arr[:])
+        tc.expected_output = expected
+
+    problem.comparison_strategy = "unordered_nested"
+    _ensure_solution(problem, "subsets", code, "Hand-authored fix for subsets power set")
 
 
 def main():
     app = create_app()
     with app.app_context():
         actions = {
+            "generate-all-subsets": fix_generate_all_subsets,
             "generate-parentheses": fix_generate_parentheses,
             "n-queens-puzzle": fix_n_queens,
             "permutations-of-list": fix_permutations,

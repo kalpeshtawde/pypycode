@@ -49,10 +49,10 @@ def _build_test_cases(problem: Problem) -> list[dict]:
     for tc in active:
         converted.append(
             {
-                "function": tc.function or "solution",
-                "args": _parse_args(tc.input),
-                "kwargs": {},
-                "expected": _parse_serialized_value(tc.expected_output),
+                "function": problem.function_name or "solution",
+                "args": tc.test_input.get("args", []),
+                "kwargs": tc.test_input.get("kwargs", {}),
+                "expected": tc.expected_output,
                 "tc": tc,
             }
         )
