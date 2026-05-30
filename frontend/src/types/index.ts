@@ -71,9 +71,18 @@ export interface UserProfile {
   firstName: string | null;
   lastName: string | null;
   screenName: string | null;
+  isAdmin: boolean;
   createdAt: string | null;
   stats: ProfileStats;
   activity: ProfileActivity[];
+}
+
+export interface FeatureFlag {
+  id: string;
+  name: string;
+  enabled: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface BillingTrialStatus {

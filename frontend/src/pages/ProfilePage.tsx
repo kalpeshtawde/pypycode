@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
-import type { BillingAccessStatus, UserProfile } from "../types";
+import type { BillingAccessStatus, UserProfile, FeatureFlag } from "../types";
 
 export default function ProfilePage() {
   const { token, setAuth, logout } = useAuthStore();
@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [billingStatus, setBillingStatus] = useState<BillingAccessStatus | null>(null);
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
+  const [loadingFlags, setLoadingFlags] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -57,9 +59,33 @@ export default function ProfilePage() {
       .catch(() => setBillingStatus(null));
   }, [token, navigate, logout]);
 
+  useEffect(() => {
+    if (!token || !profile?.isAdmin) return;
+
+    setLoadingFlags(true);
+    api
+      .get<{ featureFlags: FeatureFlag[] }>("/feature-flags/", token)
+      .then((res) => setFeatureFlags(res.featureFlags))
+      .catch(() => setFeatureFlags([]))
+      .finally(() => setLoadingFlags(false));
+  }, [token, profile?.isAdmin]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleToggleFlag = async (flagId: string, currentEnabled: boolean) => {
+    if (!token) return;
+
+    try {
+      const updated = await api.put<FeatureFlag>(`/feature-flags/${flagId}`, { enabled: !currentEnabled }, token);
+      setFeatureFlags((prev) =>
+        prev.map((flag) => (flag.id === flagId ? { ...flag, enabled: updated.enabled } : flag))
+      );
+    } catch (err: unknown) {
+      console.error("Failed to toggle feature flag:", err);
+    }
   };
 
   useEffect(() => {
@@ -277,6 +303,37 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {profile.isAdmin && (
+              <div className="mt-8 border-t border-slate-200 pt-6">
+                <h3 className="text-slate-900 font-semibold mb-3">Feature Flags</h3>
+                {loadingFlags ? (
+                  <p className="text-slate-500 text-sm">Loading feature flags...</p>
+                ) : featureFlags.length === 0 ? (
+                  <p className="text-slate-500 text-sm">No feature flags configured.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {featureFlags.map((flag) => (
+                      <div key={flag.id} className="flex items-center justify-between py-2">
+                        <span className="text-sm text-slate-700">{flag.name}</span>
+                        <button
+                          onClick={() => handleToggleFlag(flag.id, flag.enabled)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            flag.enabled ? "bg-emerald-600" : "bg-slate-200"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              flag.enabled ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

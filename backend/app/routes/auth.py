@@ -404,6 +404,7 @@ def profile():
         firstName=user.first_name,
         lastName=user.last_name,
         screenName=user.screen_name,
+        isAdmin=user.is_admin,
         createdAt=user.created_at.isoformat() if user.created_at else None,
         stats={
             "totalSubmissions": total_submissions,
