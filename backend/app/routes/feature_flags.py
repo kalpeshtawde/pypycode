@@ -111,3 +111,11 @@ def delete_feature_flag(flag_id: str):
     db.session.commit()
 
     return jsonify({"message": "Feature flag deleted"}), 200
+
+
+@feature_flags_bp.get("/check/<flag_name>")
+def check_feature_flag(flag_name: str):
+    """Check if a specific feature flag is enabled (public endpoint)"""
+    flag = FeatureFlag.query.filter_by(name=flag_name).first()
+    enabled = flag.enabled if flag else False
+    return jsonify({"enabled": enabled})

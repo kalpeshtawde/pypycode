@@ -13,6 +13,7 @@ export default function Layout() {
   const authLink = `/auth?redirect=${encodeURIComponent(authRedirectPath)}`;
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
   const [loadingAccessStatus, setLoadingAccessStatus] = useState(false);
+  const [billingEnabled, setBillingEnabled] = useState(false);
 
   useEffect(() => {
     if (token && !user) {
@@ -35,6 +36,13 @@ export default function Layout() {
       .catch(() => setAccessStatus(null))
       .finally(() => setLoadingAccessStatus(false));
   }, [token, location.pathname]);
+
+  useEffect(() => {
+    api
+      .get<{ enabled: boolean }>("/feature-flags/check/Billing")
+      .then((res) => setBillingEnabled(res.enabled))
+      .catch(() => setBillingEnabled(false));
+  }, []);
 
   useEffect(() => {
     if (!token || loadingAccessStatus || !accessStatus) {
@@ -200,12 +208,14 @@ export default function Layout() {
             >
               Leaderboard
             </NavLink>
-            <NavLink 
-              to="/pricing" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Pricing
-            </NavLink>
+            {billingEnabled && (
+              <NavLink 
+                to="/pricing" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                Pricing
+              </NavLink>
+            )}
             <NavLink 
               to="/contact" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
@@ -288,7 +298,7 @@ export default function Layout() {
         </nav>
       </header>
 
-      {accessStatus?.accessStatus === "trialing" && (
+      {accessStatus?.accessStatus === "trialing" && billingEnabled && (
         <div className="w-full px-4 py-2 bg-amber-50 border-b border-amber-200">
           <div className="max-w-5xl mx-auto flex items-center justify-center gap-2">
             <svg className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
