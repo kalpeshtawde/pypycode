@@ -14,6 +14,7 @@ function ProblemCell({
   canOpenProblem,
   onMissingProject,
   hasBillingAccess,
+  billingEnabled,
 }: {
   problem: Problem;
   solvedProblems: number[];
@@ -22,9 +23,10 @@ function ProblemCell({
   canOpenProblem: boolean;
   onMissingProject: () => void;
   hasBillingAccess?: boolean;
+  billingEnabled?: boolean;
 }) {
   const isSolved = solvedProblems.includes(problem.id);
-  
+
   const difficultyColors = {
     easy: '#10B981',
     medium: '#F59E0B',
@@ -40,12 +42,13 @@ function ProblemCell({
   const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
   const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
-  // If logged in but no billing access, go to pricing
+  // If billing is disabled, skip pricing redirect
+  const shouldCheckBilling = billingEnabled ?? false;
   const problemLink = !isLoggedIn
     ? authRedirectPath
-    : hasBillingAccess
-    ? targetPath
-    : pricingRedirectPath;
+    : shouldCheckBilling && !hasBillingAccess
+    ? pricingRedirectPath
+    : targetPath;
 
   return (
     <Link
@@ -97,6 +100,7 @@ export default function ProblemsPage() {
   const isLoggedIn = Boolean(token);
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
   const hasBillingAccess = accessStatus?.accessStatus === "subscribed" || accessStatus?.accessStatus === "trialing";
+  const [billingEnabled, setBillingEnabled] = useState(false);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [allProblemsForStats, setAllProblemsForStats] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
@@ -516,6 +520,13 @@ export default function ProblemsPage() {
       .then((res) => setAccessStatus(res))
       .catch(() => setAccessStatus(null));
   }, [token]);
+
+  useEffect(() => {
+    api
+      .get<{ enabled: boolean }>("/feature-flags/check/Billing")
+      .then((res) => setBillingEnabled(res.enabled))
+      .catch(() => setBillingEnabled(false));
+  }, []);
 
   // Fetch user's favorite problem IDs
   useEffect(() => {
@@ -1072,6 +1083,7 @@ export default function ProblemsPage() {
                       canOpenProblem={hasActiveProject}
                       onMissingProject={promptCreateProject}
                       hasBillingAccess={hasBillingAccess}
+                      billingEnabled={billingEnabled}
                     />
                   </div>
                 ))}
@@ -1352,12 +1364,13 @@ export default function ProblemsPage() {
                 const pricingRedirectPath = `/pricing?required=1&redirect=${encodeURIComponent(targetPath)}`;
                 const authRedirectPath = `/auth?redirect=${encodeURIComponent(pricingRedirectPath)}`;
 
-                // If logged in but no billing access, go to pricing
+                // If billing is disabled, skip pricing redirect
+                const shouldCheckBilling = billingEnabled ?? false;
                 const problemLink = !isLoggedIn
                   ? authRedirectPath
-                  : hasBillingAccess
-                  ? targetPath
-                  : pricingRedirectPath;
+                  : shouldCheckBilling && !hasBillingAccess
+                  ? pricingRedirectPath
+                  : targetPath;
 
                 const isFavorite = favoriteProblemIds.has(p.id);
 

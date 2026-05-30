@@ -49,13 +49,18 @@ export default function Layout() {
       return;
     }
 
+    // If billing is disabled, skip the pricing redirect flow
+    if (!billingEnabled) {
+      return;
+    }
+
     const hasAccess = accessStatus.accessStatus === "subscribed" || accessStatus.accessStatus === "trialing";
     const isPublicPath = location.pathname === "/auth" || location.pathname === "/pricing" || location.pathname === "/problems";
     const isProblemDetail = location.pathname.startsWith("/problems/") && location.pathname !== "/problems/";
     if (!hasAccess && !isPublicPath && isProblemDetail) {
       navigate(`/pricing?required=1&redirect=${encodeURIComponent(authRedirectPath)}`, { replace: true });
     }
-  }, [token, loadingAccessStatus, accessStatus, location.pathname, authRedirectPath, navigate]);
+  }, [token, loadingAccessStatus, accessStatus, location.pathname, authRedirectPath, navigate, billingEnabled]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
