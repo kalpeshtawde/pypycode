@@ -25,6 +25,7 @@ class UserForm(BaseForm):
     first_name = StringField('First Name')
     last_name = StringField('Last Name')
     screen_name = StringField('Screen Name')
+    is_admin = BooleanField('Is Admin')
     google_id = StringField('Google ID')
     subscription_status = StringField('Subscription Status')
     trial_used = BooleanField('Trial Used')
@@ -34,13 +35,13 @@ class UserForm(BaseForm):
 
 class UserAdmin(ModelView):
     column_list = [
-        'id', 'username', 'email', 'first_name', 'last_name', 'screen_name',
+        'id', 'username', 'email', 'first_name', 'last_name', 'screen_name', 'is_admin',
         'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at',
         'google_id', 'created_at'
     ]
     column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'screen_name']
-    column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name', 'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at']
-    column_filters = ['subscription_status', 'trial_used', 'created_at']
+    column_sortable_list = ['created_at', 'first_name', 'last_name', 'screen_name', 'is_admin', 'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at']
+    column_filters = ['is_admin', 'subscription_status', 'trial_used', 'created_at']
     form = UserForm
     can_create = False
     can_delete = False

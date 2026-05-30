@@ -413,6 +413,9 @@ def delete_project(project_id):
     if not project:
         return jsonify(error="Project not found"), 404
 
+    if project.is_default:
+        return jsonify(error="Cannot delete the default project"), 400
+
     was_default = project.is_default
     deleted_submissions = Submission.query.filter_by(
         user_id=user_id,

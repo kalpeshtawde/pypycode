@@ -1672,9 +1672,15 @@ export default function ProblemsPage() {
               <p className="text-sm text-slate-500 mt-1">This action cannot be undone.</p>
             </div>
             <div className="px-6 py-5">
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Deleting <span className="font-semibold">{selectedProject?.name || "this project"}</span> will remove all progress and submissions under this project.
-              </div>
+              {selectedProject?.isDefault ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  The default project <span className="font-semibold">{selectedProject?.name || "this project"}</span> cannot be deleted.
+                </div>
+              ) : (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Deleting <span className="font-semibold">{selectedProject?.name || "this project"}</span> will remove all progress and submissions under this project.
+                </div>
+              )}
               {deleteProjectError && (
                 <div className="mt-3 text-sm text-red-600">{deleteProjectError}</div>
               )}
@@ -1692,8 +1698,8 @@ export default function ProblemsPage() {
               </button>
               <button
                 onClick={handleDeleteProject}
-                disabled={deletingProject}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+                disabled={deletingProject || selectedProject?.isDefault}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed"
               >
                 {deletingProject ? "Deleting..." : "Delete Project"}
               </button>

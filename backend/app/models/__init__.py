@@ -14,6 +14,7 @@ class User(db.Model):
     first_name = db.Column(db.String(128), nullable=True)
     last_name = db.Column(db.String(128), nullable=True)
     screen_name = db.Column(db.String(64), unique=True, nullable=True)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
     subscription_status = db.Column(db.String(64), nullable=False, default="none")
     trial_started_at = db.Column(db.DateTime, nullable=True)
     trial_ends_at = db.Column(db.DateTime, nullable=True)
