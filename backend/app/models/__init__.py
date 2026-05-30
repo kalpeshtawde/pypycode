@@ -222,6 +222,7 @@ class Favorite(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship("User", back_populates="favorites")
+    problem = db.relationship("Problem")
 
 
 class FeatureFlag(db.Model):

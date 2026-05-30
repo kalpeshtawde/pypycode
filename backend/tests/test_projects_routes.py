@@ -116,7 +116,7 @@ def test_set_default_project(client, auth_headers, app_ctx, user):
 
 
 def test_delete_project_removes_project_and_submissions(client, auth_headers, app_ctx, user, problem):
-    project = Project(user_id=user.id, name="ToDelete", is_default=True)
+    project = Project(user_id=user.id, name="ToDelete", is_default=False)
     db.session.add(project)
     db.session.commit()
 
