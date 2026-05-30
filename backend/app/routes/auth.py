@@ -4,7 +4,7 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from sqlalchemy import func
 from app import db
-from app.models import User, Submission, Problem
+from app.models import User, Submission, Problem, Project, ProblemProjectStat
 import os
 import logging
 
@@ -158,6 +158,9 @@ def google_auth():
         db.session.add(new_user)
         db.session.commit()
         
+        # Create default 'Solve All Problems' project
+        _create_solve_all_problems_project(str(new_user.id))
+        
         token = create_access_token(identity=str(new_user.id))
         return jsonify(
             token=token,
@@ -173,6 +176,39 @@ def google_auth():
     except Exception as e:
         logger.exception("Unexpected error during Google auth")
         return jsonify(error=str(e)), 500
+
+
+def _create_solve_all_problems_project(user_id: str):
+    """Creates a default project 'Solve All Problems' containing all active problems."""
+    import uuid
+    existing = Project.query.filter_by(user_id=user_id, name="Solve All Problems").first()
+    if existing:
+        return
+        
+    problems = Problem.query.order_by(Problem.created_at.desc(), Problem.id.asc()).all()
+    has_projects = Project.query.filter_by(user_id=user_id).first() is not None
+    
+    project = Project(
+        user_id=user_id,
+        name="Solve All Problems",
+        is_default=not has_projects,
+        goal="Solve all coding challenges to master algorithms and data structures.",
+        explanation="This is your default curriculum project. It automatically contains all available problems."
+    )
+    db.session.add(project)
+    db.session.flush()
+    
+    stats = [
+        ProblemProjectStat(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            problem_id=p.id,
+            project_id=project.id
+        )
+        for p in problems
+    ]
+    db.session.bulk_save_objects(stats)
+    db.session.commit()
 
 
 @auth_bp.post("/signup")
@@ -227,6 +263,9 @@ def signup():
     
     db.session.add(new_user)
     db.session.commit()
+    
+    # Create default 'Solve All Problems' project
+    _create_solve_all_problems_project(str(new_user.id))
     
     token = create_access_token(identity=str(new_user.id))
     return jsonify(
