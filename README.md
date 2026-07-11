@@ -76,6 +76,21 @@ backend/.venv/bin/pytest -q backend/tests
 backend/.venv/bin/pytest --cov=backend/app backend/tests
 ```
 
+### Running Scripts Against Local Database
+
+To run backend scripts (e.g., `validate_all_problems.py`) against your local Docker Postgres:
+
+```bash
+export DATABASE_URL="postgresql://pypycode:CHANGE_ME@localhost:5432/pypycode"
+python validate_all_problems.py
+```
+
+Or run inside the Docker container (recommended):
+
+```bash
+docker exec pypycode_api_1 python validate_all_problems.py
+```
+
 **Test structure:**
 ```
 backend/tests/
@@ -98,19 +113,17 @@ backend/tests/
 
 ### Validate Problems
 
-Validate all problems in the database have valid test cases and required fields:
+Validate all problems in the database by running their solutions against test cases:
 
 ```bash
-# Local development
-cd backend
-flask validate-problems
+# Docker (with live output)
+docker exec -it pypycode_api_1 python validate_all_problems.py
 
-# Docker
-docker compose exec api flask validate-problems
-
-# Production
-docker compose -f docker-compose.prod.yml exec api flask validate-problems
+# Validate specific problem
+docker exec -it pypycode_api_1 python validate_all_problems.py --problem check-prime-number
 ```
+
+This runs each problem's reference solution against all its test cases and reports pass/fail status.
 
 **What it checks:**
 - Required fields (slug, title, difficulty)
