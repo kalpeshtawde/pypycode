@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
+import { useSEO } from "../hooks/useSEO";
+import { getProblemsMetadata } from "../utils/seo";
 import type { Problem, Project, BillingAccessStatus } from "../types";
 
 const QUICK_FILTERS = ["all", "easy", "medium", "hard", "solved", "favorite"] as const;
@@ -98,6 +100,9 @@ function ProblemCell({
 export default function ProblemsPage() {
   const { token } = useAuthStore();
   const isLoggedIn = Boolean(token);
+  
+  useSEO(getProblemsMetadata());
+  
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
   const hasBillingAccess = accessStatus?.accessStatus === "subscribed" || accessStatus?.accessStatus === "trialing";
   const [billingEnabled, setBillingEnabled] = useState(false);

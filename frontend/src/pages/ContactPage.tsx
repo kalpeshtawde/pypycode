@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
+import { useSEO } from "../hooks/useSEO";
+import { getContactMetadata } from "../utils/seo";
 
 interface ContactFormData {
   name: string;
@@ -11,6 +13,9 @@ interface ContactFormData {
 
 export default function ContactPage() {
   const { user } = useAuthStore();
+  
+  useSEO(getContactMetadata());
+  
   const [formData, setFormData] = useState<ContactFormData>({
     name: "",
     email: "",

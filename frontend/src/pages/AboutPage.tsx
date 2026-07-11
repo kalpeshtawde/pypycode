@@ -1,4 +1,9 @@
+import { useSEO } from "../hooks/useSEO";
+import { getAboutMetadata } from "../utils/seo";
+
 export default function AboutPage() {
+  useSEO(getAboutMetadata());
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 py-16">
       <div className="max-w-3xl mx-auto px-6">

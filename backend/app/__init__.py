@@ -59,6 +59,7 @@ def create_app():
     from app.routes.billing import billing_bp
     from app.routes.favorites import favorites_bp
     from app.routes.feature_flags import feature_flags_bp
+    from app.routes.seo import seo_bp
     from app.routes import auth, problems, projects, submissions, leaderboard, contact, billing, favorites, feature_flags
     from app.routes.contact import contact_bp
     from app.api_docs import register_api_docs
@@ -72,6 +73,7 @@ def create_app():
     app.register_blueprint(billing_bp, url_prefix="/billing")
     app.register_blueprint(favorites_bp, url_prefix="/favorites")
     app.register_blueprint(feature_flags_bp, url_prefix="/feature-flags")
+    app.register_blueprint(seo_bp)
     register_api_docs(app)
 
     if os.environ.get("DEV_ENDPOINTS_ENABLED", "false").lower() == "true":

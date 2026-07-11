@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../utils/api";
+import { useSEO } from "../hooks/useSEO";
+import { getLeaderboardMetadata } from "../utils/seo";
 import type { LeaderboardEntry } from "../types";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -7,6 +9,8 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  useSEO(getLeaderboardMetadata());
 
   useEffect(() => {
     api.get<LeaderboardEntry[]>("/leaderboard/")

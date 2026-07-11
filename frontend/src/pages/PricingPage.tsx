@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../hooks/useAuth";
+import { useSEO } from "../hooks/useSEO";
+import { getPricingMetadata } from "../utils/seo";
 import type { BillingAccessStatus, BillingSubscriptionSnapshot } from "../types";
 import { api } from "../utils/api";
 
@@ -27,6 +29,8 @@ export default function PricingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const authLink = `/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+  
+  useSEO(getPricingMetadata());
 
   const [pricing, setPricing] = useState<PricingResponse | null>(null);
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);

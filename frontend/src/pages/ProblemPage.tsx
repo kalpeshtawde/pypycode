@@ -3,6 +3,8 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
+import { useSEO } from "../hooks/useSEO";
+import { getProblemMetadata, createProblemStructuredData } from "../utils/seo";
 import CodeMirrorEditor from "../components/CodeMirrorEditor";
 import type { Problem, Project, Submission, TestCase } from "../types";
 
@@ -300,6 +302,7 @@ export default function ProblemPage() {
     codeLoadedRef.current = false;
     api.get<Problem>(`/problems/${slug}`).then((p) => {
       setProblem(p);
+      useSEO(getProblemMetadata(p), createProblemStructuredData(p));
       // Load saved code from localStorage, or fall back to starter code
       const savedCode = localStorage.getItem(`pypycode:code:${p.slug}`);
       setCode(savedCode || p.starterCode);
