@@ -125,6 +125,31 @@ docker exec -it pypycode_api_1 python validate_all_problems.py --problem check-p
 
 This runs each problem's reference solution against all its test cases and reports pass/fail status.
 
+### Get Solution Code
+
+Print the reference solution for a problem by slug:
+
+```bash
+docker exec pypycode_api_1 flask get-solution check-prime-number
+```
+
+Output:
+```python
+# Solution for: Check Prime Number
+# Problem slug: check-prime-number
+# Difficulty: easy
+
+def isPrime(n):
+    if n < 2:
+        return False
+    for i in range(2, int(n ** 0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+```
+
+You can copy this code directly and run it locally.
+
 **What it checks:**
 - Required fields (slug, title, difficulty)
 - Test cases exist and have required fields (function, expected, input/args)

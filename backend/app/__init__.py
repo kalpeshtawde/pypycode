@@ -195,6 +195,33 @@ def create_app():
             print("All problems validated successfully!")
             sys.exit(0)
 
+    @app.cli.command("get-solution")
+    @click.argument("slug")
+    def get_solution(slug: str):
+        """Print the solution code for a problem by slug."""
+        from app.models import Problem, ProblemSolution
+
+        problem = Problem.query.filter_by(slug=slug).first()
+        if not problem:
+            click.echo(f"❌ Problem '{slug}' not found", err=True)
+            sys.exit(1)
+
+        solution = ProblemSolution.query.filter_by(
+            problem_id=problem.id,
+            is_active=True
+        ).first()
+
+        if not solution:
+            click.echo(f"❌ No active solution found for '{slug}'", err=True)
+            sys.exit(1)
+
+        # Print formatted solution
+        click.echo(f"# Solution for: {problem.title}")
+        click.echo(f"# Problem slug: {slug}")
+        click.echo(f"# Difficulty: {problem.difficulty}")
+        click.echo()
+        click.echo(solution.code)
+
     @app.cli.command("sync-remote-db")
     @click.option("--env-file", default=".env.db-sync", show_default=True, help="Path to env file with SSH and DB settings")
     @click.option("--yes", is_flag=True, help="Skip confirmation prompt before local DB overwrite")
