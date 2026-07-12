@@ -29,12 +29,12 @@ def sitemap():
             "priority": priority,
         })
     
-    # Problems
-    problems = Problem.query.filter_by(is_active=True).all()
+    # Problems (all problems are included)
+    problems = Problem.query.all()
     for problem in problems:
         urls.append({
             "loc": f"{base_url}/problems/{problem.slug}",
-            "lastmod": problem.updated_at.isoformat() if problem.updated_at else None,
+            "lastmod": problem.created_at.isoformat() if problem.created_at else None,
             "changefreq": "weekly",
             "priority": 0.8,
         })
@@ -49,12 +49,12 @@ def sitemap_problems():
     base_url = "https://pypycode.com"
     
     urls = []
-    problems = Problem.query.filter_by(is_active=True).all()
+    problems = Problem.query.all()
     
     for problem in problems:
         urls.append({
             "loc": f"{base_url}/problems/{problem.slug}",
-            "lastmod": problem.updated_at.isoformat() if problem.updated_at else None,
+            "lastmod": problem.created_at.isoformat() if problem.created_at else None,
             "changefreq": "weekly",
             "priority": 0.8,
         })
