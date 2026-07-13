@@ -156,6 +156,21 @@ export default function Footer() {
             PyPyCode - Python Problem Solving Platform
           </p>
         </div>
+
+        {/* Developer Credit */}
+        <div className="border-t border-slate-200 mt-8 pt-8 text-center">
+          <p className="text-slate-600 text-sm">
+            Developed & maintained by{" "}
+            <a 
+              href="https://ishasystems.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+            >
+              ISHA Systems
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );
