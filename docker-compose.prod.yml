@@ -55,6 +55,14 @@ services:
       - STRIPE_CURRENCY=${STRIPE_CURRENCY}
       - FRONTEND_URL=${FRONTEND_URL}
       - VEGA_SERVICE_URL=http://vega:5001
+      # Email configuration
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - MAIL_ADMIN_EMAIL=${MAIL_ADMIN_EMAIL}
     depends_on:
       - redis
     restart: unless-stopped
@@ -74,6 +82,14 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - SANDBOX_IMAGE=pypycode-sandbox:latest
+      # Email configuration
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - MAIL_ADMIN_EMAIL=${MAIL_ADMIN_EMAIL}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyPyCode — Facebook Feed Ad Creative (Pricing)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600&family=DM+Sans:wght@400;500;600&family=Reddit+Sans:wght@700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .ad-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Square 1080x1080 canvas */
+        .ad-square {
+            width: 1080px;
+            height: 1080px;
+            max-height: 1080px;
+            background:
+                radial-gradient(circle at 78% 8%, rgba(37, 99, 235, 0.06), transparent 42%),
+                radial-gradient(circle at 15% 92%, rgba(22, 163, 74, 0.06), transparent 45%),
+                linear-gradient(180deg, #FBFCFE 0%, #F4F6FB 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 64px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Logo pinned top-left */
+        .logo-corner {
+            position: absolute;
+            top: 60px;
+            left: 64px;
+        }
+
+        /* Centered content group */
+        .content-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            width: 100%;
+            margin-top: 64px;
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: fit-content;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 7px;
+            background: #0F172A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .logo-prompt {
+            font-family: "Reddit Sans", monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #2563EB;
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            line-height: 1;
+        }
+
+        .logo-cursor {
+            width: 6px;
+            height: 11px;
+            background: #6366F1;
+            border-radius: 1px;
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .logo-wordmark {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: baseline;
+        }
+
+        .logo-blue {
+            color: #2563EB;
+        }
+
+        .logo-dark {
+            color: #0F172A;
+        }
+
+        /* Tagline above price comparison */
+        .tagline {
+            font-family: 'Fraunces', serif;
+            font-size: 34px;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #0F172A;
+            text-align: center;
+        }
+
+        .tagline .muted {
+            color: #64748B;
+        }
+
+        /* Price comparison section */
+        .price-comparison {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 28px;
+            position: relative;
+        }
+
+        .price-card {
+            width: 240px;
+            padding: 24px 20px;
+            border-radius: 12px;
+            text-align: center;
+            position: relative;
+        }
+
+        .price-card.competitor {
+            background: #FFFFFF;
+            border: 2px solid #D1D5DB;
+        }
+
+        .price-card.pypycode {
+            background: #FFFFFF;
+            border: 3px solid #16A34A;
+        }
+
+        .price-badge {
+            position: absolute;
+            top: -12px;
+            right: 12px;
+            background: #F59E0B;
+            color: #0F172A;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .price-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .price-amount {
+            font-size: 76px;
+            font-weight: 700;
+            color: #0F172A;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .price-card.competitor .price-amount {
+            color: #94A3B8;
+        }
+
+        .price-card.pypycode .price-amount {
+            color: #16A34A;
+        }
+
+        .price-period {
+            font-size: 16px;
+            font-weight: 400;
+            color: #94A3B8;
+            margin-bottom: 12px;
+        }
+
+        .price-subtext {
+            font-size: 15px;
+            font-weight: 500;
+            color: #16A34A;
+            line-height: 1.4;
+        }
+
+        .price-divider {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #CBD5E1;
+            font-weight: 300;
+            z-index: 10;
+        }
+
+        /* Headline group */
+        .headline-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .headline {
+            font-family: 'Fraunces', serif;
+            font-size: 46px;
+            font-weight: 600;
+            line-height: 1.15;
+            color: #0F172A;
+            text-align: center;
+        }
+
+        .headline .accent {
+            color: #16A34A;
+        }
+
+        /* Supporting copy */
+        .copy {
+            font-size: 19px;
+            font-weight: 400;
+            color: #64748B;
+            text-align: center;
+            line-height: 1.5;
+            max-width: 620px;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cta-button {
+            background: #16A34A;
+            color: #FFFFFF;
+            border: none;
+            padding: 16px 36px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms ease;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #15803D;
+            transform: translateY(-2px);
+        }
+
+        .cta-subtext {
+            font-size: 13px;
+            color: #94A3B8;
+            font-weight: 400;
+        }
+
+        /* Code editor mockup */
+        .code-editor {
+            width: 520px;
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            text-align: left;
+        }
+
+        .editor-header {
+            background: #F8FAFC;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .traffic-lights {
+            display: flex;
+            gap: 6px;
+        }
+
+        .light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .light-red { background: #FF5F56; }
+        .light-yellow { background: #FFBD2E; }
+        .light-green { background: #27C93F; }
+
+        .filename {
+            font-family: 'Reddit Sans', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: #0F172A;
+            margin-left: 12px;
+        }
+
+        .editor-body {
+            padding: 16px 18px;
+            background: #FFFFFF;
+            font-family: 'Reddit Sans', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #0F172A;
+        }
+
+        .code-line { white-space: pre; }
+        .keyword { color: #6366F1; font-weight: 600; }
+        .function { color: #2563EB; }
+
+        .test-result {
+            padding: 12px 18px;
+            background: #F0FDF4;
+            border-top: 1px solid #E2E8F0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #059669;
+        }
+
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            background: #16A34A;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .label {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748B;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <!-- Square 1080x1080 -->
+        <div>
+            <div class="ad-square">
+                <!-- Logo pinned top-left -->
+                <div class="logo logo-corner">
+                    <div class="logo-icon">
+                        <span class="logo-prompt">&gt;_</span>
+                        <div class="logo-cursor"></div>
+                    </div>
+                    <span class="logo-wordmark">
+                        <span class="logo-blue">PyPy</span><span class="logo-dark">Code</span>
+                    </span>
+                </div>
+
+                <!-- Centered content group -->
+                <div class="content-group">
+                    <!-- Tagline -->
+                    <h2 class="tagline">Ace your Python technical interview.<br><span class="muted">Skip the noise.</span></h2>
+
+                    <!-- Price Comparison -->
+                    <div class="price-comparison">
+                        <!-- LeetCode Card -->
+                        <div class="price-card competitor">
+                            <div class="price-label">LeetCode Premium</div>
+                            <div class="price-amount">$35</div>
+                            <div class="price-period">/month</div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="price-divider">&gt;</div>
+
+                        <!-- PyPyCode Card -->
+                        <div class="price-card pypycode">
+                            <div class="price-badge">3 months free</div>
+                            <div class="price-label">PyPyCode</div>
+                            <div class="price-amount">$0</div>
+                            <div class="price-period">/month for 3 months</div>
+                            <div class="price-subtext">then just $5/month</div>
+                        </div>
+                    </div>
+
+                    <!-- Headline + copy -->
+                    <div class="headline-group">
+                        <h1 class="headline">Same practice. <span class="accent">Way less money.</span></h1>
+                        <p class="copy">Python-only problems, AI-generated practice projects, and a leaderboard — for a fraction of the price.</p>
+                    </div>
+
+                    <!-- CTA Section -->
+                    <div class="cta-section">
+                        <button class="cta-button">Start free →</button>
+                        <span class="cta-subtext">Free for the first 100 members only</span>
+                    </div>
+
+                    <!-- Code editor mockup -->
+                    <div class="code-editor">
+                        <div class="editor-header">
+                            <div class="traffic-lights">
+                                <div class="light light-red"></div>
+                                <div class="light light-yellow"></div>
+                                <div class="light light-green"></div>
+                            </div>
+                            <span class="filename">two_sum.py</span>
+                        </div>
+                        <div class="editor-body">
+<div class="code-line"><span class="keyword">def</span> <span class="function">two_sum</span>(nums, target):</div>
+<div class="code-line">    seen = {}</div>
+<div class="code-line">    <span class="keyword">for</span> i, num <span class="keyword">in</span> <span class="function">enumerate</span>(nums):</div>
+<div class="code-line">        <span class="keyword">if</span> target - num <span class="keyword">in</span> seen:</div>
+<div class="code-line">            <span class="keyword">return</span> [seen[target - num], i]</div>
+                        </div>
+                        <div class="test-result">
+                            <div class="checkmark">✓</div>
+                            All 3 test cases passed
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

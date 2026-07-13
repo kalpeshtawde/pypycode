@@ -70,6 +70,14 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
       # Vega service URL for HTTP calls
       - VEGA_SERVICE_URL=${VEGA_SERVICE_URL:-http://vega:5001}
+      # Email configuration
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - MAIL_ADMIN_EMAIL=${MAIL_ADMIN_EMAIL}
     depends_on:
       db:
         condition: service_healthy
@@ -96,6 +104,14 @@ services:
       - SECRET_KEY=dev-secret-key-change-in-prod
       - SANDBOX_IMAGE=pypycode-sandbox:latest
       - CELERY_WORKER=1
+      # Email configuration
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - MAIL_ADMIN_EMAIL=${MAIL_ADMIN_EMAIL}
     depends_on:
       - redis
       - db

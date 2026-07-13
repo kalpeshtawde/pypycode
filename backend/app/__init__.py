@@ -10,12 +10,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_mail import Mail
 from celery import Celery
 from app.config import CONFIGS
 
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+mail = Mail()
 celery_app = Celery(include=["app.services.runner"])
 
 
@@ -34,6 +36,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    mail.init_app(app)
 
     # Configure Celery
     celery_app.conf.update(

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyPyCode — Facebook Feed Ad Creative</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600&family=DM+Sans:wght@400;500;600&family=Reddit+Sans:wght@700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .ad-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Square 1080x1080 */
+        .ad-square {
+            width: 1080px;
+            height: 1080px;
+            background: #FFFFFF;
+            border-radius: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Portrait 1080x1350 */
+        .ad-portrait {
+            width: 1080px;
+            height: 1350px;
+            background: #FFFFFF;
+            border-radius: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            width: fit-content;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 7px;
+            background: #0F172A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .logo-prompt {
+            font-family: "Reddit Sans", monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1A6BFF;
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            line-height: 1;
+        }
+
+        .logo-cursor {
+            width: 6px;
+            height: 11px;
+            background: #6366F1;
+            border-radius: 1px;
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .logo-wordmark {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: baseline;
+        }
+
+        .logo-blue {
+            color: #1A6BFF;
+        }
+
+        .logo-dark {
+            color: #0F172A;
+        }
+
+        /* Headline */
+        .headline {
+            font-family: 'Fraunces', serif;
+            font-size: 64px;
+            font-weight: 600;
+            line-height: 1.15;
+            color: #0F172A;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .headline-accent {
+            color: #1A6BFF;
+        }
+
+        /* Supporting copy */
+        .copy {
+            font-size: 20px;
+            font-weight: 400;
+            color: #64748B;
+            text-align: center;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        /* Code editor mockup */
+        .code-editor {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .editor-header {
+            background: #F8FAFC;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .traffic-lights {
+            display: flex;
+            gap: 6px;
+        }
+
+        .light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .light-red {
+            background: #FF5F56;
+        }
+
+        .light-yellow {
+            background: #FFBD2E;
+        }
+
+        .light-green {
+            background: #27C93F;
+        }
+
+        .filename {
+            font-family: 'Reddit Sans', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: #0F172A;
+            margin-left: 12px;
+        }
+
+        .editor-body {
+            padding: 16px;
+            background: #FFFFFF;
+            font-family: 'Reddit Sans', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #0F172A;
+        }
+
+        .code-line {
+            margin-bottom: 8px;
+        }
+
+        .keyword {
+            color: #6366F1;
+            font-weight: 600;
+        }
+
+        .function {
+            color: #1A6BFF;
+        }
+
+        .string {
+            color: #059669;
+        }
+
+        .number {
+            color: #D97706;
+        }
+
+        .comment {
+            color: #94A3B8;
+        }
+
+        .test-result {
+            padding: 12px 16px;
+            background: #F0FDF4;
+            border-top: 1px solid #E2E8F0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #059669;
+        }
+
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            background: #4ADE80;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .cta-button {
+            background: #4ADE80;
+            color: #0F172A;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms ease;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #22C55E;
+            transform: translateY(-2px);
+        }
+
+        .cta-subtext {
+            font-size: 13px;
+            color: #94A3B8;
+            font-weight: 400;
+        }
+
+        /* Portrait adjustments */
+        .ad-portrait .headline {
+            font-size: 56px;
+            margin-bottom: 12px;
+        }
+
+        .ad-portrait .copy {
+            font-size: 18px;
+            margin-bottom: 24px;
+        }
+
+        .ad-portrait .code-editor {
+            margin-bottom: 24px;
+        }
+
+        .ad-portrait .editor-body {
+            font-size: 12px;
+        }
+
+        /* Responsive text sizing for smaller screens */
+        @media (max-width: 1200px) {
+            .ad-square, .ad-portrait {
+                width: 100%;
+                max-width: 1080px;
+                height: auto;
+            }
+
+            .ad-square {
+                aspect-ratio: 1;
+            }
+
+            .ad-portrait {
+                aspect-ratio: 4 / 5;
+            }
+        }
+
+        .label {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748B;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <!-- Square 1080x1080 -->
+        <div>
+            <div class="ad-square">
+                <!-- Logo -->
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="logo-prompt">&gt;_</span>
+                        <div class="logo-cursor"></div>
+                    </div>
+                    <span class="logo-wordmark">
+                        <span class="logo-blue">PyPy</span><span class="logo-dark">Code</span>
+                    </span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="headline">
+                    Practice Python.<br>
+                    <span class="headline-accent">AI builds the project.</span>
+                </h1>
+
+                <!-- Supporting copy -->
+                <p class="copy">Tell the AI what to practice — it builds a real project around it.</p>
+
+                <!-- Code editor mockup -->
+                <div class="code-editor">
+                    <div class="editor-header">
+                        <div class="traffic-lights">
+                            <div class="light light-red"></div>
+                            <div class="light light-yellow"></div>
+                            <div class="light light-green"></div>
+                        </div>
+                        <span class="filename">two_sum.py</span>
+                    </div>
+                    <div class="editor-body">
+                        <div class="code-line"><span class="keyword">def</span> <span class="function">two_sum</span>(nums, target):</div>
+                        <div class="code-line">&nbsp;&nbsp;seen = {}</div>
+                        <div class="code-line">&nbsp;&nbsp;<span class="keyword">for</span> i, num <span class="keyword">in</span> <span class="function">enumerate</span>(nums):</div>
+                        <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> target - num <span class="keyword">in</span> seen:</div>
+                        <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> [seen[target - num], i]</div>
+                    </div>
+                    <div class="test-result">
+                        <div class="checkmark">✓</div>
+                        All 3 test cases passed
+                    </div>
+                </div>
+
+                <!-- CTA Section -->
+                <div class="cta-section">
+                    <button class="cta-button">Start free →</button>
+                    <span class="cta-subtext">Free for the first 100 members — 3 months</span>
+                </div>
+            </div>
+            <div class="label">1080×1080 (Square Feed)</div>
+        </div>
+
+        <!-- Portrait 1080x1350 -->
+        <div>
+            <div class="ad-portrait">
+                <!-- Logo -->
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="logo-prompt">&gt;_</span>
+                        <div class="logo-cursor"></div>
+                    </div>
+                    <span class="logo-wordmark">
+                        <span class="logo-blue">PyPy</span><span class="logo-dark">Code</span>
+                    </span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="headline">
+                    Practice Python.<br>
+                    <span class="headline-accent">AI builds the project.</span>
+                </h1>
+
+                <!-- Supporting copy -->
+                <p class="copy">Tell the AI what to practice — it builds a real project around it.</p>
+
+                <!-- Code editor mockup -->
+                <div class="code-editor">
+                    <div class="editor-header">
+                        <div class="traffic-lights">
+                            <div class="light light-red"></div>
+                            <div class="light light-yellow"></div>
+                            <div class="light light-green"></div>
+                        </div>
+                        <span class="filename">two_sum.py</span>
+                    </div>
+                    <div class="editor-body">
+                        <div class="code-line"><span class="keyword">def</span> <span class="function">two_sum</span>(nums, target):</div>
+                        <div class="code-line">&nbsp;&nbsp;seen = {}</div>
+                        <div class="code-line">&nbsp;&nbsp;<span class="keyword">for</span> i, num <span class="keyword">in</span> <span class="function">enumerate</span>(nums):</div>
+                        <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> target - num <span class="keyword">in</span> seen:</div>
+                        <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> [seen[target - num], i]</div>
+                    </div>
+                    <div class="test-result">
+                        <div class="checkmark">✓</div>
+                        All 3 test cases passed
+                    </div>
+                </div>
+
+                <!-- CTA Section -->
+                <div class="cta-section">
+                    <button class="cta-button">Start free →</button>
+                    <span class="cta-subtext">Free for the first 100 members — 3 months</span>
+                </div>
+            </div>
+            <div class="label">1080×1350 (Portrait Feed)</div>
+        </div>
+    </div>
+</body>
+</html>

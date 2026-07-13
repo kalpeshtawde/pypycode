@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app import db
 from app.models import Contact
+from app.services.email import send_contact_confirmation_email, send_contact_notification_email
 from datetime import datetime, timezone
 import logging
 
@@ -50,6 +51,24 @@ def create_contact():
         
         db.session.add(contact)
         db.session.commit()
+        
+        # Send confirmation email to user
+        send_contact_confirmation_email(
+            contact_name=contact.name,
+            contact_email=contact.email,
+            subject=contact.subject
+        )
+        
+        # Send notification email to admin
+        admin_email = current_app.config.get("MAIL_ADMIN_EMAIL")
+        if admin_email:
+            send_contact_notification_email(
+                contact_name=contact.name,
+                contact_email=contact.email,
+                subject=contact.subject,
+                message=contact.message,
+                admin_email=admin_email
+            )
         
         return jsonify({
             "message": "Contact query submitted successfully",
