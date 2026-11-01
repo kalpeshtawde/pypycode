@@ -5,6 +5,16 @@ from typing import Any
 from execution_strategies import get_strategy
 
 
+def _format_exception(e: BaseException) -> str:
+    """Return a short 'ExceptionType: message' string instead of a full traceback.
+
+    Internal frames (test_runner.py, execution_strategies.py) are implementation
+    details the user's code never calls directly, so a full stack trace is noisy
+    and confusing. The exception type and message are enough to debug user code.
+    """
+    return "".join(traceback.format_exception_only(type(e), e)).strip()
+
+
 PRELUDE = """
 class ListNode:
     def __init__(self, val=0, next=None):
@@ -272,8 +282,8 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
 
     try:
         exec(compiled, namespace)
-    except Exception:
-        result.compile_error = traceback.format_exc()
+    except Exception as e:
+        result.compile_error = _format_exception(e)
         return result
 
     fn_name = problem.get("function_name", "solution")
@@ -344,8 +354,8 @@ def run_tests(user_code: str, problem: dict) -> TestResult:
             break
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception:
-            case_report["error"] = traceback.format_exc()
+        except Exception as e:
+            case_report["error"] = _format_exception(e)
             case_report["passed"] = False
             result.failed += 1
 

@@ -297,6 +297,7 @@ export default function ProblemPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isCheckingFavorite, setIsCheckingFavorite] = useState(false);
   const [tagPatterns, setTagPatterns] = useState<Record<string, string>>({});
+  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -696,19 +697,50 @@ export default function ProblemPage() {
                   {problem.tags.map((t) => (
                     <span
                       key={t}
-                      title={tagPatterns[t]}
-                      className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
-                      style={{
-                        backgroundColor: '#EEF3FF',
-                        color: '#1A6BFF',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        padding: '5px 13px',
-                        border: '1px solid rgba(26, 107, 255, 0.18)',
-                        cursor: tagPatterns[t] ? 'help' : 'default',
-                      }}
+                      style={{ position: 'relative', display: 'inline-flex' }}
+                      onMouseEnter={() => tagPatterns[t] && setHoveredTag(t)}
+                      onMouseLeave={() => setHoveredTag((curr) => (curr === t ? null : curr))}
                     >
-                      {t}
+                      <span
+                        className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
+                        style={{
+                          backgroundColor: '#EEF3FF',
+                          color: '#1A6BFF',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          padding: '5px 13px',
+                          border: '1px solid rgba(26, 107, 255, 0.18)',
+                          cursor: tagPatterns[t] ? 'help' : 'default',
+                        }}
+                      >
+                        {t}
+                      </span>
+                      {hoveredTag === t && tagPatterns[t] && (
+                        <div
+                          role="tooltip"
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 8px)',
+                            left: 0,
+                            zIndex: 50,
+                            minWidth: '280px',
+                            maxWidth: '360px',
+                            backgroundColor: '#1E293B',
+                            color: '#F1F5F9',
+                            fontSize: '12.5px',
+                            fontWeight: 400,
+                            padding: '10px 13px',
+                            borderRadius: '8px',
+                            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                          }}
+                        >
+                          <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: '1.6' }}>
+                            {tagPatterns[t].split('\n').filter(Boolean).map((line, i) => (
+                              <li key={i}>{line}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </span>
                   ))}
                 </div>
