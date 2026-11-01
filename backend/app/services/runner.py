@@ -124,13 +124,15 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
     }
 
 
-def run_code_against_problem(problem: Problem, code: str):
+def run_code_against_problem(problem: Problem, code: str, limit: int | None = None):
     try:
         client = docker.from_env()
         problem_slug = getattr(problem, 'slug', None) if problem else None
         logger.info(f"[RUNNER] Problem: {problem_slug or 'unknown'}, code length: {len(code) if code else 0}")
         test_cases = _convert_test_cases(problem)
-        
+        if limit is not None:
+            test_cases = test_cases[:limit]
+
         logger.info(f"[RUNNER] Total active test cases: {len(test_cases)}")
         if not test_cases:
             logger.error("[RUNNER] No test cases found - check is_active flags in database")
@@ -214,7 +216,7 @@ def run_code_against_problem(problem: Problem, code: str):
 
 
 @celery_app.task(bind=True, max_retries=1)
-def run_code_for_problem(self, problem_id: str, code: str):
+def run_code_for_problem(self, problem_id: str, code: str, limit: int | None = None):
     from app import create_app
     app = create_app()
     with app.app_context():
@@ -228,7 +230,7 @@ def run_code_for_problem(self, problem_id: str, code: str):
                 "memory_kb": None,
                 "error_output": "Problem not found",
             }
-        return run_code_against_problem(problem, code)
+        return run_code_against_problem(problem, code, limit=limit)
 
 
 @celery_app.task(bind=True, max_retries=2)

@@ -56,6 +56,12 @@ def run_code():
     if not isinstance(code, str) or not code.strip():
         return jsonify(error="Code is required"), 400
 
+    run_all = bool(data.get("runAll", False))
+    # By default "Run" only executes the first test case for a fast feedback
+    # loop; "Run All" (runAll=True) executes every active test case, same as
+    # a full submission would.
+    limit = None if run_all else 1
+
     _upsert_problem_project_stat(
         user_id=user_id,
         problem_id=problem.id,
@@ -64,16 +70,18 @@ def run_code():
     )
     db.session.commit()
 
-    task = run_code_for_problem.delay(problem.id, code)
+    task = run_code_for_problem.delay(problem.id, code, limit)
     try:
         result = task.get(timeout=15)
     except NotRegistered:
         return jsonify(error="Run worker task is not registered. Restart celery worker."), 503
     except CeleryTimeoutError:
+        active_count = len([tc for tc in problem.test_cases if tc.is_active])
+        total_tests = active_count if limit is None else min(limit, active_count)
         return jsonify(
             status="time_limit",
             passedTests=0,
-            totalTests=len(problem.test_cases),
+            totalTests=total_tests,
             runtimeMs=None,
             memoryKb=None,
             errorOutput=None,

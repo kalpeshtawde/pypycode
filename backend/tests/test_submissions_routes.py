@@ -52,6 +52,50 @@ def test_run_code_success(client, auth_headers, app_ctx, user, problem, project,
     assert stat.submitted is False
 
 
+def test_run_code_defaults_to_first_test_case_only(client, auth_headers, problem, project, mocker):
+    mock_task = DummyRunTask(
+        value={
+            "status": "accepted",
+            "passed_tests": 1,
+            "total_tests": 1,
+            "runtime_ms": 7,
+            "memory_kb": 123,
+            "error_output": None,
+        }
+    )
+    mock_delay = mocker.patch("app.routes.submissions.run_code_for_problem.delay", return_value=mock_task)
+
+    res = client.post(
+        "/submissions/run",
+        headers=auth_headers,
+        json={"problemSlug": problem.slug, "projectId": project.id, "code": "def solution(): return 1"},
+    )
+    assert res.status_code == 200
+    mock_delay.assert_called_once_with(problem.id, "def solution(): return 1", 1)
+
+
+def test_run_code_with_run_all_executes_every_test_case(client, auth_headers, problem, project, mocker):
+    mock_task = DummyRunTask(
+        value={
+            "status": "accepted",
+            "passed_tests": 1,
+            "total_tests": 1,
+            "runtime_ms": 7,
+            "memory_kb": 123,
+            "error_output": None,
+        }
+    )
+    mock_delay = mocker.patch("app.routes.submissions.run_code_for_problem.delay", return_value=mock_task)
+
+    res = client.post(
+        "/submissions/run",
+        headers=auth_headers,
+        json={"problemSlug": problem.slug, "projectId": project.id, "code": "def solution(): return 1", "runAll": True},
+    )
+    assert res.status_code == 200
+    mock_delay.assert_called_once_with(problem.id, "def solution(): return 1", None)
+
+
 def test_run_code_handles_not_registered(client, auth_headers, problem, project, mocker):
     mocker.patch("app.routes.submissions.run_code_for_problem.delay", return_value=DummyRunTask(raises=NotRegistered("x")))
     res = client.post(

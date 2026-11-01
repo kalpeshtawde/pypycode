@@ -1,3 +1,5 @@
+import json
+
 import docker
 
 from app.services import runner
@@ -104,3 +106,38 @@ def test_run_code_against_problem_never_accepts_when_error_present(mocker):
 
     result = runner.run_code_against_problem(problem, "def solution(): return 1")
     assert result["status"] == "runtime_error"
+
+
+def test_run_code_against_problem_limit_sends_only_first_test_case(mocker):
+    problem = DummyProblem([
+        {"input": "1", "expectedOutput": "1"},
+        {"input": "2", "expectedOutput": "2"},
+        {"input": "3", "expectedOutput": "3"},
+    ])
+    client = mocker.Mock()
+    client.containers.run.return_value = b'{"all_passed": true, "passed": 1, "failed": 0, "total": 1, "compile_error": null, "runtime_error": null, "cases": [{"case": 1, "passed": true, "input": [1], "expected": 1, "got": 1, "error": null, "stdout": ""}]}'
+    mocker.patch("docker.from_env", return_value=client)
+
+    result = runner.run_code_against_problem(problem, "def solution(): return 1", limit=1)
+
+    assert result["status"] == "accepted"
+    assert result["total_tests"] == 1
+    sent_payload = json.loads(client.containers.run.call_args.kwargs["environment"]["PAYLOAD"])
+    assert len(sent_payload["problem"]["test_cases"]) == 1
+
+
+def test_run_code_against_problem_no_limit_sends_all_test_cases(mocker):
+    problem = DummyProblem([
+        {"input": "1", "expectedOutput": "1"},
+        {"input": "2", "expectedOutput": "2"},
+        {"input": "3", "expectedOutput": "3"},
+    ])
+    client = mocker.Mock()
+    client.containers.run.return_value = b'{"all_passed": true, "passed": 3, "failed": 0, "total": 3, "compile_error": null, "runtime_error": null, "cases": []}'
+    mocker.patch("docker.from_env", return_value=client)
+
+    result = runner.run_code_against_problem(problem, "def solution(): return 1")
+
+    assert result["total_tests"] == 3
+    sent_payload = json.loads(client.containers.run.call_args.kwargs["environment"]["PAYLOAD"])
+    assert len(sent_payload["problem"]["test_cases"]) == 3

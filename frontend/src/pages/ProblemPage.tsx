@@ -271,6 +271,7 @@ export default function ProblemPage() {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [problemSubmissions, setProblemSubmissions] = useState<ProblemSubmissionRow[]>([]);
   const [running, setRunning] = useState(false);
+  const [runningAll, setRunningAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastSuccessfulRunCode, setLastSuccessfulRunCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
@@ -463,10 +464,10 @@ export default function ProblemPage() {
     return () => clearInterval(interval);
   }, [token]);
 
-  const handleRun = async () => {
+  const handleRun = async (runAll: boolean = false) => {
     if (!token) { navigate(authLink); return; }
     if (!problem) return;
-    setRunning(true);
+    if (runAll) setRunningAll(true); else setRunning(true);
     setSubmission(null);
     setLastSuccessfulRunCode(null);
     try {
@@ -479,7 +480,7 @@ export default function ProblemPage() {
         errorOutput: string | null;
       }>(
         "/submissions/run",
-        { problemSlug: problem.slug, code, projectId: selectedProjectId || undefined },
+        { problemSlug: problem.slug, code, projectId: selectedProjectId || undefined, runAll },
         token
       );
 
@@ -494,13 +495,15 @@ export default function ProblemPage() {
         createdAt: new Date().toISOString(),
       });
 
-      if (result.status === "accepted") {
+      // Submitting requires every test case to have passed, so only a full
+      // "Run All" (not the quick single-case "Run") can unlock it.
+      if (runAll && result.status === "accepted") {
         setLastSuccessfulRunCode(code);
       }
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Run failed");
     } finally {
-      setRunning(false);
+      if (runAll) setRunningAll(false); else setRunning(false);
     }
   };
 
@@ -557,7 +560,7 @@ export default function ProblemPage() {
 
   const statusOk = submission?.status === "accepted";
   const statusDone = submission && !["pending", "running"].includes(submission.status);
-  const canSubmit = !running && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
+  const canSubmit = !running && !runningAll && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 relative overflow-hidden">
@@ -603,8 +606,8 @@ export default function ProblemPage() {
                 setTimeout(() => setToastMessage(null), 2500);
               }
             }}
-            disabled={running || submitting}
-            className={`text-sm py-1.5 px-3 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            disabled={running || runningAll || submitting}
+            className={`text-sm py-1.5 px-3 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
             title="Reset to starter code"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -613,14 +616,27 @@ export default function ProblemPage() {
           </button>
 
           <button
-            onClick={handleRun}
-            disabled={running || submitting}
-            className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            onClick={() => handleRun(false)}
+            disabled={running || runningAll || submitting}
+            title="Run the first test case only"
+            className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
             </svg>
             {running ? "Running..." : "Run"}
+          </button>
+
+          <button
+            onClick={() => handleRun(true)}
+            disabled={running || runningAll || submitting}
+            title="Run every test case"
+            className={`text-sm py-1.5 px-4 flex items-center gap-1.5 rounded-lg border border-emerald-300 text-emerald-700 bg-white hover:bg-emerald-50 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
+            </svg>
+            {runningAll ? "Running..." : "Run All"}
           </button>
 
           <button
