@@ -296,6 +296,7 @@ export default function ProblemPage() {
   const [expandedTest, setExpandedTest] = useState<number | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isCheckingFavorite, setIsCheckingFavorite] = useState(false);
+  const [tagPatterns, setTagPatterns] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!slug) return;
@@ -309,6 +310,12 @@ export default function ProblemPage() {
       codeLoadedRef.current = true;
     });
   }, [slug]);
+
+  useEffect(() => {
+    api.get<Record<string, string>>("/tag-patterns/")
+      .then(setTagPatterns)
+      .catch(() => setTagPatterns({}));
+  }, []);
 
   useEffect(() => {
     if (!problem?.id || !token) {
@@ -687,8 +694,9 @@ export default function ProblemPage() {
                     ✦ {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
                   </span>
                   {problem.tags.map((t) => (
-                    <span 
-                      key={t} 
+                    <span
+                      key={t}
+                      title={tagPatterns[t]}
                       className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
                       style={{
                         backgroundColor: '#EEF3FF',
@@ -696,7 +704,8 @@ export default function ProblemPage() {
                         fontSize: '12px',
                         fontWeight: 600,
                         padding: '5px 13px',
-                        border: '1px solid rgba(26, 107, 255, 0.18)'
+                        border: '1px solid rgba(26, 107, 255, 0.18)',
+                        cursor: tagPatterns[t] ? 'help' : 'default',
                       }}
                     >
                       {t}

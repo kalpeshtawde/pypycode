@@ -225,6 +225,15 @@ class Favorite(db.Model):
     problem = db.relationship("Problem")
 
 
+class TagPattern(db.Model):
+    __tablename__ = "tag_patterns"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tag = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    pattern = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
 class FeatureFlag(db.Model):
     __tablename__ = "feature_flags"
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
