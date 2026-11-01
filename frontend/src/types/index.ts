@@ -6,7 +6,7 @@ export interface TestCase {
 }
 
 export interface Problem {
-  id: number;
+  id: string;
   slug: string;
   title: string;
   difficulty: "easy" | "medium" | "hard";

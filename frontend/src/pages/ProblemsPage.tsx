@@ -19,7 +19,7 @@ function ProblemCell({
   billingEnabled,
 }: {
   problem: Problem;
-  solvedProblems: number[];
+  solvedProblems: string[];
   selectedProjectId: string;
   isLoggedIn: boolean;
   canOpenProblem: boolean;
@@ -108,12 +108,12 @@ export default function ProblemsPage() {
   const [billingEnabled, setBillingEnabled] = useState(false);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [allProblemsForStats, setAllProblemsForStats] = useState<Problem[]>([]);
-  const [solvedProblems, setSolvedProblems] = useState<number[]>([]);
+  const [solvedProblems, setSolvedProblems] = useState<string[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     () => localStorage.getItem("selectedProjectId") ?? ""
   );
-  const [problemSequence, setProblemSequence] = useState<Map<number, number>>(new Map());
+  const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
   const [filter, setFilter] = useState<typeof QUICK_FILTERS[number]>("all");
   const [sortBy, setSortBy] = useState<"id" | "title" | "difficulty" | "created_at">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -133,7 +133,7 @@ export default function ProblemsPage() {
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
-  const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<number>>(new Set());
+  const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const fetchRequestIdRef = useRef(0);
 
@@ -224,7 +224,7 @@ export default function ProblemsPage() {
             next_num: safePage < pages ? safePage + 1 : null,
           });
 
-          const sequence = new Map<number, number>();
+          const sequence = new Map<string, number>();
           pageItems.forEach((problem, index) => {
             sequence.set(problem.id, (safePage - 1) * perPage + index + 1);
           });
@@ -274,10 +274,7 @@ export default function ProblemsPage() {
           if (!isLatestRequest()) return;
           const enriched = res.favorites
             .map((f) => ({
-              problem: {
-                ...f.problem,
-                id: Number(f.problem.id),
-              },
+              problem: f.problem,
               favoriteCreatedAt: f.createdAt,
             }))
             .filter(({ problem }) => {
@@ -318,7 +315,7 @@ export default function ProblemsPage() {
               return order === "desc" ? bTime - aTime : aTime - bTime;
             }
 
-            const delta = a.problem.id - b.problem.id;
+            const delta = a.problem.id.localeCompare(b.problem.id);
             return order === "desc" ? -delta : delta;
           });
 
@@ -342,7 +339,7 @@ export default function ProblemsPage() {
             next_num: safePage < pages ? safePage + 1 : null,
           });
 
-          const sequence = new Map<number, number>();
+          const sequence = new Map<string, number>();
           pageItems.forEach((problem, index) => {
             sequence.set(problem.id, (safePage - 1) * perPage + index + 1);
           });
@@ -394,7 +391,7 @@ export default function ProblemsPage() {
         setPagination(data.pagination);
         
         // Generate sequence numbers based on current page
-        const sequence = new Map<number, number>();
+        const sequence = new Map<string, number>();
         data.problems.forEach((problem, index) => {
           sequence.set(problem.id, (page - 1) * 15 + index + 1);
         });
@@ -491,10 +488,10 @@ export default function ProblemsPage() {
     }
     const suffix = params.toString() ? `?${params.toString()}` : "";
     // Fetch all submissions to get latest status for each problem
-    api.get<Array<{ id: number; problemId: number; status: string; createdAt: string }>>(`/submissions/all${suffix}`, token)
+    api.get<Array<{ id: string; problemId: string; status: string; createdAt: string }>>(`/submissions/all${suffix}`, token)
       .then((data) => {
         // Get the latest submission for each problem
-        const latestSubmissions = new Map<number, { status: string; createdAt: string }>();
+        const latestSubmissions = new Map<string, { status: string; createdAt: string }>();
         data.forEach(sub => {
           const existing = latestSubmissions.get(sub.problemId);
           if (!existing || new Date(sub.createdAt) > new Date(existing.createdAt)) {
@@ -540,9 +537,9 @@ export default function ProblemsPage() {
       return;
     }
     api
-      .get<{ favorites: Array<{ problem: { id: string | number } }> }>("/favorites/", token)
+      .get<{ favorites: Array<{ problem: { id: string } }> }>("/favorites/", token)
       .then((res) => {
-        const ids = new Set(res.favorites.map((f) => Number(f.problem.id)));
+        const ids = new Set(res.favorites.map((f) => f.problem.id));
         setFavoriteProblemIds(ids);
       })
       .catch(() => setFavoriteProblemIds(new Set()));
