@@ -151,8 +151,10 @@ services:
     ports:
       - "5555:5555"
     environment:
+      - DATABASE_URL=postgresql://pypycode:pypycode@db:5432/pypycode
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=dev-secret-key-change-in-prod
     depends_on:
       - redis
     networks:

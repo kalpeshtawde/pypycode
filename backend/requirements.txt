@@ -4,8 +4,9 @@ flask-migrate==4.0.7
 flask-jwt-extended==4.6.0
 flask-cors==4.0.1
 psycopg2-binary==2.9.9
-redis==5.0.7
+redis==6.1.0
 celery==5.4.0
+kombu==5.7.0
 flower==2.0.1
 gunicorn==22.0.0
 bcrypt==4.1.3
