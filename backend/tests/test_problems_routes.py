@@ -43,6 +43,32 @@ def test_get_problem_by_slug(client, problem):
     assert res.get_json()["slug"] == "two-sum"
 
 
+def test_list_problems_filters_by_single_tag(client, app_ctx):
+    _create_problem("tag-a", "easy", ["backtracking", "array"])
+    _create_problem("tag-b", "easy", ["linked-list"])
+    _create_problem("tag-c", "easy", ["math"])
+
+    res = client.get("/problems/?tag=backtracking")
+    assert res.status_code == 200
+    slugs = {p["slug"] for p in res.get_json()["problems"]}
+    assert "tag-a" in slugs
+    assert "tag-b" not in slugs
+    assert "tag-c" not in slugs
+
+
+def test_list_problems_filters_by_multiple_tags_with_or(client, app_ctx):
+    _create_problem("tag-or-a", "easy", ["backtracking", "array"])
+    _create_problem("tag-or-b", "easy", ["linked-list"])
+    _create_problem("tag-or-c", "easy", ["math"])
+
+    res = client.get("/problems/?tag=backtracking&tag=linked-list")
+    assert res.status_code == 200
+    slugs = {p["slug"] for p in res.get_json()["problems"]}
+    assert "tag-or-a" in slugs
+    assert "tag-or-b" in slugs
+    assert "tag-or-c" not in slugs
+
+
 def test_public_ingest_rejects_missing_key(client):
     res = client.post("/problems/public-ingest", json={"slug": "x"})
     assert res.status_code == 403

@@ -293,7 +293,7 @@ def list_problems():
     verify_jwt_in_request(optional=True)
     user_id = get_jwt_identity()
     difficulty = request.args.get("difficulty")
-    tag = request.args.get("tag")
+    tags = request.args.getlist("tag")
     project_id = request.args.get("projectId")
     search = (request.args.get("search") or "").strip()
     sort_by = request.args.get("sort", "id")  # id, difficulty, created_at
@@ -317,8 +317,12 @@ def list_problems():
     # Apply filters
     if difficulty:
         q = q.filter(Problem.difficulty == difficulty)
-    if tag:
-        q = q.filter(Problem.tags.contains([tag]))
+    if tags:
+        if db.engine.dialect.name == "postgresql":
+            tag_predicates = [Problem.tags.any(t) for t in tags]
+        else:
+            tag_predicates = [db.cast(Problem.tags, db.String).ilike(f'%"{t}"%') for t in tags]
+        q = q.filter(db.or_(*tag_predicates))
     if search:
         pattern = f"%{search}%"
         q = q.filter(

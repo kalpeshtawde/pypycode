@@ -8,6 +8,18 @@ import type { Problem, Project, BillingAccessStatus } from "../types";
 
 const QUICK_FILTERS = ["all", "easy", "medium", "hard", "solved", "favorite"] as const;
 
+const TAG_ACRONYMS = new Set(["bfs", "dfs", "cnn", "dag"]);
+
+const formatTagLabel = (tag: string) =>
+  tag
+    .split("-")
+    .map((word) =>
+      TAG_ACRONYMS.has(word)
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
+
 function ProblemCell({
   problem,
   solvedProblems,
@@ -135,6 +147,9 @@ export default function ProblemsPage() {
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
   const fetchRequestIdRef = useRef(0);
 
   const sortProjects = (items: Project[]) => {
@@ -188,6 +203,7 @@ export default function ProblemsPage() {
           if (trimmedSearch) {
             params.set("search", trimmedSearch);
           }
+          selectedTags.forEach((t) => params.append("tag", t));
 
           const data = await api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`, token);
           collected.push(...data.problems);
@@ -278,6 +294,9 @@ export default function ProblemsPage() {
               favoriteCreatedAt: f.createdAt,
             }))
             .filter(({ problem }) => {
+              if (selectedTags.length > 0 && !problem.tags.some((t) => selectedTags.includes(t))) {
+                return false;
+              }
               if (!trimmedSearch) return true;
               const query = trimmedSearch.toLowerCase();
               return (
@@ -383,6 +402,7 @@ export default function ProblemsPage() {
     if (trimmedSearch) {
       params.set("search", trimmedSearch);
     }
+    selectedTags.forEach((t) => params.append("tag", t));
     
     api.get<{ problems: Problem[]; pagination: any }>(`/problems/?${params}`, token)
       .then((data) => {
@@ -447,7 +467,17 @@ export default function ProblemsPage() {
   useEffect(() => {
     setCurrentPage(1);
     fetchProblems(1, sortBy, sortOrder, filter);
-  }, [sortBy, sortOrder, filter, searchQuery, selectedProjectId]);
+  }, [sortBy, sortOrder, filter, searchQuery, selectedProjectId, selectedTags]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setTagDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -1222,7 +1252,8 @@ export default function ProblemsPage() {
 
         {/* Filter + Search bar — unified row */}
         <div className="flex items-center justify-between gap-4 mb-4 mt-6">
-          {/* Left: filter pills */}
+          {/* Left: filter pills + tag dropdown */}
+          <div className="flex items-center gap-2 flex-shrink-0">
           <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm flex-shrink-0">
           {QUICK_FILTERS.map((d) => {
             const isActive = filter === d;
@@ -1259,6 +1290,76 @@ export default function ProblemsPage() {
             </button>
             );
           })}
+          </div>
+          {/* Middle: tag dropdown */}
+          {(() => {
+            const availableTags = Array.from(
+              new Set(allProblemsForStats.flatMap((p) => p.tags))
+            ).sort((a, b) => a.localeCompare(b));
+            return (
+              <div className="relative flex-shrink-0" ref={tagDropdownRef}>
+                <button
+                  onClick={() => setTagDropdownOpen((open) => !open)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
+                    selectedTags.length > 0
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                      : "border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 bg-white"
+                  }`}
+                >
+                  Tags{selectedTags.length > 0 && ` (${selectedTags.length})`}
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {tagDropdownOpen && (
+                  <div className="absolute z-20 mt-1 w-56 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {availableTags.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-slate-400">No tags available</div>
+                    ) : (
+                      availableTags.map((t) => {
+                        const checked = selectedTags.includes(t);
+                        return (
+                          <div
+                            key={t}
+                            onClick={() =>
+                              setSelectedTags((prev) =>
+                                checked ? prev.filter((x) => x !== t) : [...prev, t]
+                              )
+                            }
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                          >
+                            <span
+                              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 bg-white ${
+                                checked ? "border-emerald-500" : "border-slate-300"
+                              }`}
+                            >
+                              {checked && (
+                                <svg className="w-3 h-3 text-emerald-500" viewBox="0 0 12 12" fill="none">
+                                  <path d="M2 6.5L4.8 9L10 3" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </span>
+                            {formatTagLabel(t)}
+                          </div>
+                        );
+                      })
+                    )}
+                    {selectedTags.length > 0 && (
+                      <button
+                        onClick={() => setSelectedTags([])}
+                        className="w-full text-left px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 border-t border-slate-100"
+                      >
+                        Clear tags
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           </div>
           {/* Right: search */}
           <div className="flex items-center gap-2 max-w-xs w-full">
@@ -1497,7 +1598,7 @@ export default function ProblemsPage() {
                           border: '1px solid rgba(26,107,255,0.15)'
                         }}
                       >
-                        {tag}
+                        {formatTagLabel(tag)}
                       </span>
                     ))}
                     </div>
