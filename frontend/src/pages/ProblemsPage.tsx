@@ -149,6 +149,7 @@ export default function ProblemsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const fetchRequestIdRef = useRef(0);
 
@@ -1296,10 +1297,23 @@ export default function ProblemsPage() {
             const availableTags = Array.from(
               new Set(allProblemsForStats.flatMap((p) => p.tags))
             ).sort((a, b) => a.localeCompare(b));
+            const tagQuery = tagSearchQuery.trim().toLowerCase();
+            const filteredTags = tagQuery
+              ? availableTags.filter(
+                  (t) =>
+                    t.toLowerCase().includes(tagQuery) ||
+                    formatTagLabel(t).toLowerCase().includes(tagQuery)
+                )
+              : availableTags;
             return (
               <div className="relative flex-shrink-0" ref={tagDropdownRef}>
                 <button
-                  onClick={() => setTagDropdownOpen((open) => !open)}
+                  onClick={() =>
+                    setTagDropdownOpen((open) => {
+                      if (!open) setTagSearchQuery("");
+                      return !open;
+                    })
+                  }
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
                     selectedTags.length > 0
                       ? "bg-indigo-50 text-indigo-700 border-indigo-200"
@@ -1315,11 +1329,24 @@ export default function ProblemsPage() {
                   </svg>
                 </button>
                 {tagDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-56 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                    {availableTags.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-slate-400">No tags available</div>
+                  <div className="absolute z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-slate-100">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={tagSearchQuery}
+                        onChange={(e) => setTagSearchQuery(e.target.value)}
+                        placeholder="Search tags..."
+                        className="w-full px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                    {filteredTags.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-slate-400">
+                        {availableTags.length === 0 ? "No tags available" : "No matching tags"}
+                      </div>
                     ) : (
-                      availableTags.map((t) => {
+                      filteredTags.map((t) => {
                         const checked = selectedTags.includes(t);
                         return (
                           <div
@@ -1347,6 +1374,7 @@ export default function ProblemsPage() {
                         );
                       })
                     )}
+                    </div>
                     {selectedTags.length > 0 && (
                       <button
                         onClick={() => setSelectedTags([])}
