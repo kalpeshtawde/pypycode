@@ -76,7 +76,7 @@ export default function TermsPage() {
               <br />
               <span className="font-semibold">ISHA Systems LLC</span>
               <br />
-              Email: support@pypycode.com
+              Email: support@ishasystems.com
             </p>
           </section>
         </div>

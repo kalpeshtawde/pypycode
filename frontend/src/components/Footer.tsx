@@ -134,8 +134,8 @@ export default function Footer() {
             <h4 className="font-semibold text-slate-900 mb-4">Contact</h4>
             <ul className="space-y-2">
               <li>
-                <a href="mailto:support@pypycode.com" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
-                  support@pypycode.com
+                <a href="mailto:support@ishasystems.com" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                  support@ishasystems.com
                 </a>
               </li>
               <li>

@@ -191,7 +191,7 @@ export const createOrganizationStructuredData = (): StructuredData => ({
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "Customer Service",
-    email: "support@pypycode.com",
+    email: "support@ishasystems.com",
   },
 });
 
