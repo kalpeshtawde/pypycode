@@ -31,7 +31,7 @@ const FEATURES = [
 ];
 
 export default function PricingPage() {
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const authLink = `/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`;
@@ -351,10 +351,6 @@ export default function PricingPage() {
             ))}
           </div>
         </section>
-
-        <p className="mt-10 text-center text-xs text-slate-500">
-          Signed in as {user?.email ?? "guest"} · Stripe product {pricing?.productId ?? "prod_UIjX4gboLVPWDq"}
-        </p>
       </div>
     </div>
   );
