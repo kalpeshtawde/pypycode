@@ -64,14 +64,15 @@ export default function PricingPage() {
   }, []);
 
   useEffect(() => {
+    // Same element ids as scripts/prerender-meta.ts so these replace the prerendered blocks.
     updateStructuredData(
       createPricingProductStructuredData({
         amount: pricing ? pricing.amountCents / 100 : 30,
         currency: pricing?.currency ?? "usd",
       }),
-      "structured-data-product"
+      "structured-data"
     );
-    updateStructuredData(createFAQStructuredData(PRICING_FAQ), "structured-data-faq");
+    updateStructuredData(createFAQStructuredData(PRICING_FAQ), "structured-data-1");
   }, [pricing]);
 
   useEffect(() => {

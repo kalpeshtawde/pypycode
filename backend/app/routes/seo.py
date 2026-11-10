@@ -34,7 +34,7 @@ def sitemap():
     for problem in problems:
         urls.append({
             "loc": f"{base_url}/problems/{problem.slug}",
-            "lastmod": problem.created_at.isoformat() if problem.created_at else None,
+            "lastmod": _lastmod(problem),
             "changefreq": "weekly",
             "priority": 0.8,
         })
@@ -54,13 +54,19 @@ def sitemap_problems():
     for problem in problems:
         urls.append({
             "loc": f"{base_url}/problems/{problem.slug}",
-            "lastmod": problem.created_at.isoformat() if problem.created_at else None,
+            "lastmod": _lastmod(problem),
             "changefreq": "weekly",
             "priority": 0.8,
         })
     
     xml = _generate_sitemap_xml(urls)
     return Response(xml, mimetype="application/xml")
+
+
+def _lastmod(problem):
+    """Prefer updated_at so crawlers recrawl after content/test-case fixes."""
+    ts = getattr(problem, "updated_at", None) or problem.created_at
+    return ts.date().isoformat() if ts else None
 
 
 def _generate_sitemap_xml(urls):

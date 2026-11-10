@@ -1,4 +1,9 @@
+import { useMemo } from "react";
+import { useSEO } from "../hooks/useSEO";
+import { getTermsMetadata } from "../utils/seo";
+
 export default function TermsPage() {
+  useSEO(useMemo(() => getTermsMetadata(), []));
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 py-16">
       <div className="max-w-3xl mx-auto px-6">

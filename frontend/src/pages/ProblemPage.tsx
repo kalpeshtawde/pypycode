@@ -4,7 +4,12 @@ import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import { useSEO } from "../hooks/useSEO";
-import { getProblemMetadata, createProblemStructuredData } from "../utils/seo";
+import {
+  getProblemMetadata,
+  createProblemStructuredData,
+  createBreadcrumbStructuredData,
+  SITE_URL,
+} from "../utils/seo";
 import CodeMirrorEditor from "../components/CodeMirrorEditor";
 import type { Problem, Project, Submission, TestCase } from "../types";
 
@@ -300,12 +305,28 @@ export default function ProblemPage() {
   const [tagPatterns, setTagPatterns] = useState<Record<string, string>>({});
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
 
+  const seoMetadata = useMemo(() => (problem ? getProblemMetadata(problem) : null), [problem]);
+  const seoStructuredData = useMemo(
+    () =>
+      problem
+        ? [
+            createProblemStructuredData(problem),
+            createBreadcrumbStructuredData([
+              { name: "Home", url: SITE_URL },
+              { name: "Problems", url: `${SITE_URL}/problems` },
+              { name: problem.title, url: `${SITE_URL}/problems/${problem.slug}` },
+            ]),
+          ]
+        : null,
+    [problem]
+  );
+  useSEO(seoMetadata, seoStructuredData);
+
   useEffect(() => {
     if (!slug) return;
     codeLoadedRef.current = false;
     api.get<Problem>(`/problems/${slug}`).then((p) => {
       setProblem(p);
-      useSEO(getProblemMetadata(p), createProblemStructuredData(p));
       // Load saved code from localStorage, or fall back to starter code
       const savedCode = localStorage.getItem(`pypycode:code:${p.slug}`);
       setCode(savedCode || p.starterCode);

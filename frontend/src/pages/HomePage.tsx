@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../utils/api";
 import { useSEO } from "../hooks/useSEO";
-import { getDefaultMetadata, createOrganizationStructuredData } from "../utils/seo";
+import {
+  getDefaultMetadata,
+  createOrganizationStructuredData,
+  createWebSiteStructuredData,
+} from "../utils/seo";
 
 const FEATURES = [
   {
@@ -65,7 +69,12 @@ const SNIPPETS = [
 export default function HomePage() {
   const [count, setCount] = useState<number | null>(null);
   
-  useSEO(getDefaultMetadata(), createOrganizationStructuredData());
+  const homeSeoMetadata = useMemo(() => getDefaultMetadata(), []);
+  const homeStructuredData = useMemo(
+    () => [createWebSiteStructuredData(), createOrganizationStructuredData()],
+    []
+  );
+  useSEO(homeSeoMetadata, homeStructuredData);
 
   useEffect(() => {
     api

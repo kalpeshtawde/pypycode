@@ -6,12 +6,18 @@ import {
   StructuredData,
 } from "../utils/seo";
 
-export const useSEO = (metadata: SEOMetadata, structuredData?: StructuredData) => {
+type StructuredDataInput = StructuredData | StructuredData[] | undefined | null;
+
+export const useSEO = (metadata: SEOMetadata | null | undefined, structuredData?: StructuredDataInput) => {
   useEffect(() => {
+    if (!metadata) return;
     updateMetaTags(metadata);
-    
+
     if (structuredData) {
-      updateStructuredData(structuredData);
+      const blocks = Array.isArray(structuredData) ? structuredData : [structuredData];
+      blocks.forEach((block, index) => {
+        updateStructuredData(block, index === 0 ? "structured-data" : `structured-data-${index}`);
+      });
     }
 
     // Scroll to top

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
 import { useSEO } from "../hooks/useSEO";
@@ -146,7 +146,8 @@ export default function ProblemsPage() {
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState("");
+  const [urlSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get("search") ?? "");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [tagSearchQuery, setTagSearchQuery] = useState("");

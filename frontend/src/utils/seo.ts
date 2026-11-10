@@ -23,9 +23,22 @@ export interface StructuredData {
   [key: string]: any;
 }
 
-const SITE_URL = import.meta.env.VITE_SITE_URL || "https://pypycode.com";
-const SITE_NAME = "PyPyCode";
+export const SITE_URL: string = import.meta.env?.VITE_SITE_URL || "https://pypycode.com";
+export const SITE_NAME = "PyPyCode";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
+
+const stripMarkdown = (text: string): string =>
+  text
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_~>]/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const truncate = (text: string, max: number): string =>
+  text.length <= max ? text : `${text.slice(0, max - 1).replace(/\s+\S*$/, "")}…`;
 
 export const updateMetaTags = (metadata: SEOMetadata) => {
   // Title
@@ -42,9 +55,11 @@ export const updateMetaTags = (metadata: SEOMetadata) => {
     updateOrCreateMetaTag("keywords", metadata.keywords.join(", "));
   }
 
-  // Canonical
+  // Canonical (remove any stale one from a previous route when this page has none)
   if (metadata.canonical) {
     updateOrCreateLinkTag("canonical", metadata.canonical);
+  } else {
+    document.querySelector('link[rel="canonical"]')?.remove();
   }
 
   // Open Graph
@@ -61,10 +76,8 @@ export const updateMetaTags = (metadata: SEOMetadata) => {
   updateOrCreateMetaTag("twitter:description", metadata.twitterDescription || metadata.description);
   updateOrCreateMetaTag("twitter:image", metadata.twitterImage || DEFAULT_IMAGE);
 
-  // Robots
-  if (metadata.robots) {
-    updateOrCreateMetaTag("robots", metadata.robots);
-  }
+  // Robots (always reset so a noindex from a previous route never leaks into this one)
+  updateOrCreateMetaTag("robots", metadata.robots || "index, follow");
 
   // Author
   if (metadata.author) {
@@ -104,16 +117,50 @@ export const getProblemMetadata = (problem: {
   slug: string;
   difficulty: string;
   description?: string;
-}): SEOMetadata => ({
-  title: `${problem.title} | ${SITE_NAME}`,
-  description: problem.description
-    ? problem.description.substring(0, 160)
-    : `Solve ${problem.title} on ${SITE_NAME}. Difficulty: ${problem.difficulty}`,
-  keywords: [problem.title, problem.difficulty, "python", "algorithm", "coding challenge"],
-  canonical: `${SITE_URL}/problems/${problem.slug}`,
-  ogTitle: `${problem.title} | ${SITE_NAME}`,
-  ogDescription: `Solve ${problem.title} on ${SITE_NAME}`,
-  ogType: "article",
+  tags?: string[];
+}): SEOMetadata => {
+  const difficulty = problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1);
+  const title = `${problem.title} - Python Solution Practice (${difficulty}) | ${SITE_NAME}`;
+  const summary = problem.description ? truncate(stripMarkdown(problem.description), 120) : "";
+  const description = summary
+    ? `${summary} Solve ${problem.title} in Python with instant sandboxed test feedback.`
+    : `Solve ${problem.title} in Python on ${SITE_NAME}. ${difficulty} difficulty with instant sandboxed test feedback.`;
+  return {
+    title,
+    description: truncate(description, 160),
+    keywords: [
+      `${problem.title} python`,
+      `${problem.title} solution`,
+      ...(problem.tags ?? []).map((t) => t.replace(/-/g, " ")),
+      problem.difficulty,
+      "python coding interview question",
+      "python algorithm practice",
+    ],
+    canonical: `${SITE_URL}/problems/${problem.slug}`,
+    ogTitle: title,
+    ogDescription: `Practice ${problem.title} in Python. ${difficulty} difficulty.`,
+    ogType: "article",
+  };
+};
+
+export const getTermsMetadata = (): SEOMetadata => ({
+  title: `Terms and Conditions | ${SITE_NAME}`,
+  description: `Terms and conditions for using ${SITE_NAME}, the Python coding practice platform operated by ISHA Systems LLC.`,
+  canonical: `${SITE_URL}/terms`,
+  ogType: "website",
+});
+
+export const getPrivacyMetadata = (): SEOMetadata => ({
+  title: `Privacy Policy | ${SITE_NAME}`,
+  description: `How ${SITE_NAME} collects, uses, and protects your personal information.`,
+  canonical: `${SITE_URL}/privacy`,
+  ogType: "website",
+});
+
+export const getNotFoundMetadata = (): SEOMetadata => ({
+  title: `Page Not Found | ${SITE_NAME}`,
+  description: "The page you are looking for does not exist.",
+  robots: "noindex, follow",
 });
 
 export const getLeaderboardMetadata = (): SEOMetadata => ({
@@ -248,17 +295,38 @@ export const createProblemStructuredData = (problem: {
   tags?: string[];
 }): StructuredData => ({
   "@context": "https://schema.org",
-  "@type": "CreativeWork",
+  "@type": "LearningResource",
   name: problem.title,
-  description: problem.description || `Solve ${problem.title}`,
+  description: problem.description ? truncate(stripMarkdown(problem.description), 300) : `Solve ${problem.title}`,
   url: `${SITE_URL}/problems/${problem.slug}`,
+  learningResourceType: "Coding exercise",
+  educationalLevel: problem.difficulty,
+  inLanguage: "en",
+  about: { "@type": "Thing", name: "Python programming" },
+  programmingLanguage: "Python",
   author: {
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
   },
-  keywords: problem.tags?.join(", ") || "python, algorithm",
+  keywords: problem.tags?.map((t) => t.replace(/-/g, " ")).join(", ") || "python, algorithm",
   isAccessibleForFree: true,
+});
+
+export const createWebSiteStructuredData = (): StructuredData => ({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: "A Python-only coding challenge platform with instant sandboxed feedback.",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/problems?search={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
 });
 
 export const createOrganizationStructuredData = (): StructuredData => ({
@@ -268,10 +336,7 @@ export const createOrganizationStructuredData = (): StructuredData => ({
   url: SITE_URL,
   logo: `${SITE_URL}/logo.svg`,
   description: "A Python-only coding challenge platform",
-  sameAs: [
-    "https://twitter.com/pypycode",
-    "https://github.com/pypycode",
-  ],
+  sameAs: ["https://github.com/pypycode"],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "Customer Service",
