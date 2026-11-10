@@ -234,7 +234,7 @@ return (
           font-family: "Reddit Sans", monospace;
           font-size: 28px;
           font-weight: 700;
-          color: #1A6BFF;
+          color: #34D399;
           position: absolute;
           left: 10px;
           top: 50%;
@@ -245,7 +245,7 @@ return (
         .auth-logo-cursor {
           width: 10px;
           height: 18px;
-          background: #6366F1;
+          background: #34D399;
           border-radius: 2px;
           position: absolute;
           right: 12px;

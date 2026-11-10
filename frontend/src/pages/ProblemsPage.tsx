@@ -1619,7 +1619,7 @@ export default function ProblemsPage() {
                         key={tag}
                         style={{
                           background: '#EEF3FF',
-                          color: '#1A6BFF',
+                          color: '#059669',
                           fontSize: '11px',
                           fontWeight: 600,
                           padding: '2px 8px',

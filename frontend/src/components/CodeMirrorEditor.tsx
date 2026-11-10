@@ -84,10 +84,10 @@ export default function CodeMirrorEditor({
           backgroundColor: '#f1f5f9',
         },
         '.cm-cursor': {
-          borderLeftColor: '#1a6bff',
+          borderLeftColor: '#059669',
         },
         '.cm-content': {
-          caretColor: '#1a6bff',
+          caretColor: '#059669',
         },
         '.cm-selectionBackground': {
           backgroundColor: '#60a5fa !important',

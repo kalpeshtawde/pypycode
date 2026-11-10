@@ -742,7 +742,7 @@ export default function ProblemPage() {
                         className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
                         style={{
                           backgroundColor: '#EEF3FF',
-                          color: '#1A6BFF',
+                          color: '#059669',
                           fontSize: '12px',
                           fontWeight: 600,
                           padding: '5px 13px',
@@ -831,7 +831,7 @@ export default function ProblemPage() {
                     }
                     .prose code {
                       background-color: #EEF3FF !important;
-                      color: #1A6BFF !important;
+                      color: #059669 !important;
                       font-weight: 600 !important;
                       border-radius: 5px !important;
                       padding: 2px 7px !important;
@@ -940,7 +940,7 @@ export default function ProblemPage() {
                     style={{
                       width: '3px',
                       height: '18px',
-                      backgroundColor: '#1A6BFF',
+                      backgroundColor: '#059669',
                       borderRadius: '2px'
                     }}
                   />
@@ -972,7 +972,7 @@ export default function ProblemPage() {
                           width: '34px',
                           height: '34px',
                           borderRadius: '50%',
-                          background: `linear-gradient(135deg, #1A6BFF, #6366F1)`,
+                          background: `linear-gradient(135deg, #059669, #10B981)`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1006,7 +1006,7 @@ export default function ProblemPage() {
                       </div>
                       <div style={{
                         backgroundColor: '#EEF3FF',
-                        borderLeft: '3px solid #1A6BFF',
+                        borderLeft: '3px solid #059669',
                         borderRadius: '10px',
                         padding: '12px 16px',
                         fontSize: '14px',
@@ -1056,7 +1056,7 @@ export default function ProblemPage() {
                         paddingTop: '12px',
                         borderTop: '1px solid #E2E8F0'
                       }}>
-                        <span style={{ color: '#1A6BFF' }}>✦ </span>
+                        <span style={{ color: '#059669' }}>✦ </span>
                         {ex.explanation}
                       </div>
                     )}
@@ -1151,14 +1151,14 @@ export default function ProblemPage() {
               appearance: none;
               width: 14px;
               height: 14px;
-              background: #1A6BFF;
+              background: #059669;
               border-radius: 50%;
               cursor: pointer;
             }
             .font-size-slider::-moz-range-thumb {
               width: 14px;
               height: 14px;
-              background: #1A6BFF;
+              background: #059669;
               border-radius: 50%;
               cursor: pointer;
               border: none;
@@ -1175,7 +1175,7 @@ export default function ProblemPage() {
               align-items: center;
             }
             .vim-toggle-track.active {
-              background: #1A6BFF;
+              background: #059669;
             }
             .vim-toggle-thumb {
               width: 16px;
@@ -1209,7 +1209,7 @@ export default function ProblemPage() {
             <div
               style={{
                 backgroundColor: '#EEF3FF',
-                color: '#1A6BFF',
+                color: '#059669',
                 fontWeight: 600,
                 fontSize: '11px',
                 padding: '2px 7px',
@@ -1251,7 +1251,7 @@ export default function ProblemPage() {
             {vimMode && (
               <div
                 style={{
-                  backgroundColor: '#1A6BFF',
+                  backgroundColor: '#059669',
                   color: 'white',
                   fontSize: '10px',
                   fontWeight: 700,

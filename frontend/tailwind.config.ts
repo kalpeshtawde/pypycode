@@ -17,9 +17,9 @@ export default {
           600: "#1e3658",
         },
         accent: {
-          DEFAULT: "#4ade80",
-          dim: "#22c55e",
-          glow: "rgba(74,222,128,0.15)",
+          DEFAULT: "#059669",
+          dim: "#047857",
+          glow: "rgba(5,150,105,0.15)",
         },
         surface: {
           DEFAULT: "#111827",

@@ -17,6 +17,7 @@ const FEATURES = [
     ),
     title: "Python-only",
     desc: "Every problem crafted for Python. No Java detours.",
+    to: "/problems",
   },
   {
     icon: (
@@ -28,6 +29,7 @@ const FEATURES = [
     ),
     title: "Sandboxed execution",
     desc: "Your code runs in an isolated Docker container, safely.",
+    to: "/about",
   },
   {
     icon: (
@@ -41,6 +43,7 @@ const FEATURES = [
     ),
     title: "Real-time results",
     desc: "Instant feedback: pass/fail, runtime, and error traces.",
+    to: "/problems",
   },
   {
     icon: (
@@ -54,8 +57,9 @@ const FEATURES = [
     ),
     title: "Leaderboard",
     desc: "Compete globally. Rise through the ranks.",
+    to: "/leaderboard",
   },
-] as const satisfies ReadonlyArray<{ icon: ReactNode; title: string; desc: string }>;
+] as const satisfies ReadonlyArray<{ icon: ReactNode; title: string; desc: string; to: string }>;
 
 const SNIPPETS = [
   "def solution(nums, target):",
@@ -66,9 +70,43 @@ const SNIPPETS = [
   "        seen[n] = i",
 ];
 
+const STEPS = [
+  {
+    n: "1",
+    title: "Pick a problem",
+    desc: "Filter by difficulty or topic — arrays, trees, graphs, DP, and more.",
+  },
+  {
+    n: "2",
+    title: "Write Python",
+    desc: "Code in the browser editor with instant run-and-test feedback.",
+  },
+  {
+    n: "3",
+    title: "Level up",
+    desc: "Track solved problems and climb the global leaderboard.",
+  },
+] as const;
+
+const FADE = "motion-safe:animate-fade-up motion-safe:opacity-0 [animation-fill-mode:forwards]";
+
+function snippetLineClass(line: string) {
+  if (line.startsWith("def ")) return "text-emerald-700";
+  if (line.includes("return")) return "text-teal-600";
+  if (line.includes("#")) return "text-slate-500";
+  if (line.includes('"')) return "text-amber-600";
+  return "text-slate-800";
+}
+
 export default function HomePage() {
   const [count, setCount] = useState<number | null>(null);
-  
+  const [price, setPrice] = useState<string>("$30");
+  const [trialDays, setTrialDays] = useState<number>(15);
+  const [typedChars, setTypedChars] = useState(0);
+
+  const fullSnippet = useMemo(() => SNIPPETS.join("\n"), []);
+  const typingDone = typedChars >= fullSnippet.length;
+
   const homeSeoMetadata = useMemo(() => getDefaultMetadata(), []);
   const homeStructuredData = useMemo(
     () => [createWebSiteStructuredData(), createOrganizationStructuredData()],
@@ -86,47 +124,90 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    api
+      .get<{ amountDisplay?: string; trialDays?: number }>("/billing/pricing")
+      .then((res) => {
+        if (res.amountDisplay) setPrice(res.amountDisplay);
+        if (typeof res.trialDays === "number") setTrialDays(res.trialDays);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setTypedChars(fullSnippet.length);
+      return;
+    }
+    let i = 0;
+    const id = setInterval(() => {
+      i += 3;
+      setTypedChars(i);
+      if (i >= fullSnippet.length) clearInterval(id);
+    }, 24);
+    return () => clearInterval(id);
+  }, [fullSnippet]);
+
+  const typedLines = fullSnippet.slice(0, typedChars).split("\n");
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      {/* Gradient orbs */}
+      {/* Gradient orb */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px]
-                      bg-emerald-500/5 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute top-80 -right-40 w-[400px] h-[400px]
-                      bg-blue-500/3 rounded-full blur-[100px]" />
-      <div className="pointer-events-none absolute bottom-0 -left-40 w-[500px] h-[500px]
-                      bg-purple-500/3 rounded-full blur-[120px]" />
+                      bg-emerald-500/8 rounded-full blur-[120px]" />
 
       {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-6 pt-28 pb-24 text-center">
-        <h1 className="font-display text-5xl sm:text-7xl font-semibold leading-[1.05] tracking-tight
-                       text-slate-900 mb-6 animate-fade-up [animation-delay:100ms] opacity-0 [animation-fill-mode:forwards]">
+      <section className="relative max-w-7xl mx-auto px-6 pt-24 pb-16 text-center">
+        <p className={`inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50
+                      px-4 py-1.5 text-sm font-medium text-emerald-700 mb-8 ${FADE}`}
+           style={{ animationDelay: "50ms" }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+          Python-only coding challenges
+        </p>
+
+        <h1 className={`font-display text-5xl sm:text-7xl font-semibold leading-[1.05] tracking-tight
+                       text-slate-900 mb-6 ${FADE}`}
+            style={{ animationDelay: "100ms" }}>
           Write Python.
           <br />
-          <em className="not-italic bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">Ship solutions.</em>
+          <em className="not-italic bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Ship solutions.</em>
         </h1>
 
-        <p className="max-w-xl mx-auto text-slate-600 text-lg leading-relaxed mb-10
-                      animate-fade-up [animation-delay:200ms] opacity-0 [animation-fill-mode:forwards]">
+        <p className={`max-w-xl mx-auto text-slate-600 text-lg leading-relaxed mb-10 ${FADE}`}
+           style={{ animationDelay: "200ms" }}>
           A focused coding platform for Python developers. Solve real algorithmic
           problems, get instant sandboxed feedback, and climb the leaderboard.
         </p>
 
-        <div className="flex items-center justify-center gap-4
-                        animate-fade-up [animation-delay:300ms] opacity-0 [animation-fill-mode:forwards]">
+        <div className={`flex items-center justify-center gap-4 ${FADE}`}
+             style={{ animationDelay: "300ms" }}>
           <Link to="/problems" className="btn-primary text-base px-7 py-3">
             Start solving →
           </Link>
-          <Link to="/leaderboard" className="btn-ghost text-base px-7 py-3">
-            Leaderboard
+          <Link to="/pricing" className="btn-ghost text-base px-7 py-3">
+            See pricing
           </Link>
         </div>
 
-        {count !== null && (
-          <p className="mt-6 text-slate-500 text-sm font-mono
-                        animate-fade-up [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
-            {count} problems available
-          </p>
-        )}
+        <div className={`mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 ${FADE}`}
+             style={{ animationDelay: "400ms" }}>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-xl font-semibold text-slate-900">
+              {count !== null ? `${count}+` : "—"}
+            </span>
+            <span className="text-sm text-slate-500">curated problems</span>
+          </div>
+          <span className="hidden sm:block w-px h-5 bg-slate-200" />
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-xl font-semibold text-slate-900">{price}<span className="text-sm font-normal text-slate-500">/year</span></span>
+            <span className="text-sm text-slate-500">full access</span>
+          </div>
+          <span className="hidden sm:block w-px h-5 bg-slate-200" />
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-xl font-semibold text-slate-900">{trialDays} days</span>
+            <span className="text-sm text-slate-500">free trial</span>
+          </div>
+        </div>
       </section>
 
       {/* Code preview */}
@@ -139,24 +220,19 @@ export default function HomePage() {
             <span className="ml-3 text-xs font-mono text-slate-600 font-medium">two_sum.py</span>
           </div>
           <div className="p-6">
-            <pre className="font-mono text-sm leading-7 overflow-x-auto">
-              {SNIPPETS.map((line, i) => (
-                <div key={i}
-                  className="animate-fade-up opacity-0 [animation-fill-mode:forwards]"
-                  style={{ animationDelay: `${500 + i * 80}ms` }}>
+            <pre className="font-mono text-sm leading-7 overflow-x-auto min-h-[168px]">
+              {typedLines.map((line, i) => (
+                <div key={i}>
                   <span className="select-none text-slate-400 mr-4 w-4 inline-block text-right">{i + 1}</span>
-                  <span className={
-                    line.startsWith("def ") ? "text-blue-600" :
-                    line.includes("return") ? "text-emerald-600" :
-                    line.includes("#") ? "text-slate-500" :
-                    line.includes('"') ? "text-amber-600" :
-                    "text-slate-800"
-                  }>{line}</span>
+                  <span className={snippetLineClass(line)}>{line}</span>
+                  {i === typedLines.length - 1 && !typingDone && (
+                    <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-emerald-600 animate-pulse" />
+                  )}
                 </div>
               ))}
             </pre>
-            <div className="mt-4 pt-4 border-t border-slate-200 flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            <div className={`mt-4 pt-4 border-t border-slate-200 flex items-center gap-3 transition-opacity duration-500 ${typingDone ? "opacity-100" : "opacity-0"}`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
               <span className="text-xs font-mono text-emerald-700 font-medium">✓ All 3 test cases passed — 12ms</span>
             </div>
           </div>
@@ -167,18 +243,58 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FEATURES.map((f, i) => (
-            <div key={i} className="group relative isolate overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300/70 hover:shadow-xl hover:shadow-emerald-200/40">
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-emerald-50/30 to-blue-50/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <Link key={i} to={f.to} className="group relative isolate overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 motion-safe:hover:-translate-y-1 hover:border-emerald-300/70 hover:shadow-xl hover:shadow-emerald-200/40">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-300/15 blur-2xl transition-all duration-300 group-hover:bg-emerald-300/25" />
               <div className="relative">
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/70 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100 transition-all duration-300 group-hover:scale-105 group-hover:bg-white group-hover:text-emerald-600">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/70 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100 transition-all duration-300 motion-safe:group-hover:scale-105 group-hover:bg-white group-hover:text-emerald-600">
                   {f.icon}
                 </div>
                 <h3 className="font-display text-base font-semibold text-slate-900 mb-2.5 tracking-tight group-hover:text-emerald-700 transition-colors duration-300">{f.title}</h3>
                 <p className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300">{f.desc}</p>
               </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 text-center mb-12">
+          How it works
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-8">
+          {STEPS.map((s) => (
+            <div key={s.n} className="text-center">
+              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white font-display font-semibold">
+                {s.n}
+              </div>
+              <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">{s.title}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-700 px-8 py-14 text-center shadow-xl shadow-emerald-200/60">
+          <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-white/10 rounded-full blur-[80px]" />
+          <h2 className="relative font-display text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">
+            Ready to write Python?
+          </h2>
+          <p className="relative max-w-lg mx-auto text-emerald-50/90 leading-relaxed mb-8">
+            Everything unlocked for {price}/year — a fraction of what LeetCode Premium charges.
+            Start with a {trialDays}-day free trial.
+          </p>
+          <div className="relative flex items-center justify-center gap-4">
+            <Link to="/pricing" className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-white text-emerald-800 font-medium text-base hover:bg-emerald-50 active:scale-95 transition-all duration-150">
+              Start free trial →
+            </Link>
+            <Link to="/problems" className="inline-flex items-center gap-2 px-7 py-3 rounded-lg border border-emerald-300/60 text-emerald-50 font-medium text-base hover:bg-white/10 transition-all duration-150">
+              Browse problems
+            </Link>
+          </div>
         </div>
       </section>
     </div>

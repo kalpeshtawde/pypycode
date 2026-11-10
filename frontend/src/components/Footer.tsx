@@ -27,7 +27,7 @@ export default function Footer() {
           font-family: "Reddit Sans", monospace;
           font-size: 14px;
           font-weight: 700;
-          color: #1A6BFF;
+          color: #34D399;
           position: absolute;
           left: 5px;
           top: 50%;
@@ -38,7 +38,7 @@ export default function Footer() {
         .footer-logo-cursor {
           width: 5px;
           height: 9px;
-          background: #6366F1;
+          background: #34D399;
           border-radius: 1px;
           position: absolute;
           right: 6px;
@@ -57,7 +57,7 @@ export default function Footer() {
         }
         
         .footer-logo-blue {
-          color: #1A6BFF;
+          color: #059669;
           font-size: 19px;
           font-weight: 800;
         }

@@ -100,7 +100,7 @@ export default function Layout() {
             font-family: "Reddit Sans", monospace;
             font-size: 14px;
             font-weight: 700;
-            color: #1A6BFF;
+            color: #34D399;
             position: absolute;
             left: 5px;
             top: 50%;
@@ -111,7 +111,7 @@ export default function Layout() {
           .logo-cursor {
             width: 5px;
             height: 9px;
-            background: #6366F1;
+            background: #34D399;
             border-radius: 1px;
             position: absolute;
             right: 6px;
@@ -130,7 +130,7 @@ export default function Layout() {
           }
           
           .logo-blue {
-            color: #1A6BFF;
+            color: #059669;
             font-size: 19px;
             font-weight: 800;
           }
@@ -185,7 +185,7 @@ export default function Layout() {
                 left: 0;
                 width: 0;
                 height: 2px;
-                background-color: #1A6BFF;
+                background-color: #059669;
                 transition: width 200ms ease;
               }
               .nav-link:hover {
@@ -195,7 +195,7 @@ export default function Layout() {
                 width: 100%;
               }
               .nav-link.active {
-                color: #1A6BFF;
+                color: #059669;
               }
               .nav-link.active::after {
                 width: 100%;
@@ -239,7 +239,7 @@ export default function Layout() {
                     width: '34px',
                     height: '34px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1A6BFF, #6366F1)',
+                    background: 'linear-gradient(135deg, #059669, #10B981)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
