@@ -3,7 +3,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../hooks/useAuth";
 import { useSEO } from "../hooks/useSEO";
-import { getPricingMetadata } from "../utils/seo";
+import {
+  PRICING_FAQ,
+  createFAQStructuredData,
+  createPricingProductStructuredData,
+  getPricingMetadata,
+  updateStructuredData,
+} from "../utils/seo";
 import type { BillingAccessStatus, BillingSubscriptionSnapshot } from "../types";
 import { api } from "../utils/api";
 
@@ -56,6 +62,17 @@ export default function PricingPage() {
       })
       .finally(() => setLoadingPricing(false));
   }, []);
+
+  useEffect(() => {
+    updateStructuredData(
+      createPricingProductStructuredData({
+        amount: pricing ? pricing.amountCents / 100 : 30,
+        currency: pricing?.currency ?? "usd",
+      }),
+      "structured-data-product"
+    );
+    updateStructuredData(createFAQStructuredData(PRICING_FAQ), "structured-data-faq");
+  }, [pricing]);
 
   useEffect(() => {
     if (!token) {
@@ -308,6 +325,31 @@ export default function PricingPage() {
             )}
           </div>
         </div>
+
+        <section className="mt-16" aria-labelledby="pricing-faq-heading">
+          <h2 id="pricing-faq-heading" className="font-display text-2xl font-bold text-slate-900 text-center mb-8">
+            Frequently asked questions
+          </h2>
+          <div className="space-y-4 max-w-3xl mx-auto">
+            {PRICING_FAQ.map((faq) => (
+              <details
+                key={faq.question}
+                className="group rounded-xl border border-slate-200 bg-white/95 shadow-sm open:shadow-md transition-shadow"
+              >
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-6 py-4 font-semibold text-slate-900">
+                  {faq.question}
+                  <svg
+                    className="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform group-open:rotate-180"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <p className="px-6 pb-5 text-slate-600 text-sm leading-relaxed">{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
 
         <p className="mt-10 text-center text-xs text-slate-500">
           Signed in as {user?.email ?? "guest"} · Stripe product {pricing?.productId ?? "prod_UIjX4gboLVPWDq"}
