@@ -155,7 +155,7 @@ def _serialize_access_status(user: User, subscription: Optional[Subscription]):
     trial_active = bool(trial_ends_at and trial_ends_at > now)
     has_active_subscription = bool(subscription and subscription_status in ACTIVE_SUBSCRIPTION_STATUSES)
 
-    if has_active_subscription:
+    if user.is_admin or has_active_subscription:
         access_status = "subscribed"
     elif trial_active:
         access_status = "trialing"
