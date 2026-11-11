@@ -198,10 +198,10 @@ export default function AuthPage() {
   // Show loading spinner while checking authentication
 if (isCheckingAuth) {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-600 text-sm font-mono">Checking authentication...</p>
+        <p className="text-slate-600 dark:text-slate-400 text-sm font-mono">Checking authentication...</p>
       </div>
     </div>
   );
@@ -221,7 +221,7 @@ return (
           width: 64px;
           height: 64px;
           border-radius: 14px;
-          background: #0F172A;
+          background: var(--logo-bg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -270,12 +270,12 @@ return (
         }
         
         .auth-logo-dark {
-          color: #0F172A;
+          color: var(--text-primary);
           font-size: 32px;
           font-weight: 800;
         }
       `}</style>
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 via-white to-slate-50">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
         {/* Background glow */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px]" />
@@ -298,16 +298,16 @@ return (
                   <span className="auth-logo-blue">PyPy</span>
                   <span className="auth-logo-dark">Code</span>
                 </span>
-                <span className="text-slate-500 text-sm">Python Challenges</span>
+                <span className="text-slate-500 dark:text-slate-400 text-sm">Python Challenges</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-xl p-8 transition-all duration-300">
-            <h1 className="font-display text-3xl font-bold text-slate-900 text-center mb-2">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl p-8 transition-all duration-300">
+            <h1 className="font-display text-3xl font-bold text-slate-900 dark:text-slate-100 text-center mb-2">
               {showProfileForm ? "Complete Your Profile" : "Welcome to PyPyCode"}
             </h1>
-            <p className="text-slate-600 text-sm text-center mb-8">
+            <p className="text-slate-600 dark:text-slate-400 text-sm text-center mb-8">
               {showProfileForm
                 ? "Tell us a bit about yourself to get started"
                 : "Sign in with your Google account to start solving Python problems"}
@@ -337,7 +337,7 @@ return (
                     value={profileData.firstName}
                     onChange={handleProfileInputChange}
                     required
-                    className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                    className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 text-sm placeholder-slate-500"
                   />
                   <input
                     type="text"
@@ -346,7 +346,7 @@ return (
                     value={profileData.lastName}
                     onChange={handleProfileInputChange}
                     required
-                    className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                    className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 text-sm placeholder-slate-500"
                   />
                 </div>
                 <input
@@ -356,10 +356,10 @@ return (
                   value={profileData.screenName}
                   onChange={handleProfileInputChange}
                   required
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm placeholder-slate-500"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 text-sm placeholder-slate-500"
                 />
                 {screenNameAvailability.message && screenNameAvailability.available === false && (
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-red-600 dark:text-red-400">
                     {screenNameAvailability.message}
                   </p>
                 )}
@@ -391,8 +391,8 @@ return (
 
             {/* Error Message */}
             {error && !success && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg px-4 py-3
-                              text-sm text-red-700 font-mono text-center animate-fade-in">
+              <div className="mb-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-4 py-3
+                              text-sm text-red-700 dark:text-red-400 font-mono text-center animate-fade-in">
                 <div className="flex items-center justify-center gap-2">
                   <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -406,20 +406,20 @@ return (
             {loading && !success && (
               <div className="flex flex-col items-center gap-3 py-4">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-slate-600 text-sm font-mono">Authenticating...</p>
+                <p className="text-slate-600 dark:text-slate-400 text-sm font-mono">Authenticating...</p>
               </div>
             )}
 
             {/* Additional Info */}
             {!success && !loading && (
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <p className="text-slate-500 text-xs text-center">
+              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-slate-500 dark:text-slate-400 text-xs text-center">
                   By signing in, you agree to our{" "}
-                  <a href="/terms" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">
+                  <a href="/terms" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors font-medium">
                     Terms
                   </a>{" "}
                   and{" "}
-                  <a href="/privacy" className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium">
+                  <a href="/privacy" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors font-medium">
                     Privacy Policy
                   </a>
                 </p>

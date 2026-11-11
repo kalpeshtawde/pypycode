@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../hooks/useAuth";
+import { useThemeStore } from "../hooks/useTheme";
 import { useEffect, useState } from "react";
 import { api } from "../utils/api";
 import type { BillingAccessStatus } from "../types";
@@ -7,6 +8,7 @@ import Footer from "./Footer";
 
 export default function Layout() {
   const { token, user, setAuth, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
   const authRedirectPath = `${location.pathname}${location.search}`;
@@ -63,15 +65,15 @@ export default function Layout() {
   }, [token, loadingAccessStatus, accessStatus, location.pathname, authRedirectPath, navigate, billingEnabled]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Navbar */}
       <header 
         className="sticky top-0 z-50 border-b"
         style={{
-          background: 'rgba(241, 245, 249, 0.85)',
+          background: 'var(--header-bg)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          borderBottomColor: '#E2E8F0',
+          borderBottomColor: 'var(--border-default)',
           height: '64px',
           padding: '0 40px'
         }}
@@ -88,7 +90,7 @@ export default function Layout() {
             width: 32px;
             height: 32px;
             border-radius: 7px;
-            background: #0F172A;
+            background: var(--logo-bg);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -136,7 +138,7 @@ export default function Layout() {
           }
           
           .logo-dark {
-            color: #0F172A;
+            color: var(--text-primary);
             font-size: 19px;
             font-weight: 800;
           }
@@ -173,7 +175,7 @@ export default function Layout() {
               .nav-link {
                 font-weight: 600;
                 font-size: 15px;
-                color: #64748B;
+                color: var(--text-muted);
                 text-decoration: none;
                 position: relative;
                 transition: color 200ms ease;
@@ -185,17 +187,17 @@ export default function Layout() {
                 left: 0;
                 width: 0;
                 height: 2px;
-                background-color: #059669;
+                background-color: var(--accent-text);
                 transition: width 200ms ease;
               }
               .nav-link:hover {
-                color: #0F172A;
+                color: var(--text-primary);
               }
               .nav-link:hover::after {
                 width: 100%;
               }
               .nav-link.active {
-                color: #059669;
+                color: var(--accent-text);
               }
               .nav-link.active::after {
                 width: 100%;
@@ -231,6 +233,26 @@ export default function Layout() {
 
           {/* Auth */}
           <div className="flex items-center gap-3 ml-auto">
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700
+                         bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300
+                         hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-slate-100
+                         transition-all duration-200 cursor-pointer"
+            >
+              {theme === "dark" ? (
+                <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </svg>
+              )}
+            </button>
             {user ? (
               <>
                 {/* Avatar Circle */}
@@ -258,38 +280,12 @@ export default function Layout() {
                 </NavLink>
                 <button 
                   onClick={() => { logout(); navigate("/"); }}
-                  style={{
-                    fontWeight: 600,
-                    fontSize: '13px',
-                    letterSpacing: '0.2px',
-                    color: '#475569',
-                    background: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '999px',
-                    padding: '8px 14px',
-                    cursor: 'pointer',
-                    transition: 'all 180ms ease',
-                    boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#DC2626';
-                    e.currentTarget.style.background = '#FEF2F2';
-                    e.currentTarget.style.borderColor = '#FECACA';
-                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(220,38,38,0.12)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#475569';
-                    e.currentTarget.style.background = '#FFFFFF';
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)';
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.outline = 'none';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.2)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)';
-                  }}
+                  className="text-[13px] font-semibold tracking-[0.2px] rounded-full px-3.5 py-2 cursor-pointer transition-all duration-200
+                             bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+                             text-slate-600 dark:text-slate-300 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-none
+                             hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30
+                             hover:shadow-[0_4px_10px_rgba(220,38,38,0.12)] dark:hover:shadow-none
+                             focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                 >
                   Sign out
                 </button>
@@ -304,15 +300,15 @@ export default function Layout() {
       </header>
 
       {accessStatus?.accessStatus === "trialing" && billingEnabled && (
-        <div className="w-full px-4 py-2 bg-amber-50 border-b border-amber-200">
+        <div className="w-full px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/25">
           <div className="max-w-5xl mx-auto flex items-center justify-center gap-2">
             <svg className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <span className="text-xs font-medium text-amber-700">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
               {accessStatus.trial.daysRemaining} day{accessStatus.trial.daysRemaining === 1 ? "" : "s"} remaining in your trial
             </span>
-            <a href="/pricing" className="text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900 transition-colors">
+            <a href="/pricing" className="text-xs font-semibold text-amber-800 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors">
               Upgrade now
             </a>
           </div>

@@ -42,9 +42,9 @@ function ProblemCell({
   const isSolved = solvedProblems.includes(problem.id);
 
   const difficultyColors = {
-    easy: '#10B981',
-    medium: '#F59E0B',
-    hard: '#EF4444'
+    easy: 'var(--diff-easy-text)',
+    medium: 'var(--diff-medium-text)',
+    hard: 'var(--diff-hard-text)'
   };
 
   const cellColor = difficultyColors[problem.difficulty];
@@ -73,7 +73,7 @@ function ProblemCell({
         height: '24px',
         borderRadius: '4px',
         background: cellColor,
-        border: '1px solid #D1D5DB',
+        border: '1px solid var(--border-strong)',
         cursor: 'pointer',
         transition: 'all 150ms ease',
         display: 'inline-flex',
@@ -895,8 +895,8 @@ export default function ProblemsPage() {
             <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* Active Project Banner */}
               <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '1px solid #bbf7d0',
+                background: 'var(--banner-green-bg)',
+                border: '1px solid var(--banner-green-border)',
                 borderRadius: '14px',
                 padding: '14px 24px',
                 display: 'flex',
@@ -905,7 +905,7 @@ export default function ProblemsPage() {
                 gap: '8px',
                 boxShadow: '0 2px 8px rgba(16,185,129,0.08)'
               }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: '#059669', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent-text)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Active Project
                 </div>
                 {/* Select wrapper with chevron */}
@@ -918,9 +918,9 @@ export default function ProblemsPage() {
                       width: '100%',
                       fontSize: '15px',
                       fontWeight: 700,
-                      color: '#0F172A',
-                      background: 'white',
-                      border: '1px solid #bbf7d0',
+                      color: 'var(--text-primary)',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--banner-green-border)',
                       borderRadius: '10px',
                       padding: '9px 40px 9px 16px',
                       appearance: 'none',
@@ -938,7 +938,7 @@ export default function ProblemsPage() {
                     ))}
                   </select>
                   {/* Chevron overlay */}
-                  <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#059669' }}>
+                  <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--accent-text)' }}>
                     <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
@@ -960,7 +960,7 @@ export default function ProblemsPage() {
                 <button
                   onClick={() => openChat('update')}
                   disabled={!token || !selectedProjectId || chatBusy || deletingProject}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg border border-blue-300 text-blue-600 bg-transparent hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg border border-blue-300 dark:border-blue-500/40 text-blue-600 dark:text-blue-400 bg-transparent hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Update Project
                 </button>
@@ -987,21 +987,21 @@ export default function ProblemsPage() {
               <div
                 className="stat-card"
                 style={{
-                  background: 'white',
+                  background: 'var(--bg-surface)',
                   borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-default)',
                   padding: '20px',
                   boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
                   animationDelay: '100ms'
                 }}
               >
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-faint)', marginBottom: '8px' }}>
                   TOTAL SOLVED
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--diff-easy-text)' }}>
                   {solvedCount}
                 </div>
-                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '4px' }}>
                   of {totalProblemCount} problems
                 </div>
               </div>
@@ -1010,21 +1010,21 @@ export default function ProblemsPage() {
               <div
                 className="stat-card"
                 style={{
-                  background: 'white',
+                  background: 'var(--bg-surface)',
                   borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-default)',
                   padding: '20px',
                   boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
                   animationDelay: '150ms'
                 }}
               >
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-faint)', marginBottom: '8px' }}>
                   EASY
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#10B981' }}>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--diff-easy-text)' }}>
                   {easySolved}
                 </div>
-                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '4px' }}>
                   of {easyTotal}
                 </div>
               </div>
@@ -1033,21 +1033,21 @@ export default function ProblemsPage() {
               <div
                 className="stat-card"
                 style={{
-                  background: 'white',
+                  background: 'var(--bg-surface)',
                   borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-default)',
                   padding: '20px',
                   boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
                   animationDelay: '200ms'
                 }}
               >
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-faint)', marginBottom: '8px' }}>
                   MEDIUM
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#F59E0B' }}>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--diff-medium-text)' }}>
                   {mediumSolved}
                 </div>
-                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '4px' }}>
                   of {mediumTotal}
                 </div>
               </div>
@@ -1056,21 +1056,21 @@ export default function ProblemsPage() {
               <div
                 className="stat-card"
                 style={{
-                  background: 'white',
+                  background: 'var(--bg-surface)',
                   borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-default)',
                   padding: '20px',
                   boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
                   animationDelay: '250ms'
                 }}
               >
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-faint)', marginBottom: '8px' }}>
                   HARD
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#EF4444' }}>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--diff-hard-text)' }}>
                   {hardSolved}
                 </div>
-                <div style={{ fontSize: '12px', color: '#CBD5E1', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '4px' }}>
                   of {hardTotal}
                 </div>
               </div>
@@ -1079,9 +1079,9 @@ export default function ProblemsPage() {
 
             {/* Contribution Grid */}
             <div style={{
-              background: 'white',
+              background: 'var(--bg-surface)',
               borderRadius: '12px',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-default)',
               padding: '24px',
               boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
               marginBottom: '24px'
@@ -1089,7 +1089,7 @@ export default function ProblemsPage() {
               <h3 style={{
                 fontSize: '16px',
                 fontWeight: 700,
-                color: '#0F172A',
+                color: 'var(--text-primary)',
                 margin: '0 0 20px 0'
               }}>
                 Problem Completion
@@ -1127,24 +1127,24 @@ export default function ProblemsPage() {
               <div style={{
                 marginTop: '24px',
                 paddingTop: '20px',
-                borderTop: '1px solid #F1F5F9',
+                borderTop: '1px solid var(--bg-raised)',
                 display: 'flex',
                 gap: '20px',
                 alignItems: 'center',
                 fontSize: '13px',
-                color: '#64748B'
+                color: 'var(--text-muted)'
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <div style={{
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: '#10B981',
-                    border: '1px solid #D1D5DB',
+                    background: 'var(--diff-easy-text)',
+                    border: '1px solid var(--border-strong)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'white',
+                    color: 'var(--bg-surface)',
                     fontSize: '12px',
                     fontWeight: 700
                   }}>
@@ -1157,8 +1157,8 @@ export default function ProblemsPage() {
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: '#10B981',
-                    border: '1px solid #D1D5DB'
+                    background: 'var(--diff-easy-text)',
+                    border: '1px solid var(--border-strong)'
                   }} />
                   <span style={{ fontWeight: 500 }}>Easy</span>
                 </div>
@@ -1167,8 +1167,8 @@ export default function ProblemsPage() {
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: '#F59E0B',
-                    border: '1px solid #D1D5DB'
+                    background: 'var(--diff-medium-text)',
+                    border: '1px solid var(--border-strong)'
                   }} />
                   <span style={{ fontWeight: 500 }}>Medium</span>
                 </div>
@@ -1177,8 +1177,8 @@ export default function ProblemsPage() {
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: '#EF4444',
-                    border: '1px solid #D1D5DB'
+                    background: 'var(--diff-hard-text)',
+                    border: '1px solid var(--border-strong)'
                   }} />
                   <span style={{ fontWeight: 500 }}>Hard</span>
                 </div>
@@ -1187,8 +1187,8 @@ export default function ProblemsPage() {
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: '#E5E7EB',
-                    border: '1px solid #D1D5DB'
+                    background: 'var(--gray-fill)',
+                    border: '1px solid var(--border-strong)'
                   }} />
                   <span style={{ fontWeight: 500 }}>Unsolved</span>
                 </div>
@@ -1200,7 +1200,7 @@ export default function ProblemsPage() {
         {/* Vega explanation banner — shown for AI-generated projects */}
         {selectedProject?.explanation &&
           dismissedExplanationProjectId !== selectedProject.id && (
-            <div className="mt-6 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4 shadow-sm">
+            <div className="mt-6 rounded-xl border border-indigo-100 dark:border-indigo-500/25 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/10 px-5 py-4 shadow-sm">
               <div className="flex items-start gap-4">
                 {/* Icon */}
                 <div className="flex-shrink-0 mt-0.5 h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md">
@@ -1210,20 +1210,20 @@ export default function ProblemsPage() {
                 </div>
                 {/* Left: heading + explanation text (~65%) */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-indigo-900 mb-1.5 flex items-center gap-2">
+                  <div className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1.5 flex items-center gap-2">
                     <span>Why this set</span>
-                    <span className="text-xs font-normal text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-normal text-indigo-600 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/20 px-2 py-0.5 rounded-full">
                       AI-generated
                     </span>
                   </div>
-                  <p className="text-sm text-slate-700 leading-relaxed">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                     {selectedProject.explanation}
                   </p>
                 </div>
                 {/* Right: meta badges + dismiss (~35%) */}
                 <div className="flex-shrink-0 flex flex-col items-end gap-2 ml-4">
                   {selectedProject.level && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 text-xs font-medium shadow-sm whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium shadow-sm whitespace-nowrap">
                       <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                       </svg>
@@ -1231,7 +1231,7 @@ export default function ProblemsPage() {
                     </span>
                   )}
                   {selectedProject.strategy && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 border border-indigo-200 text-indigo-700 text-xs font-medium shadow-sm whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium shadow-sm whitespace-nowrap">
                       <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                       </svg>
@@ -1240,7 +1240,7 @@ export default function ProblemsPage() {
                   )}
                   <button
                     onClick={() => setDismissedExplanationProjectId(selectedProject.id)}
-                    className="mt-1 text-slate-400 hover:text-slate-600 hover:bg-white/50 rounded-lg p-1 transition-colors"
+                    className="mt-1 text-slate-400 hover:text-slate-600 hover:bg-white/50 dark:hover:bg-slate-700/50 rounded-lg p-1 transition-colors"
                     aria-label="Dismiss"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1256,7 +1256,7 @@ export default function ProblemsPage() {
         <div className="flex items-center justify-between gap-4 mb-4 mt-6">
           {/* Left: filter pills + tag dropdown */}
           <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 bg-white shadow-sm flex-shrink-0">
+          <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex-shrink-0">
           {QUICK_FILTERS.map((d) => {
             const isActive = filter === d;
             const label =
@@ -1267,16 +1267,16 @@ export default function ProblemsPage() {
                   : d.charAt(0).toUpperCase() + d.slice(1);
             const activeTone =
               d === "easy"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                 : d === "medium"
-                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
                   : d === "hard"
-                    ? "bg-red-50 text-red-700 border-red-200"
+                    ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30"
                     : d === "solved"
-                      ? "bg-teal-50 text-teal-700 border-teal-200"
+                      ? "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-500/30"
                     : d === "favorite"
-                      ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                      : "bg-slate-100 text-slate-700 border-slate-200";
+                      ? "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
 
             return (
             <button
@@ -1285,7 +1285,7 @@ export default function ProblemsPage() {
               className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
                 isActive
                   ? activeTone
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               {label}
@@ -1317,8 +1317,8 @@ export default function ProblemsPage() {
                   }
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
                     selectedTags.length > 0
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      : "border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 bg-white"
+                      ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30"
+                      : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-800"
                   }`}
                 >
                   Tags{selectedTags.length > 0 && ` (${selectedTags.length})`}
@@ -1330,15 +1330,15 @@ export default function ProblemsPage() {
                   </svg>
                 </button>
                 {tagDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                    <div className="p-2 border-b border-slate-100">
+                  <div className="absolute z-20 mt-1 w-56 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-700">
                       <input
                         autoFocus
                         type="text"
                         value={tagSearchQuery}
                         onChange={(e) => setTagSearchQuery(e.target.value)}
                         placeholder="Search tags..."
-                        className="w-full px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
                     <div className="max-h-60 overflow-y-auto">
@@ -1357,11 +1357,11 @@ export default function ProblemsPage() {
                                 checked ? prev.filter((x) => x !== t) : [...prev, t]
                               )
                             }
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                           >
                             <span
-                              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 bg-white ${
-                                checked ? "border-emerald-500" : "border-slate-300"
+                              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 bg-white dark:bg-slate-800 ${
+                                checked ? "border-emerald-500" : "border-slate-300 dark:border-slate-600"
                               }`}
                             >
                               {checked && (
@@ -1379,7 +1379,7 @@ export default function ProblemsPage() {
                     {selectedTags.length > 0 && (
                       <button
                         onClick={() => setSelectedTags([])}
-                        className="w-full text-left px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 border-t border-slate-100"
+                        className="w-full text-left px-3 py-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 border-t border-slate-100 dark:border-slate-700"
                       >
                         Clear tags
                       </button>
@@ -1400,7 +1400,7 @@ export default function ProblemsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title or tags..."
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
             {searchQuery && (
               <button
@@ -1418,9 +1418,9 @@ export default function ProblemsPage() {
         {/* Problems List */}
         <div style={{ marginTop: '0' }}>
           <div style={{
-            background: 'white',
+            background: 'var(--bg-surface)',
             borderRadius: '12px',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-default)',
             boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
             overflow: 'hidden'
           }}>
@@ -1430,11 +1430,11 @@ export default function ProblemsPage() {
               gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
               gap: '16px',
               padding: '16px 24px',
-              background: '#F8FAFC',
-              borderBottom: '1px solid #E2E8F0',
+              background: 'var(--bg-sunken)',
+              borderBottom: '1px solid var(--border-default)',
               fontSize: '12px',
               fontWeight: 600,
-              color: '#94A3B8',
+              color: 'var(--text-faint)',
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
             }}>
@@ -1515,22 +1515,22 @@ export default function ProblemsPage() {
                       gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
                       gap: '16px',
                       padding: '16px 24px',
-                      borderBottom: '1px solid #F1F5F9',
+                      borderBottom: '1px solid var(--bg-raised)',
                       alignItems: 'center',
                       cursor: 'pointer',
                       transition: 'all 150ms ease',
-                      background: isSolved ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)' : 'white',
+                      background: isSolved ? 'var(--row-solved-bg)' : 'var(--bg-surface)',
                       textDecoration: 'none',
                       color: 'inherit'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = isSolved
-                        ? 'linear-gradient(90deg, #DCFCE7 0%, #F8FAFC 100%)'
-                        : '#F8FAFC';
+                        ? 'var(--row-solved-hover-bg)'
+                        : 'var(--bg-sunken)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = isSolved
-                        ? 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 100%)'
+                        ? 'var(--row-solved-bg)'
                         : 'white';
                     }}
                     onClick={(e) => {
@@ -1574,13 +1574,13 @@ export default function ProblemsPage() {
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          background: '#10B981',
+                          background: 'var(--diff-easy-text)',
                           border: '2px solid white',
                           boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: 'white',
+                          color: 'var(--bg-surface)',
                           fontSize: '14px',
                           fontWeight: 800
                         }}
@@ -1594,7 +1594,7 @@ export default function ProblemsPage() {
                     <div style={{
                       fontSize: '14px',
                       fontWeight: 600,
-                      color: isSolved ? '#10B981' : '#CBD5E1'
+                      color: isSolved ? 'var(--diff-easy-text)' : 'var(--text-subtle)'
                     }}>
                     {String(problemSequence.get(p.id) || 0).padStart(2, '0')}
                     </div>
@@ -1603,7 +1603,7 @@ export default function ProblemsPage() {
                     <div style={{
                       fontSize: '15px',
                       fontWeight: 600,
-                      color: isSolved ? '#10B981' : '#0F172A'
+                      color: isSolved ? 'var(--diff-easy-text)' : 'var(--text-primary)'
                     }}>
                       {p.title}
                     </div>
@@ -1618,8 +1618,8 @@ export default function ProblemsPage() {
                       <span
                         key={tag}
                         style={{
-                          background: '#EEF3FF',
-                          color: '#059669',
+                          background: 'var(--tag-bg)',
+                          color: 'var(--accent-text)',
                           fontSize: '11px',
                           fontWeight: 600,
                           padding: '2px 8px',
@@ -1643,15 +1643,15 @@ export default function ProblemsPage() {
                           borderRadius: '999px',
                           textTransform: 'capitalize',
                           background: p.difficulty === 'easy'
-                            ? '#ECFDF5'
+                            ? 'var(--diff-easy-bg)'
                             : p.difficulty === 'medium'
-                            ? '#FFFBEB'
-                            : '#FEF2F2',
+                            ? 'var(--diff-medium-bg)'
+                            : 'var(--diff-hard-bg)',
                           color: p.difficulty === 'easy'
-                            ? '#10B981'
+                            ? 'var(--diff-easy-text)'
                             : p.difficulty === 'medium'
-                            ? '#F59E0B'
-                            : '#EF4444',
+                            ? 'var(--diff-medium-text)'
+                            : 'var(--diff-hard-text)',
                           border: p.difficulty === 'easy'
                             ? '1px solid rgba(16,185,129,0.2)'
                             : p.difficulty === 'medium'
@@ -1691,7 +1691,7 @@ export default function ProblemsPage() {
       {/* Vega Chat Widget — bottom-right */}
       {isLoggedIn && chatMessages.length > 0 && (
         <div
-          className="fixed bottom-6 right-6 z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white"
+          className="fixed bottom-6 right-6 z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
           style={{ width: '460px', minHeight: '480px', maxHeight: '840px' }}
         >
           {/* Header */}
@@ -1722,7 +1722,7 @@ export default function ProblemsPage() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-slate-50">
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-slate-50 dark:bg-slate-900">
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex items-end gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'vega' && (
@@ -1734,7 +1734,7 @@ export default function ProblemsPage() {
                 )}
                 <div className={`max-w-[240px] px-3 py-2 text-sm leading-relaxed rounded-2xl ${
                   msg.role === 'vega'
-                    ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'
+                    ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-sm'
                     : chatMode === 'create'
                       ? 'bg-emerald-600 text-white rounded-tr-sm'
                       : 'bg-blue-600 text-white rounded-tr-sm'
@@ -1752,7 +1752,7 @@ export default function ProblemsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
-                <div className="bg-white border border-slate-200 px-3 py-2.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1">
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -1763,7 +1763,7 @@ export default function ProblemsPage() {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-2.5 border-t border-slate-100 bg-white flex items-end gap-2 flex-shrink-0">
+          <div className="px-3 py-2.5 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-end gap-2 flex-shrink-0">
             <textarea
               ref={chatInputRef}
               rows={1}
@@ -1789,7 +1789,7 @@ export default function ProblemsPage() {
                   ? 'How many problems? (5–50)'
                   : ''
               }
-              className="flex-1 resize-none overflow-hidden text-sm px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40"
+              className="flex-1 resize-none overflow-hidden text-sm px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40"
               style={{ minHeight: '36px', maxHeight: '100px' }}
             />
             <button
@@ -1811,33 +1811,33 @@ export default function ProblemsPage() {
 
       {isLoggedIn && showDeleteProjectDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200">
-            <div className="px-6 py-5 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Delete Project</h3>
-              <p className="text-sm text-slate-500 mt-1">This action cannot be undone.</p>
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700">
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete Project</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">This action cannot be undone.</p>
             </div>
             <div className="px-6 py-5">
               {selectedProject?.isDefault ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
                   The default project <span className="font-semibold">{selectedProject?.name || "this project"}</span> cannot be deleted.
                 </div>
               ) : (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-400">
                   Deleting <span className="font-semibold">{selectedProject?.name || "this project"}</span> will remove all progress and submissions under this project.
                 </div>
               )}
               {deleteProjectError && (
-                <div className="mt-3 text-sm text-red-600">{deleteProjectError}</div>
+                <div className="mt-3 text-sm text-red-600 dark:text-red-400">{deleteProjectError}</div>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   if (deletingProject) return;
                   setShowDeleteProjectDialog(false);
                   setDeleteProjectError(null);
                 }}
-                className="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
@@ -1863,8 +1863,8 @@ export default function ProblemsPage() {
             disabled={!pagination.has_prev}
             className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
               pagination.has_prev
-                ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+                ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                : "border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 cursor-not-allowed"
             }`}
           >
             ←
@@ -1893,8 +1893,8 @@ export default function ProblemsPage() {
                   }}
                   className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
                     pageNum === currentPage
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   {pageNum}
@@ -1911,8 +1911,8 @@ export default function ProblemsPage() {
             disabled={!pagination.has_next}
             className={`px-3 py-2 text-sm font-mono rounded-lg border transition-colors ${
               pagination.has_next
-                ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+                ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                : "border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 cursor-not-allowed"
             }`}
           >
             →
@@ -1924,7 +1924,7 @@ export default function ProblemsPage() {
       {loading && (
         <div className="flex justify-center items-center gap-2 mt-8">
           <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-mono text-slate-600">Loading...</span>
+          <span className="text-sm font-mono text-slate-600 dark:text-slate-400">Loading...</span>
         </div>
       )}
     </div>

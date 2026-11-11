@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, lineNumbers } from '@codemirror/view';
 import { python } from '@codemirror/lang-python';
 import { vim } from '@replit/codemirror-vim';
@@ -9,6 +9,7 @@ import { history, indentMore, indentLess } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { indentUnit } from '@codemirror/language';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { useThemeStore } from '../hooks/useTheme';
 
 const lightHighlightStyle = HighlightStyle.define([
   { tag: t.keyword, color: '#d73a49' },
@@ -21,50 +22,74 @@ const lightHighlightStyle = HighlightStyle.define([
   { tag: t.operator, color: '#d73a49' },
 ]);
 
-interface CodeMirrorEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  fontSize: number;
-  vimMode: boolean;
-}
+const darkHighlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: '#ff7b72' },
+  { tag: t.atom, color: '#79c0ff' },
+  { tag: t.number, color: '#79c0ff' },
+  { tag: t.string, color: '#a5d6ff' },
+  { tag: t.variableName, color: '#dbe5f1' },
+  { tag: t.function(t.variableName), color: '#d2a8ff' },
+  { tag: t.comment, color: '#8b9bb0' },
+  { tag: t.operator, color: '#ff7b72' },
+]);
 
-export default function CodeMirrorEditor({
-  value,
-  onChange,
-  fontSize,
-  vimMode,
-}: CodeMirrorEditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<EditorView | null>(null);
-  const onChangeRef = useRef(onChange);
-  
-  // Keep onChange ref up to date without recreating editor
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const extensions: any[] = [
-      history(),
-      lineNumbers(),
-      indentOnInput(),
-      closeBrackets(),
-      indentUnit.of('    '),
-      python(),
-      keymap.of([
-        ...closeBracketsKeymap,
-        { key: 'Tab', run: indentMore },
-        { key: 'Shift-Tab', run: indentLess },
-      ]),
-      EditorView.updateListener.of((update: any) => {
-        if (update.docChanged) {
-          onChangeRef.current(update.state.doc.toString());
-        }
-      }),
-      syntaxHighlighting(lightHighlightStyle),
-      EditorView.theme({
+function buildThemeExtensions(dark: boolean) {
+  const spec = dark
+    ? {
+        '.cm-editor': {
+          fontFamily: "'JetBrains Mono', monospace",
+          height: '100%',
+          backgroundColor: '#131f31',
+          color: '#dbe5f1',
+        },
+        '.cm-scroller': {
+          overflow: 'auto',
+          fontFamily: "'JetBrains Mono', monospace",
+        },
+        '.cm-gutters': {
+          backgroundColor: '#131f31',
+          borderRight: '1px solid #2c3a4f',
+          color: '#7c8ca3',
+        },
+        '.cm-activeLineGutter': {
+          backgroundColor: '#1b2a3d',
+        },
+        '.cm-cursor': {
+          borderLeftColor: '#34d399',
+        },
+        '.cm-content': {
+          caretColor: '#34d399',
+        },
+        '.cm-selectionBackground': {
+          backgroundColor: '#2b5aa8 !important',
+        },
+        '.cm-focused .cm-selectionBackground': {
+          backgroundColor: '#2b5aa8 !important',
+        },
+        '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+          backgroundColor: '#2b5aa8 !important',
+        },
+        '.cm-selectionLayer .cm-selectionBackground': {
+          backgroundColor: '#2b5aa8 !important',
+        },
+        '.cm-content ::selection': {
+          backgroundColor: '#2b5aa8 !important',
+          color: '#e8eef7 !important',
+        },
+        '.cm-line ::selection': {
+          backgroundColor: '#2b5aa8 !important',
+          color: '#e8eef7 !important',
+        },
+        '.cm-vimMode .cm-content .cm-line::selection': {
+          backgroundColor: '#2b5aa8 !important',
+          color: '#e8eef7 !important',
+        },
+        '.cm-vimMode .cm-content .cm-line ::selection': {
+          backgroundColor: '#2b5aa8 !important',
+          color: '#e8eef7 !important',
+        },
+      }
+    : {
         '.cm-editor': {
           fontFamily: "'JetBrains Mono', monospace",
           height: '100%',
@@ -117,7 +142,60 @@ export default function CodeMirrorEditor({
           backgroundColor: '#60a5fa !important',
           color: '#0f172a !important',
         },
+      };
+
+  return [
+    dark ? syntaxHighlighting(darkHighlightStyle) : syntaxHighlighting(lightHighlightStyle),
+    EditorView.theme(spec),
+  ];
+}
+
+interface CodeMirrorEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  fontSize: number;
+  vimMode: boolean;
+}
+
+export default function CodeMirrorEditor({
+  value,
+  onChange,
+  fontSize,
+  vimMode,
+}: CodeMirrorEditorProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<EditorView | null>(null);
+  const onChangeRef = useRef(onChange);
+  const themeCompartmentRef = useRef(new Compartment());
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
+  
+  // Keep onChange ref up to date without recreating editor
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const extensions: any[] = [
+      history(),
+      lineNumbers(),
+      indentOnInput(),
+      closeBrackets(),
+      indentUnit.of('    '),
+      python(),
+      keymap.of([
+        ...closeBracketsKeymap,
+        { key: 'Tab', run: indentMore },
+        { key: 'Shift-Tab', run: indentLess },
+      ]),
+      EditorView.updateListener.of((update: any) => {
+        if (update.docChanged) {
+          onChangeRef.current(update.state.doc.toString());
+        }
       }),
+      themeCompartmentRef.current.of(buildThemeExtensions(isDark)),
     ];
 
     if (vimMode) {
@@ -143,7 +221,16 @@ export default function CodeMirrorEditor({
     return () => {
       editor.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimMode]);
+
+  // Reconfigure the theme in place when dark mode toggles (keeps undo history)
+  useEffect(() => {
+    if (!editorRef.current) return;
+    editorRef.current.dispatch({
+      effects: themeCompartmentRef.current.reconfigure(buildThemeExtensions(isDark)),
+    });
+  }, [isDark]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.state.doc.toString() !== value) {

@@ -91,11 +91,11 @@ const STEPS = [
 const FADE = "motion-safe:animate-fade-up motion-safe:opacity-0 [animation-fill-mode:forwards]";
 
 function snippetLineClass(line: string) {
-  if (line.startsWith("def ")) return "text-emerald-700";
-  if (line.includes("return")) return "text-teal-600";
-  if (line.includes("#")) return "text-slate-500";
-  if (line.includes('"')) return "text-amber-600";
-  return "text-slate-800";
+  if (line.startsWith("def ")) return "text-emerald-700 dark:text-emerald-400";
+  if (line.includes("return")) return "text-teal-600 dark:text-teal-400";
+  if (line.includes("#")) return "text-slate-500 dark:text-slate-400";
+  if (line.includes('"')) return "text-amber-600 dark:text-amber-400";
+  return "text-slate-800 dark:text-slate-200";
 }
 
 export default function HomePage() {
@@ -151,29 +151,29 @@ export default function HomePage() {
   const typedLines = fullSnippet.slice(0, typedChars).split("\n");
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="relative overflow-hidden bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
       {/* Gradient orb */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px]
                       bg-emerald-500/8 rounded-full blur-[120px]" />
 
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-6 pt-24 pb-16 text-center">
-        <p className={`inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50
-                      px-4 py-1.5 text-sm font-medium text-emerald-700 mb-8 ${FADE}`}
+        <p className={`inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10
+                      px-4 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-8 ${FADE}`}
            style={{ animationDelay: "50ms" }}>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
           Python-only coding challenges
         </p>
 
         <h1 className={`font-display text-5xl sm:text-7xl font-semibold leading-[1.05] tracking-tight
-                       text-slate-900 mb-6 ${FADE}`}
+                       text-slate-900 dark:text-slate-100 mb-6 ${FADE}`}
             style={{ animationDelay: "100ms" }}>
           Write Python.
           <br />
           <em className="not-italic bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Ship solutions.</em>
         </h1>
 
-        <p className={`max-w-xl mx-auto text-slate-600 text-lg leading-relaxed mb-10 ${FADE}`}
+        <p className={`max-w-xl mx-auto text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-10 ${FADE}`}
            style={{ animationDelay: "200ms" }}>
           A focused coding platform for Python developers. Solve real algorithmic
           problems, get instant sandboxed feedback, and climb the leaderboard.
@@ -192,32 +192,32 @@ export default function HomePage() {
         <div className={`mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 ${FADE}`}
              style={{ animationDelay: "400ms" }}>
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-xl font-semibold text-slate-900">
+            <span className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">
               {count !== null ? `${count}+` : "—"}
             </span>
-            <span className="text-sm text-slate-500">curated problems</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">curated problems</span>
           </div>
-          <span className="hidden sm:block w-px h-5 bg-slate-200" />
+          <span className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-700" />
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-xl font-semibold text-slate-900">{price}<span className="text-sm font-normal text-slate-500">/year</span></span>
-            <span className="text-sm text-slate-500">full access</span>
+            <span className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">{price}<span className="text-sm font-normal text-slate-500 dark:text-slate-400">/year</span></span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">full access</span>
           </div>
-          <span className="hidden sm:block w-px h-5 bg-slate-200" />
+          <span className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-700" />
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-xl font-semibold text-slate-900">{trialDays} days</span>
-            <span className="text-sm text-slate-500">free trial</span>
+            <span className="font-display text-xl font-semibold text-slate-900 dark:text-slate-100">{trialDays} days</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">free trial</span>
           </div>
         </div>
       </section>
 
       {/* Code preview */}
       <section className="max-w-2xl mx-auto px-6 mb-24">
-        <div className="overflow-hidden rounded-lg border border-slate-200 shadow-lg shadow-slate-200/50 bg-white">
-          <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-200 bg-slate-50">
+        <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg shadow-slate-200/50 dark:shadow-black/30 bg-white dark:bg-slate-800">
+          <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
             <span className="w-3 h-3 rounded-full bg-red-500" />
             <span className="w-3 h-3 rounded-full bg-amber-500" />
             <span className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span className="ml-3 text-xs font-mono text-slate-600 font-medium">two_sum.py</span>
+            <span className="ml-3 text-xs font-mono text-slate-600 dark:text-slate-400 font-medium">two_sum.py</span>
           </div>
           <div className="p-6">
             <pre className="font-mono text-sm leading-7 overflow-x-auto min-h-[168px]">
@@ -231,9 +231,9 @@ export default function HomePage() {
                 </div>
               ))}
             </pre>
-            <div className={`mt-4 pt-4 border-t border-slate-200 flex items-center gap-3 transition-opacity duration-500 ${typingDone ? "opacity-100" : "opacity-0"}`}>
+            <div className={`mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center gap-3 transition-opacity duration-500 ${typingDone ? "opacity-100" : "opacity-0"}`}>
               <span className="w-2 h-2 rounded-full bg-emerald-600" />
-              <span className="text-xs font-mono text-emerald-700 font-medium">✓ All 3 test cases passed — 12ms</span>
+              <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 font-medium">✓ All 3 test cases passed — 12ms</span>
             </div>
           </div>
         </div>
@@ -243,15 +243,15 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FEATURES.map((f, i) => (
-            <Link key={i} to={f.to} className="group relative isolate overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 motion-safe:hover:-translate-y-1 hover:border-emerald-300/70 hover:shadow-xl hover:shadow-emerald-200/40">
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <Link key={i} to={f.to} className="group relative isolate overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 p-6 backdrop-blur-sm transition-all duration-300 motion-safe:hover:-translate-y-1 hover:border-emerald-300/70 hover:shadow-xl hover:shadow-emerald-200/40 dark:hover:border-emerald-500/40 dark:hover:shadow-emerald-500/10">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/40 dark:from-slate-800 dark:via-emerald-500/5 dark:to-teal-500/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-300/15 blur-2xl transition-all duration-300 group-hover:bg-emerald-300/25" />
               <div className="relative">
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/70 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100 transition-all duration-300 motion-safe:group-hover:scale-105 group-hover:bg-white group-hover:text-emerald-600">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/70 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-sm shadow-emerald-100 dark:shadow-none transition-all duration-300 motion-safe:group-hover:scale-105 group-hover:bg-white dark:group-hover:bg-emerald-500/15 group-hover:text-emerald-600 dark:group-hover:text-emerald-300">
                   {f.icon}
                 </div>
-                <h3 className="font-display text-base font-semibold text-slate-900 mb-2.5 tracking-tight group-hover:text-emerald-700 transition-colors duration-300">{f.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300">{f.desc}</p>
+                <h3 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100 mb-2.5 tracking-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors duration-300">{f.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors duration-300">{f.desc}</p>
               </div>
             </Link>
           ))}
@@ -260,7 +260,7 @@ export default function HomePage() {
 
       {/* How it works */}
       <section className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 text-center mb-12">
+        <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 text-center mb-12">
           How it works
         </h2>
         <div className="grid sm:grid-cols-3 gap-8">
@@ -269,8 +269,8 @@ export default function HomePage() {
               <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white font-display font-semibold">
                 {s.n}
               </div>
-              <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">{s.title}</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
+              <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{s.title}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{s.desc}</p>
             </div>
           ))}
         </div>

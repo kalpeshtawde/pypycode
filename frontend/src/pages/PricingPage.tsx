@@ -146,34 +146,34 @@ export default function PricingPage() {
   const canStartTrial = !!token && !!accessStatus && !accessStatus.trial.used && !hasSubscriptionAccess;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 py-16 px-6">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-emerald-50/30 py-16 px-6">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-4">
+          <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-4">
             Annual Access Plan
           </h1>
-          <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+          <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
             One simple subscription for full PyPyCode access. No feature gates, no tiers.
           </p>
         </div>
 
         {isSuccess && (
-          <div className="mb-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-              <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mb-8 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15">
+              <svg className="h-8 w-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="font-display text-2xl font-bold text-slate-900 mb-2">
+            <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
               Payment Successful!
             </h2>
-            <p className="text-slate-600 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               Your annual subscription has been activated. You now have full access to all PyPyCode features.
             </p>
             {subscription?.currentPeriodEnd && (
-              <div className="mb-6 inline-block rounded-xl bg-white border border-emerald-100 px-6 py-4 text-left shadow-sm">
-                <div className="text-sm text-slate-500 mb-1">Subscription renews on</div>
-                <div className="font-semibold text-slate-900 text-lg">
+              <div className="mb-6 inline-block rounded-xl bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-500/25 px-6 py-4 text-left shadow-sm">
+                <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">Subscription renews on</div>
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-lg">
                   {new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
                     weekday: 'long',
                     year: 'numeric',
@@ -192,7 +192,7 @@ export default function PricingPage() {
               </button>
               <Link
                 to="/profile"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-6 py-3 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 View Subscription in Profile
               </Link>
@@ -201,44 +201,44 @@ export default function PricingPage() {
         )}
 
         {isCanceled && (
-          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 text-sm text-center">
+          <div className="mb-6 rounded-lg border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-amber-800 dark:text-amber-300 text-sm text-center">
             Checkout canceled. You can start again anytime.
           </div>
         )}
 
         {isRequired && (
-          <div className="mb-6 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 text-blue-800 text-sm text-center">
+          <div className="mb-6 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 px-4 py-3 text-blue-800 dark:text-blue-300 text-sm text-center">
             Pick a plan to continue: start your {pricing?.trialDays ?? 15}-day trial or subscribe annually.
           </div>
         )}
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-700 text-sm text-center">
+          <div className="mb-6 rounded-lg border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-red-700 dark:text-red-400 text-sm text-center">
             {error}
           </div>
         )}
 
         <div className="grid md:grid-cols-2 gap-6 items-stretch">
-          <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-8">
-            <p className="inline-block rounded-full bg-blue-100 text-blue-700 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-sm p-8">
+            <p className="inline-block rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
               FREE TRIAL
             </p>
 
-            <h2 className="font-display text-3xl font-bold text-slate-900 mb-2">
+            <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
               {loadingPricing ? "15-day trial" : `${pricing?.trialDays ?? 15}-day trial`}
             </h2>
 
-            <p className="text-slate-600 mb-6">Start with full access for free. No payment required to begin.</p>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">Start with full access for free. No payment required to begin.</p>
 
             <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-3 text-slate-700">
-                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+              <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs font-bold">
                   ✓
                 </span>
                 Full access to all problems and submissions
               </li>
-              <li className="flex items-center gap-3 text-slate-700">
-                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+              <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs font-bold">
                   ✓
                 </span>
                 Trial countdown visible in your account
@@ -251,10 +251,10 @@ export default function PricingPage() {
               </Link>
             )}
 
-            {token && loadingAccessStatus && <p className="text-slate-500 text-sm">Checking eligibility...</p>}
+            {token && loadingAccessStatus && <p className="text-slate-500 dark:text-slate-400 text-sm">Checking eligibility...</p>}
 
             {token && !loadingAccessStatus && !accessStatus && (
-              <p className="text-slate-600 text-sm">Unable to load trial eligibility right now. Please refresh.</p>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Unable to load trial eligibility right now. Please refresh.</p>
             )}
 
             {token && !loadingAccessStatus && !!accessStatus && canStartTrial && (
@@ -268,7 +268,7 @@ export default function PricingPage() {
             )}
 
             {token && !loadingAccessStatus && !!accessStatus && !canStartTrial && (
-              <p className="text-slate-600 text-sm">
+              <p className="text-slate-600 dark:text-slate-400 text-sm">
                 {hasSubscriptionAccess
                   ? "You already have an active subscription."
                   : accessStatus?.accessStatus === "trialing"
@@ -280,26 +280,26 @@ export default function PricingPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 p-8">
-            <p className="inline-block rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 p-8">
+            <p className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
               ALL ACCESS
             </p>
 
             <div className="flex items-end gap-2 mb-2">
-              <span className="text-5xl font-display font-bold text-slate-900">
+              <span className="text-5xl font-display font-bold text-slate-900 dark:text-slate-100">
                 {loadingPricing ? "..." : pricing?.amountDisplay ?? "$30"}
               </span>
-              <span className="text-slate-500 mb-2">/ year</span>
+              <span className="text-slate-500 dark:text-slate-400 mb-2">/ year</span>
             </div>
 
-            <p className="text-slate-600 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               Full platform subscription billed annually. Includes every current and future coding feature.
             </p>
 
             <ul className="space-y-3 mb-8">
               {FEATURES.map((feature) => (
-                <li key={feature} className="flex items-center gap-3 text-slate-700">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                <li key={feature} className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">
                     ✓
                   </span>
                   {feature}
@@ -328,16 +328,16 @@ export default function PricingPage() {
         </div>
 
         <section className="mt-16" aria-labelledby="pricing-faq-heading">
-          <h2 id="pricing-faq-heading" className="font-display text-2xl font-bold text-slate-900 text-center mb-8">
+          <h2 id="pricing-faq-heading" className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100 text-center mb-8">
             Frequently asked questions
           </h2>
           <div className="space-y-4 max-w-3xl mx-auto">
             {PRICING_FAQ.map((faq) => (
               <details
                 key={faq.question}
-                className="group rounded-xl border border-slate-200 bg-white/95 shadow-sm open:shadow-md transition-shadow"
+                className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-sm open:shadow-md transition-shadow"
               >
-                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-6 py-4 font-semibold text-slate-900">
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-6 py-4 font-semibold text-slate-900 dark:text-slate-100">
                   {faq.question}
                   <svg
                     className="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform group-open:rotate-180"
@@ -346,7 +346,7 @@ export default function PricingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
-                <p className="px-6 pb-5 text-slate-600 text-sm leading-relaxed">{faq.answer}</p>
+                <p className="px-6 pb-5 text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{faq.answer}</p>
               </details>
             ))}
           </div>

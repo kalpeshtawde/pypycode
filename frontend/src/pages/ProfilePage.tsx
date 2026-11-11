@@ -177,7 +177,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <p className="text-slate-600 font-mono text-sm">Loading profile...</p>
+        <p className="text-slate-600 dark:text-slate-400 font-mono text-sm">Loading profile...</p>
       </div>
     );
   }
@@ -185,17 +185,17 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6">
-        <p className="text-red-600 font-mono text-sm">{error || "Profile not found"}</p>
+        <p className="text-red-600 dark:text-red-400 font-mono text-sm">{error || "Profile not found"}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 via-white to-slate-50 px-6 py-12">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900 px-6 py-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
-          <h1 className="font-display text-4xl font-semibold text-slate-900">My Profile</h1>
-          <p className="text-slate-600 mt-2">View your details, stats, and recent activity.</p>
+          <h1 className="font-display text-4xl font-semibold text-slate-900 dark:text-slate-100">My Profile</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">View your details, stats, and recent activity.</p>
         </div>
 
         <div className="grid md:grid-cols-4 gap-4">
@@ -206,59 +206,59 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-slate-900 font-semibold mb-4">Profile Details</h2>
+          <section className="lg:col-span-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <h2 className="text-slate-900 dark:text-slate-100 font-semibold mb-4">Profile Details</h2>
             <form className="space-y-4" onSubmit={handleSave}>
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Email</label>
+                <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Email</label>
                 <input
                   value={profile.email}
                   disabled
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-600 mb-1">First Name</label>
+                <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">First Name</label>
                 <input
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Last Name</label>
+                <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Last Name</label>
                 <input
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Screen Name</label>
+                <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Screen Name</label>
                 <input
                   name="screenName"
                   value={formData.screenName}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
 
               {screenNameAvailability.message && screenNameAvailability.available === false && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-red-600 dark:text-red-400">
                   {screenNameAvailability.message}
                 </p>
               )}
 
-              {error && <p className="text-red-600 text-sm">{error}</p>}
-              {success && <p className="text-emerald-600 text-sm">{success}</p>}
+              {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
+              {success && <p className="text-emerald-600 dark:text-emerald-400 text-sm">{success}</p>}
 
               <button
                 type="submit"
@@ -269,11 +269,11 @@ export default function ProfilePage() {
               </button>
             </form>
 
-            <div className="mt-8 border-t border-slate-200 pt-6">
-              <h3 className="text-slate-900 font-semibold mb-3">Subscription status</h3>
-              {!billingStatus && <p className="text-slate-500 text-sm">Unable to load billing status.</p>}
+            <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6">
+              <h3 className="text-slate-900 dark:text-slate-100 font-semibold mb-3">Subscription status</h3>
+              {!billingStatus && <p className="text-slate-500 dark:text-slate-400 text-sm">Unable to load billing status.</p>}
               {billingStatus && (
-                <div className="space-y-2 text-sm text-slate-700">
+                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
                   <p>
                     Access: <span className="font-semibold capitalize">{billingStatus.accessStatus.replace("_", " ")}</span>
                   </p>
@@ -291,39 +291,39 @@ export default function ProfilePage() {
                   )}
 
                   {billingStatus.accessStatus === "trial_expired" && billingStatus.trial.used && (
-                    <div className="text-amber-700">
+                    <div className="text-amber-700 dark:text-amber-400">
                       <p className="font-semibold">Trial consumed</p>
                       <p className="text-sm">Your 15-day free trial has been used. Subscribe annually to continue accessing all problems.</p>
                     </div>
                   )}
 
                   {billingStatus.accessStatus === "none" && !billingStatus.trial.used && (
-                    <p className="text-slate-500">No active subscription. Start a trial or subscribe to access all problems.</p>
+                    <p className="text-slate-500 dark:text-slate-400">No active subscription. Start a trial or subscribe to access all problems.</p>
                   )}
                 </div>
               )}
             </div>
 
             {profile.isAdmin && (
-              <div className="mt-8 border-t border-slate-200 pt-6">
-                <h3 className="text-slate-900 font-semibold mb-3">Feature Flags</h3>
+              <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <h3 className="text-slate-900 dark:text-slate-100 font-semibold mb-3">Feature Flags</h3>
                 {loadingFlags ? (
-                  <p className="text-slate-500 text-sm">Loading feature flags...</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Loading feature flags...</p>
                 ) : featureFlags.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No feature flags configured.</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">No feature flags configured.</p>
                 ) : (
                   <div className="space-y-2">
                     {featureFlags.map((flag) => (
                       <div key={flag.id} className="flex items-center justify-between py-2">
-                        <span className="text-sm text-slate-700">{flag.name}</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300">{flag.name}</span>
                         <button
                           onClick={() => handleToggleFlag(flag.id, flag.enabled)}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            flag.enabled ? "bg-emerald-600" : "bg-slate-200"
+                            flag.enabled ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-700"
                           }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-800 transition-transform ${
                               flag.enabled ? "translate-x-6" : "translate-x-1"
                             }`}
                           />
@@ -336,23 +336,23 @@ export default function ProfilePage() {
             )}
           </section>
 
-          <section className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-slate-900 font-semibold mb-4">Recent Activity</h2>
+          <section className="lg:col-span-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <h2 className="text-slate-900 dark:text-slate-100 font-semibold mb-4">Recent Activity</h2>
 
             {profile.activity.length === 0 ? (
-              <p className="text-slate-500 text-sm">No submissions yet. Start solving problems to see activity.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">No submissions yet. Start solving problems to see activity.</p>
             ) : (
               <div className="space-y-3">
                 {profile.activity.map((a) => (
                   <div
                     key={a.submissionId}
-                    className="border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4"
+                    className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex items-center justify-between gap-4"
                   >
                     <div>
-                      <Link to={`/problems/${a.problemSlug}`} className="text-slate-900 font-medium hover:text-emerald-700">
+                      <Link to={`/problems/${a.problemSlug}`} className="text-slate-900 dark:text-slate-100 font-medium hover:text-emerald-700 dark:hover:text-emerald-400">
                         {a.problemTitle}
                       </Link>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         {new Date(a.createdAt).toLocaleString()} • {a.runtimeMs ?? "-"} ms
                       </p>
                     </div>
@@ -372,16 +372,16 @@ export default function ProfilePage() {
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-slate-500 font-mono">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-mono">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }
 
 function statusClass(status: string) {
-  if (status === "accepted") return "bg-emerald-100 text-emerald-700";
-  if (status === "runtime_error" || status === "wrong_answer") return "bg-red-100 text-red-700";
-  if (status === "running" || status === "pending") return "bg-amber-100 text-amber-700";
-  return "bg-slate-100 text-slate-700";
+  if (status === "accepted") return "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  if (status === "runtime_error" || status === "wrong_answer") return "bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400";
+  if (status === "running" || status === "pending") return "bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400";
+  return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
 }

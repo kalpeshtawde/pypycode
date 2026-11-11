@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-200 mt-16">
+    <footer className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 dark:border-slate-700 mt-16">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:wght@700;800&display=swap');
         
@@ -15,7 +15,7 @@ export default function Footer() {
           width: 32px;
           height: 32px;
           border-radius: 7px;
-          background: #0F172A;
+          background: var(--logo-bg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -63,7 +63,7 @@ export default function Footer() {
         }
         
         .footer-logo-dark {
-          color: #0F172A;
+          color: var(--text-primary);
           font-size: 19px;
           font-weight: 800;
         }
@@ -85,27 +85,27 @@ export default function Footer() {
                 <span className="footer-logo-dark">Code</span>
               </span>
             </div>
-            <p className="text-slate-600 text-sm">
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
               A focused coding platform for Python developers.
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-slate-900 mb-4">Product</h4>
+            <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Product</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/problems" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <Link to="/problems" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   Problems
                 </Link>
               </li>
               <li>
-                <Link to="/leaderboard" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <Link to="/leaderboard" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   Leaderboard
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <Link to="/about" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   About
                 </Link>
               </li>
@@ -114,15 +114,15 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-slate-900 mb-4">Legal</h4>
+            <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/terms" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <Link to="/terms" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <Link to="/privacy" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   Privacy Policy
                 </Link>
               </li>
@@ -131,15 +131,15 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-semibold text-slate-900 mb-4">Contact</h4>
+            <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Contact</h4>
             <ul className="space-y-2">
               <li>
-                <a href="mailto:support@ishasystems.com" className="text-slate-600 hover:text-emerald-600 text-sm transition-colors">
+                <a href="mailto:support@ishasystems.com" className="text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm transition-colors">
                   support@ishasystems.com
                 </a>
               </li>
               <li>
-                <p className="text-slate-600 text-sm">
+                <p className="text-slate-600 dark:text-slate-400 text-sm">
                   ISHA Systems LLC
                 </p>
               </li>
@@ -148,24 +148,24 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-slate-600 text-sm">
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-slate-600 dark:text-slate-400 text-sm">
             © 2026 ISHA Systems LLC. All rights reserved.
           </p>
-          <p className="text-slate-600 text-sm mt-4 md:mt-0">
+          <p className="text-slate-600 dark:text-slate-400 text-sm mt-4 md:mt-0">
             PyPyCode - Python Problem Solving Platform
           </p>
         </div>
 
         {/* Developer Credit */}
-        <div className="border-t border-slate-200 mt-8 pt-8 text-center">
-          <p className="text-slate-600 text-sm">
+        <div className="border-t border-slate-200 dark:border-slate-700 mt-8 pt-8 text-center">
+          <p className="text-slate-600 dark:text-slate-400 text-sm">
             Developed & maintained by{" "}
             <a 
               href="https://ishasystems.com/" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-semibold transition-colors"
             >
               ISHA Systems
             </a>

@@ -208,7 +208,7 @@ function DataStructuresPanel({ showTree, showLinkedList, fontSize }: { showTree:
   ];
 
   return (
-    <div style={{ borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+    <div style={{ borderBottom: '1px solid var(--border-default)', backgroundColor: 'var(--bg-sunken)' }}>
       <button
         onClick={() => setExpanded(e => !e)}
         style={{
@@ -222,7 +222,7 @@ function DataStructuresPanel({ showTree, showLinkedList, fontSize }: { showTree:
           cursor: 'pointer',
           fontSize: '11px',
           fontWeight: 600,
-          color: '#64748B',
+          color: 'var(--text-muted)',
           fontFamily: 'inherit',
           textAlign: 'left',
         }}
@@ -238,12 +238,12 @@ function DataStructuresPanel({ showTree, showLinkedList, fontSize }: { showTree:
               style={{
                 margin: 0,
                 padding: '8px 12px',
-                backgroundColor: '#F1F5F9',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-raised)',
+                border: '1px solid var(--border-default)',
                 borderRadius: '6px',
                 fontSize: `${fontSize}px`,
                 fontFamily: "'JetBrains Mono', monospace",
-                color: '#334155',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.6,
                 whiteSpace: 'pre',
               }}
@@ -576,7 +576,7 @@ export default function ProblemPage() {
   }, [submission?.id, submission?.status, submission?.createdAt]);
 
   if (!problem) {
-    return <div className="flex items-center justify-center h-64 text-slate-600 font-mono">Loading…</div>;
+    return <div className="flex items-center justify-center h-64 text-slate-600 dark:text-slate-400 font-mono">Loading…</div>;
   }
 
   const statusOk = submission?.status === "accepted";
@@ -584,8 +584,8 @@ export default function ProblemPage() {
   const canSubmit = !running && !runningAll && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 relative overflow-hidden">
-      <div className="fixed top-16 left-0 right-0 flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 z-40">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-900 relative overflow-hidden">
+      <div className="fixed top-16 left-0 right-0 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 z-40">
         <div className="flex items-center">
           {(["description", "submissions"] as const).map((tab) => (
             <button
@@ -593,8 +593,8 @@ export default function ProblemPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 text-sm font-body capitalize transition-colors border-b-2 ${
                 activeTab === tab
-                  ? "border-accent text-slate-900"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-accent text-slate-900 dark:text-slate-100"
+                  : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               {tab}
@@ -607,7 +607,7 @@ export default function ProblemPage() {
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
             disabled={!token || projects.length === 0 || submitting}
-            className="px-3 py-1.5 text-sm font-mono border border-emerald-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
+            className="px-3 py-1.5 text-sm font-mono border border-emerald-200 dark:border-emerald-500/30 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
           >
             {!token && <option value="">Sign in to select project</option>}
             {token && projects.length === 0 && <option value="">No projects</option>}
@@ -628,7 +628,7 @@ export default function ProblemPage() {
               }
             }}
             disabled={running || runningAll || submitting}
-            className={`text-sm py-1.5 px-3 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`text-sm py-1.5 px-3 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
             title="Reset to starter code"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -652,7 +652,7 @@ export default function ProblemPage() {
             onClick={() => handleRun(true)}
             disabled={running || runningAll || submitting}
             title="Run every test case"
-            className={`text-sm py-1.5 px-4 flex items-center gap-1.5 rounded-lg border border-emerald-300 text-emerald-700 bg-white hover:bg-emerald-50 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`text-sm py-1.5 px-4 flex items-center gap-1.5 rounded-lg border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
@@ -679,14 +679,14 @@ export default function ProblemPage() {
 
       <div className="flex flex-1 min-h-0 pt-[62px]">
       {/* Left: Problem panel */}
-      <div className="w-[42%] flex flex-col border-r border-slate-200 overflow-hidden bg-slate-50">
+      <div className="w-[42%] flex flex-col border-r border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-900">
         <div className="overflow-y-auto flex-1 p-6">
           {activeTab === "description" ? (
             <>
               {/* Title + badge */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-5xl font-black text-slate-900" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                  <h1 className="text-5xl font-black text-slate-900 dark:text-slate-100" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
                     {problem.title}
                   </h1>
                   <button
@@ -695,7 +695,7 @@ export default function ProblemPage() {
                     className={`p-2 rounded-full transition-all duration-200 ${
                       !token
                         ? "opacity-40 cursor-not-allowed"
-                        : "hover:bg-slate-100 active:scale-95 cursor-pointer"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 cursor-pointer"
                     }`}
                     title={!token ? "Sign in to add favorites" : (isFavorite ? "Remove from favorites" : "Add to favorites")}
                   >
@@ -722,7 +722,7 @@ export default function ProblemPage() {
                   <span 
                     className="inline-flex items-center px-3.5 py-1.5 rounded-full text-white font-bold text-sm"
                     style={{
-                      background: 'linear-gradient(135deg, #34D399, #10B981)',
+                      background: 'linear-gradient(135deg, #34D399, var(--diff-easy-text))',
                       boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                       fontSize: '13px',
                       fontWeight: 700,
@@ -741,12 +741,12 @@ export default function ProblemPage() {
                       <span
                         className="inline-flex px-3 py-1.5 rounded-full text-sm font-semibold"
                         style={{
-                          backgroundColor: '#EEF3FF',
-                          color: '#059669',
+                          backgroundColor: 'var(--tag-bg)',
+                          color: 'var(--accent-text)',
                           fontSize: '12px',
                           fontWeight: 600,
                           padding: '5px 13px',
-                          border: '1px solid rgba(26, 107, 255, 0.18)',
+                          border: '1px solid var(--tag-border)',
                           cursor: tagPatterns[t] ? 'help' : 'default',
                         }}
                       >
@@ -763,7 +763,7 @@ export default function ProblemPage() {
                             minWidth: '280px',
                             maxWidth: '360px',
                             backgroundColor: '#1E293B',
-                            color: '#F1F5F9',
+                            color: 'var(--bg-raised)',
                             fontSize: '12.5px',
                             fontWeight: 400,
                             padding: '10px 13px',
@@ -790,14 +790,14 @@ export default function ProblemPage() {
                     style={{
                       width: '3px',
                       height: '20px',
-                      backgroundColor: '#10B981',
+                      backgroundColor: 'var(--diff-easy-text)',
                       borderRadius: '2px'
                     }}
                   />
                   <h2 style={{
                     fontWeight: 700,
                     fontSize: '18px',
-                    color: '#0F172A',
+                    color: 'var(--text-primary)',
                     margin: 0
                   }}>
                     Problem Statement
@@ -808,34 +808,34 @@ export default function ProblemPage() {
                   style={{
                     fontSize: '17px',
                     lineHeight: '1.8',
-                    color: '#475569',
-                    backgroundColor: '#F8FAFC',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-sunken)',
                     padding: '20px',
                     borderRadius: '12px',
-                    border: '1px solid #E2E8F0'
+                    border: '1px solid var(--border-default)'
                   }}
                 >
                   <style>{`
                     .prose p {
                       font-size: 17px !important;
                       line-height: 1.8 !important;
-                      color: #475569 !important;
+                      color: var(--text-secondary) !important;
                       margin-bottom: 12px !important;
                     }
                     .prose p:last-child {
                       margin-bottom: 0 !important;
                     }
                     .prose strong {
-                      color: #0F172A !important;
+                      color: var(--text-primary) !important;
                       font-weight: 600 !important;
                     }
                     .prose code {
-                      background-color: #EEF3FF !important;
-                      color: #059669 !important;
+                      background-color: var(--tag-bg) !important;
+                      color: var(--accent-text) !important;
                       font-weight: 600 !important;
                       border-radius: 5px !important;
                       padding: 2px 7px !important;
-                      border: 1px solid rgba(26, 107, 255, 0.15) !important;
+                      border: 1px solid var(--tag-border) !important;
                       font-family: inherit !important;
                     }
                     .prose code::before {
@@ -886,22 +886,22 @@ export default function ProblemPage() {
                         style={{
                           width: '3px',
                           height: '20px',
-                          backgroundColor: '#F59E0B',
+                          backgroundColor: 'var(--diff-medium-text)',
                           borderRadius: '2px'
                         }}
                       />
                       <h2 style={{
                         fontWeight: 700,
                         fontSize: '18px',
-                        color: '#0F172A',
+                        color: 'var(--text-primary)',
                         margin: 0
                       }}>
                         Constraints
                       </h2>
                     </div>
                     <div style={{
-                      backgroundColor: '#FFFBEB',
-                      border: '1px solid #FEE3B1',
+                      backgroundColor: 'var(--banner-amber-bg)',
+                      border: '1px solid var(--banner-amber-border)',
                       borderRadius: '12px',
                       padding: '20px',
                       display: 'grid',
@@ -912,19 +912,19 @@ export default function ProblemPage() {
                         <div 
                           key={i}
                           style={{
-                            backgroundColor: 'white',
-                            border: '1px solid #FCD34D',
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--banner-amber-card-border)',
                             borderRadius: '8px',
                             padding: '12px 14px',
                             fontSize: '14px',
-                            color: '#475569',
+                            color: 'var(--text-secondary)',
                             fontFamily: 'monospace',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px'
                           }}
                         >
-                          <span style={{ color: '#F59E0B', fontWeight: 700 }}>•</span>
+                          <span style={{ color: 'var(--diff-medium-text)', fontWeight: 700 }}>•</span>
                           <span>{constraint}</span>
                         </div>
                       ))}
@@ -940,14 +940,14 @@ export default function ProblemPage() {
                     style={{
                       width: '3px',
                       height: '18px',
-                      backgroundColor: '#059669',
+                      backgroundColor: 'var(--accent-text)',
                       borderRadius: '2px'
                     }}
                   />
                   <h3 style={{
                     fontWeight: 700,
                     fontSize: '16px',
-                    color: '#0F172A',
+                    color: 'var(--text-primary)',
                     margin: 0
                   }}>
                     Examples
@@ -958,9 +958,9 @@ export default function ProblemPage() {
                   <div 
                     key={i} 
                     style={{
-                      backgroundColor: 'white',
+                      backgroundColor: 'var(--bg-surface)',
                       borderRadius: '16px',
-                      border: '1px solid #E2E8F0',
+                      border: '1px solid var(--border-default)',
                       boxShadow: '0 4px 24px rgba(15, 23, 42, 0.07)',
                       padding: '22px'
                     }}
@@ -972,7 +972,7 @@ export default function ProblemPage() {
                           width: '34px',
                           height: '34px',
                           borderRadius: '50%',
-                          background: `linear-gradient(135deg, #059669, #10B981)`,
+                          background: `linear-gradient(135deg, var(--accent-text), var(--diff-easy-text))`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -986,7 +986,7 @@ export default function ProblemPage() {
                       <span style={{
                         fontWeight: 600,
                         fontSize: '13px',
-                        color: '#94A3B8'
+                        color: 'var(--text-faint)'
                       }}>
                         Example
                       </span>
@@ -998,19 +998,19 @@ export default function ProblemPage() {
                         textTransform: 'uppercase',
                         letterSpacing: '0.08em',
                         fontSize: '11px',
-                        color: '#94A3B8',
+                        color: 'var(--text-faint)',
                         fontWeight: 600,
                         marginBottom: '8px'
                       }}>
                         Input
                       </div>
                       <div style={{
-                        backgroundColor: '#EEF3FF',
-                        borderLeft: '3px solid #059669',
+                        backgroundColor: 'var(--tag-bg)',
+                        borderLeft: '3px solid var(--accent-text)',
                         borderRadius: '10px',
                         padding: '12px 16px',
                         fontSize: '14px',
-                        color: '#0F172A',
+                        color: 'var(--text-primary)',
                         fontFamily: 'inherit',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word'
@@ -1025,19 +1025,19 @@ export default function ProblemPage() {
                         textTransform: 'uppercase',
                         letterSpacing: '0.08em',
                         fontSize: '11px',
-                        color: '#94A3B8',
+                        color: 'var(--text-faint)',
                         fontWeight: 600,
                         marginBottom: '8px'
                       }}>
                         Output
                       </div>
                       <div style={{
-                        backgroundColor: '#ECFDF5',
-                        borderLeft: '3px solid #10B981',
+                        backgroundColor: 'var(--diff-easy-bg)',
+                        borderLeft: '3px solid var(--diff-easy-text)',
                         borderRadius: '10px',
                         padding: '12px 16px',
                         fontSize: '14px',
-                        color: '#0F172A',
+                        color: 'var(--text-primary)',
                         fontFamily: 'inherit',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word'
@@ -1051,12 +1051,12 @@ export default function ProblemPage() {
                       <div style={{
                         fontStyle: 'italic',
                         fontSize: '13px',
-                        color: '#94A3B8',
+                        color: 'var(--text-faint)',
                         marginTop: '12px',
                         paddingTop: '12px',
-                        borderTop: '1px solid #E2E8F0'
+                        borderTop: '1px solid var(--border-default)'
                       }}>
-                        <span style={{ color: '#059669' }}>✦ </span>
+                        <span style={{ color: 'var(--accent-text)' }}>✦ </span>
                         {ex.explanation}
                       </div>
                     )}
@@ -1065,11 +1065,11 @@ export default function ProblemPage() {
               </div>
             </>
           ) : !token ? (
-            <div className="text-center py-16 text-slate-500 font-mono text-sm">
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400 font-mono text-sm">
               <p>Sign in to see your submissions.</p>
             </div>
           ) : problemSubmissions.length === 0 ? (
-            <div className="text-center py-16 text-slate-500 font-mono text-sm">
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400 font-mono text-sm">
               <p>No submissions yet for this problem.</p>
             </div>
           ) : (
@@ -1094,24 +1094,24 @@ export default function ProblemPage() {
                       });
                       setCode(sub.code);
                     }}
-                    className="w-full text-left rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors px-3 py-2.5"
+                    className="w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors px-3 py-2.5"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold font-mono border ${
                           ok
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                             : done
-                              ? "bg-red-50 text-red-700 border-red-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200"
+                              ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                         }`}>
                           {STATUS_LABEL[sub.status] ?? sub.status}
                         </span>
-                        <span className="text-xs font-mono text-slate-600">
+                        <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
                           {sub.passedTests}/{sub.totalTests} tests
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-slate-500 whitespace-nowrap">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {new Date(sub.createdAt).toLocaleString()}
                       </span>
                     </div>
@@ -1124,14 +1124,14 @@ export default function ProblemPage() {
       </div>
 
       {/* Right: Editor + output */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900">
         {/* Editor toolbar */}
         <div 
           className="shrink-0 flex items-center border-b"
           style={{
             height: '44px',
-            backgroundColor: '#F8FAFC',
-            borderBottomColor: '#E2E8F0',
+            backgroundColor: 'var(--bg-sunken)',
+            borderBottomColor: 'var(--border-default)',
             padding: '0 20px',
             gap: '20px'
           }}
@@ -1140,7 +1140,7 @@ export default function ProblemPage() {
             .font-size-slider {
               width: 100px;
               height: 4px;
-              background: #E2E8F0;
+              background: var(--border-default);
               border-radius: 999px;
               outline: none;
               -webkit-appearance: none;
@@ -1151,14 +1151,14 @@ export default function ProblemPage() {
               appearance: none;
               width: 14px;
               height: 14px;
-              background: #059669;
+              background: var(--accent-text);
               border-radius: 50%;
               cursor: pointer;
             }
             .font-size-slider::-moz-range-thumb {
               width: 14px;
               height: 14px;
-              background: #059669;
+              background: var(--accent-text);
               border-radius: 50%;
               cursor: pointer;
               border: none;
@@ -1167,7 +1167,7 @@ export default function ProblemPage() {
               width: 36px;
               height: 20px;
               border-radius: 999px;
-              background: #E2E8F0;
+              background: var(--border-default);
               cursor: pointer;
               transition: background 200ms ease;
               position: relative;
@@ -1175,7 +1175,7 @@ export default function ProblemPage() {
               align-items: center;
             }
             .vim-toggle-track.active {
-              background: #059669;
+              background: var(--accent-text);
             }
             .vim-toggle-thumb {
               width: 16px;
@@ -1194,7 +1194,7 @@ export default function ProblemPage() {
 
           {/* Font Size Slider */}
           <div className="flex items-center gap-2">
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
               Font Size
             </label>
             <input
@@ -1208,8 +1208,8 @@ export default function ProblemPage() {
             />
             <div
               style={{
-                backgroundColor: '#EEF3FF',
-                color: '#059669',
+                backgroundColor: 'var(--tag-bg)',
+                color: 'var(--accent-text)',
                 fontWeight: 600,
                 fontSize: '11px',
                 padding: '2px 7px',
@@ -1226,13 +1226,13 @@ export default function ProblemPage() {
           <div style={{
             width: '1px',
             height: '20px',
-            backgroundColor: '#E2E8F0',
+            backgroundColor: 'var(--border-default)',
             margin: '0 4px'
           }} />
 
           {/* Vim Mode Toggle */}
           <div className="flex items-center gap-2">
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
               Vim
             </label>
             <button
@@ -1251,7 +1251,7 @@ export default function ProblemPage() {
             {vimMode && (
               <div
                 style={{
-                  backgroundColor: '#059669',
+                  backgroundColor: 'var(--accent-text)',
                   color: 'white',
                   fontSize: '10px',
                   fontWeight: 700,
@@ -1275,7 +1275,7 @@ export default function ProblemPage() {
         )}
 
         {/* CodeMirror Editor */}
-        <div className="flex-1 overflow-auto bg-slate-50">
+        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           <CodeMirrorEditor
             value={code}
             onChange={(newCode) => {
@@ -1297,26 +1297,26 @@ export default function ProblemPage() {
 
         {/* Result panel */}
         {submission && (
-          <div className="shrink-0 border-t border-slate-200 bg-slate-50 text-sm max-h-[45vh] overflow-y-auto">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 bg-white/75">
+          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm max-h-[45vh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-white/75 dark:bg-slate-800/75">
               <div className="flex items-center gap-3 min-w-0">
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold font-mono border ${
                     statusOk
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                       : statusDone
-                        ? "bg-red-50 text-red-700 border-red-200"
-                        : "bg-slate-100 text-slate-700 border-slate-200"
+                        ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                   }`}
                 >
                   {statusOk ? "✓" : statusDone ? "✗" : "•"}&nbsp;
                   {STATUS_LABEL[submission.status] ?? submission.status}
                 </span>
-                <span className="text-slate-600 font-mono text-xs">
+                <span className="text-slate-600 dark:text-slate-400 font-mono text-xs">
                   {submission.passedTests}/{submission.totalTests} tests passed
                 </span>
               </div>
-              <span className="text-slate-500 font-mono text-xs whitespace-nowrap">
+              <span className="text-slate-500 dark:text-slate-400 font-mono text-xs whitespace-nowrap">
                 {submission.runtimeMs != null ? `${Math.round(submission.runtimeMs)}ms` : "—"}
               </span>
             </div>
@@ -1329,7 +1329,7 @@ export default function ProblemPage() {
                   return (
                     <div
                       key={row.index}
-                      className={`rounded-lg border ${row.passed ? "border-emerald-100 bg-emerald-50/45" : "border-red-100 bg-red-50/45"}`}
+                      className={`rounded-lg border ${row.passed ? "border-emerald-100 dark:border-emerald-500/25 bg-emerald-50/45 dark:bg-emerald-500/10" : "border-red-100 dark:border-red-500/25 bg-red-50/45 dark:bg-red-500/10"}`}
                     >
                       <button
                         type="button"
@@ -1337,10 +1337,10 @@ export default function ProblemPage() {
                         className="w-full flex items-center justify-between px-3 py-2.5 text-left"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className={`text-sm font-bold ${row.passed ? "text-emerald-600" : "text-red-600"}`}>
+                          <span className={`text-sm font-bold ${row.passed ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                             {row.passed ? "✓" : "✗"}
                           </span>
-                          <span className="text-sm font-mono text-slate-700">Test {row.index}</span>
+                          <span className="text-sm font-mono text-slate-700 dark:text-slate-300">Test {row.index}</span>
                         </div>
                         <span
                           className="text-slate-400 text-xs"
@@ -1361,45 +1361,45 @@ export default function ProblemPage() {
                           transition: "max-height 300ms ease, opacity 180ms ease",
                         }}
                       >
-                        <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/70">
+                        <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/70 dark:border-slate-700/70">
                           {row.input && (
                             <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Input:</div>
-                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Input:</div>
+                              <pre className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
                                 {row.input}
                               </pre>
                             </div>
                           )}
                           {row.expected !== undefined && (
                             <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Expected:</div>
-                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Expected:</div>
+                              <pre className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
                                 {row.expected}
                               </pre>
                             </div>
                           )}
                           <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                               {row.got !== undefined ? "Got:" : "Details:"}
                             </div>
-                            <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                            <pre className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
                               {row.got ?? row.message ?? (row.passed ? "Passed" : "No details available")}
                             </pre>
                           </div>
                           {row.message && row.got !== undefined && (
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-wide text-red-500 mb-1">Error:</div>
-                              <pre className="text-xs font-mono text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                              <pre className="text-xs font-mono text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
                                 {row.message}
                               </pre>
                             </div>
                           )}
                           {row.output && (
                             <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                                 Output:
                               </div>
-                              <pre className="text-xs font-mono text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
+                              <pre className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 overflow-auto whitespace-pre-wrap">
                                 {row.output}
                               </pre>
                             </div>
@@ -1413,12 +1413,12 @@ export default function ProblemPage() {
               </div>
             ) : submission.errorOutput ? (
               <div className="px-4 py-3">
-                <pre className="text-xs font-mono text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
+                <pre className="text-xs font-mono text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/25 rounded-lg p-3 overflow-auto max-h-32 whitespace-pre-wrap">
                   {submission.errorOutput}
                 </pre>
               </div>
             ) : (
-              <div className="px-4 py-3 text-xs font-mono text-slate-500">Running tests...</div>
+              <div className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">Running tests...</div>
             )}
           </div>
         )}
@@ -1432,7 +1432,7 @@ export default function ProblemPage() {
             position: 'fixed',
             bottom: '20px',
             right: '20px',
-            backgroundColor: '#0F172A',
+            backgroundColor: 'var(--text-primary)',
             color: 'white',
             padding: '10px 18px',
             borderRadius: '10px',
