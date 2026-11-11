@@ -24,6 +24,18 @@ export default function AuthPage() {
     message: string;
   }>({ checking: false, available: null, message: "" });
   const { setAuth, token } = useAuthStore();
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(300);
+
+  useEffect(() => {
+    const computeWidth = () => {
+      const available = window.innerWidth - 120;
+      setGoogleBtnWidth(Math.max(200, Math.min(300, available)));
+    };
+    computeWidth();
+    window.addEventListener("resize", computeWidth);
+    return () => window.removeEventListener("resize", computeWidth);
+  }, []);
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = useMemo(() => {
@@ -198,7 +210,7 @@ export default function AuthPage() {
   // Show loading spinner while checking authentication
 if (isCheckingAuth) {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
+    <div className="relative overflow-hidden min-h-[calc(100vh-64px)] flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-slate-600 dark:text-slate-400 text-sm font-mono">Checking authentication...</p>
@@ -274,8 +286,18 @@ return (
           font-size: 32px;
           font-weight: 800;
         }
+
+        /* Google renders its button in an iframe with square corners; clip it to the pill shape */
+        .google-login-btn iframe {
+          border-radius: 9999px !important;
+          display: block;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .dark .google-login-btn iframe {
+          box-shadow: none;
+        }
       `}</style>
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
+      <div className="relative overflow-hidden min-h-[calc(100vh-64px)] flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16 bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
         {/* Background glow */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px]" />
@@ -375,15 +397,16 @@ return (
 
             {/* Google Login Button */}
             {!success && !showProfileForm && (
-              <div className="flex justify-center mb-6">
-                <div className={`transition-all duration-300 ${loading ? 'opacity-50 pointer-events-none scale-95' : 'hover:scale-105'}`}>
+              <div className="google-login-btn flex justify-center mb-6">
+                <div className={`transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
                   <GoogleLogin
+                    key={googleBtnWidth}
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
                     text="signin_with"
                     theme="outline"
                     shape="pill"
-                    width="300"
+                    width={String(googleBtnWidth)}
                   />
                 </div>
               </div>

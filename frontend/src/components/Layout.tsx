@@ -16,6 +16,11 @@ export default function Layout() {
   const [accessStatus, setAccessStatus] = useState<BillingAccessStatus | null>(null);
   const [loadingAccessStatus, setLoadingAccessStatus] = useState(false);
   const [billingEnabled, setBillingEnabled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (token && !user) {
@@ -68,14 +73,13 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Navbar */}
       <header 
-        className="sticky top-0 z-50 border-b"
+        className="sticky top-0 z-50 border-b px-4 sm:px-6 lg:px-10"
         style={{
           background: 'var(--header-bg)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderBottomColor: 'var(--border-default)',
-          height: '64px',
-          padding: '0 40px'
+          height: '64px'
         }}
       >
         <style>{`
@@ -127,7 +131,6 @@ export default function Layout() {
             font-weight: 800;
             line-height: 1;
             letter-spacing: -0.3px;
-            display: inline-flex;
             align-items: baseline;
           }
           
@@ -163,14 +166,14 @@ export default function Layout() {
             </div>
             
             {/* Wordmark */}
-            <span className="logo-wordmark">
+            <span className="logo-wordmark hidden min-[400px]:inline-flex">
               <span className="logo-blue">PyPy</span>
               <span className="logo-dark">Code</span>
             </span>
           </NavLink>
 
           {/* Links */}
-          <div className="flex items-center gap-8 ml-12">
+          <div className="hidden md:flex items-center gap-6 lg:gap-8 md:ml-6 lg:ml-12">
             <style>{`
               .nav-link {
                 font-weight: 600;
@@ -232,15 +235,15 @@ export default function Layout() {
           </div>
 
           {/* Auth */}
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             <button
               onClick={toggleTheme}
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700
+              className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200 dark:border-slate-700
                          bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300
                          hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-slate-100
-                         transition-all duration-200 cursor-pointer"
+                         transition-all duration-200 cursor-pointer shrink-0"
             >
               {theme === "dark" ? (
                 <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -256,7 +259,10 @@ export default function Layout() {
             {user ? (
               <>
                 {/* Avatar Circle */}
-                <div
+                <NavLink
+                  to="/profile"
+                  aria-label="Profile"
+                  className="shrink-0"
                   style={{
                     width: '34px',
                     height: '34px',
@@ -271,32 +277,81 @@ export default function Layout() {
                   }}
                 >
                   {user.username.charAt(0).toUpperCase()}
-                </div>
+                </NavLink>
                 <NavLink
                   to="/profile"
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  className={({ isActive }) => `nav-link hidden md:inline-block ${isActive ? 'active' : ''}`}
                 >
                   Profile
                 </NavLink>
                 <button 
                   onClick={() => { logout(); navigate("/"); }}
-                  className="text-[13px] font-semibold tracking-[0.2px] rounded-full px-3.5 py-2 cursor-pointer transition-all duration-200
+                  className="text-xs sm:text-[13px] font-semibold tracking-[0.2px] rounded-full px-2.5 sm:px-3.5 py-2 whitespace-nowrap cursor-pointer transition-all duration-200
                              bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
                              text-slate-600 dark:text-slate-300 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-none
                              hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30
                              hover:shadow-[0_4px_10px_rgba(220,38,38,0.12)] dark:hover:shadow-none
-                             focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                             focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 shrink-0"
                 >
                   Sign out
                 </button>
               </>
             ) : (
-              <NavLink to={authLink} className="btn-primary text-sm py-2 px-5">
+              <NavLink to={authLink} className="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap shrink-0">
                 Sign in
               </NavLink>
             )}
+            <button
+              onClick={() => setMobileOpen((open) => !open)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700
+                         bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300
+                         hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-slate-100
+                         transition-all duration-200 cursor-pointer shrink-0"
+            >
+              {mobileOpen ? (
+                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+              )}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div
+            className="md:hidden absolute left-0 right-0 top-full border-b border-slate-200 dark:border-slate-700
+                       bg-white dark:bg-slate-800 shadow-lg shadow-slate-900/5 dark:shadow-black/30"
+          >
+            <nav className="flex flex-col px-4 py-2">
+              {[
+                { to: "/problems", label: "Problems" },
+                { to: "/leaderboard", label: "Leaderboard" },
+                ...(billingEnabled ? [{ to: "/pricing", label: "Pricing" }] : []),
+                { to: "/contact", label: "Contact" },
+                ...(user ? [{ to: "/profile", label: "Profile" }] : []),
+              ].map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `py-3 text-[15px] font-semibold border-b border-slate-100 dark:border-slate-700 last:border-0 ${
+                      isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-slate-300"
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        )}
       </header>
 
       {accessStatus?.accessStatus === "trialing" && billingEnabled && (

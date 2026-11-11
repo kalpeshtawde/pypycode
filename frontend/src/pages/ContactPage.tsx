@@ -78,14 +78,14 @@ export default function ContactPage() {
                      formData.email.includes(".");
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
+    <div className="relative overflow-hidden min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-500/3 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative max-w-2xl mx-auto px-6 py-16">
+      <div className="relative max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">

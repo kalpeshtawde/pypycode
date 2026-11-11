@@ -853,7 +853,7 @@ export default function ProblemsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* GitHub-Style Stats Dashboard */}
       <div style={{
         maxWidth: '1000px',
@@ -949,7 +949,7 @@ export default function ProblemsPage() {
                 )}
               </div>
               {/* Action buttons (top right) */}
-              <div className="flex items-center gap-2 justify-end">
+              <div className="flex flex-wrap items-center gap-2 justify-end">
                 <button
                   onClick={() => openChat('create')}
                   disabled={!token || chatBusy || deletingProject}
@@ -1253,10 +1253,10 @@ export default function ProblemsPage() {
           )}
 
         {/* Filter + Search bar — unified row */}
-        <div className="flex items-center justify-between gap-4 mb-4 mt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 mt-6">
           {/* Left: filter pills + tag dropdown */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <div className="inline-flex items-center gap-1 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm max-w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {QUICK_FILTERS.map((d) => {
             const isActive = filter === d;
             const label =
@@ -1282,7 +1282,7 @@ export default function ProblemsPage() {
             <button
               key={d}
               onClick={() => setFilter(d)}
-              className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${
                 isActive
                   ? activeTone
                   : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -1391,7 +1391,7 @@ export default function ProblemsPage() {
           })()}
           </div>
           {/* Right: search */}
-          <div className="flex items-center gap-2 max-w-xs w-full">
+          <div className="flex items-center gap-2 w-full sm:max-w-xs sm:flex-shrink-0">
             <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -1422,13 +1422,16 @@ export default function ProblemsPage() {
             borderRadius: '12px',
             border: '1px solid var(--border-default)',
             boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
-            overflow: 'hidden'
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            WebkitOverflowScrolling: 'touch'
           }}>
             {/* Table Header */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
               gap: '16px',
+              minWidth: '720px',
               padding: '16px 24px',
               background: 'var(--bg-sunken)',
               borderBottom: '1px solid var(--border-default)',
@@ -1514,6 +1517,7 @@ export default function ProblemsPage() {
                       display: 'grid',
                       gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
                       gap: '16px',
+                      minWidth: '720px',
                       padding: '16px 24px',
                       borderBottom: '1px solid var(--bg-raised)',
                       alignItems: 'center',
@@ -1691,8 +1695,8 @@ export default function ProblemsPage() {
       {/* Vega Chat Widget — bottom-right */}
       {isLoggedIn && chatMessages.length > 0 && (
         <div
-          className="fixed bottom-6 right-6 z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-          style={{ width: '460px', minHeight: '480px', maxHeight: '840px' }}
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+          style={{ width: '100%', maxWidth: '460px', minHeight: '480px', maxHeight: 'min(840px, calc(100vh - 6rem))' }}
         >
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-slate-900 to-slate-800 flex items-center gap-2.5 flex-shrink-0">

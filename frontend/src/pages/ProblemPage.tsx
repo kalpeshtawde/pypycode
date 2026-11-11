@@ -584,8 +584,8 @@ export default function ProblemPage() {
   const canSubmit = !running && !runningAll && !submitting && !!lastSuccessfulRunCode && lastSuccessfulRunCode === code;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-900 relative overflow-hidden">
-      <div className="fixed top-16 left-0 right-0 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 z-40">
+    <div className="flex flex-col lg:h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-900 relative lg:overflow-hidden">
+      <div className="sticky lg:fixed top-16 left-0 right-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 sm:px-4 py-2.5 sm:py-3 z-40">
         <div className="flex items-center">
           {(["description", "submissions"] as const).map((tab) => (
             <button
@@ -602,12 +602,12 @@ export default function ProblemPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
             disabled={!token || projects.length === 0 || submitting}
-            className="px-3 py-1.5 text-sm font-mono border border-emerald-200 dark:border-emerald-500/30 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-[190px]"
+            className="px-3 py-1.5 text-sm font-mono border border-emerald-200 dark:border-emerald-500/30 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 min-w-0 flex-1 sm:flex-none sm:min-w-[190px]"
           >
             {!token && <option value="">Sign in to select project</option>}
             {token && projects.length === 0 && <option value="">No projects</option>}
@@ -628,7 +628,7 @@ export default function ProblemPage() {
               }
             }}
             disabled={running || runningAll || submitting}
-            className={`text-sm py-1.5 px-3 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`text-sm py-1.5 px-3 whitespace-nowrap border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
             title="Reset to starter code"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -640,7 +640,7 @@ export default function ProblemPage() {
             onClick={() => handleRun(false)}
             disabled={running || runningAll || submitting}
             title="Run the first test case only"
-            className={`btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5 ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`btn-primary text-sm py-1.5 px-3 sm:px-4 whitespace-nowrap flex items-center gap-1.5 ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
@@ -652,7 +652,7 @@ export default function ProblemPage() {
             onClick={() => handleRun(true)}
             disabled={running || runningAll || submitting}
             title="Run every test case"
-            className={`text-sm py-1.5 px-4 flex items-center gap-1.5 rounded-lg border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`text-sm py-1.5 px-3 sm:px-4 whitespace-nowrap flex items-center gap-1.5 rounded-lg border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 transition-colors ${(running || runningAll || submitting) ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path d="M6 4.75A.75.75 0 0 1 7.19 4.14l7.5 5.25a.75.75 0 0 1 0 1.22l-7.5 5.25A.75.75 0 0 1 6 15.25v-10.5Z" />
@@ -663,7 +663,7 @@ export default function ProblemPage() {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className={`text-sm py-1.5 px-5 rounded-lg bg-indigo-600 text-white transition-colors ${canSubmit ? "hover:bg-indigo-700" : "opacity-60 cursor-not-allowed"}`}
+            className={`text-sm py-1.5 px-4 sm:px-5 whitespace-nowrap rounded-lg bg-indigo-600 text-white transition-colors ${canSubmit ? "hover:bg-indigo-700" : "opacity-60 cursor-not-allowed"}`}
           >
             {submitting ? (
               <span className="flex items-center gap-2">
@@ -677,16 +677,16 @@ export default function ProblemPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0 pt-[62px]">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 lg:pt-[62px]">
       {/* Left: Problem panel */}
-      <div className="w-[42%] flex flex-col border-r border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-900">
-        <div className="overflow-y-auto flex-1 p-6">
+      <div className="w-full lg:w-[42%] flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-700 lg:overflow-hidden bg-slate-50 dark:bg-slate-900">
+        <div className="lg:overflow-y-auto flex-1 p-4 sm:p-6">
           {activeTab === "description" ? (
             <>
               {/* Title + badge */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-5xl font-black text-slate-900 dark:text-slate-100" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                  <h1 className="font-black text-slate-900 dark:text-slate-100" style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, letterSpacing: '-0.02em' }}>
                     {problem.title}
                   </h1>
                   <button
@@ -1124,7 +1124,7 @@ export default function ProblemPage() {
       </div>
 
       {/* Right: Editor + output */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 min-h-[70vh] lg:min-h-0">
         {/* Editor toolbar */}
         <div 
           className="shrink-0 flex items-center border-b"

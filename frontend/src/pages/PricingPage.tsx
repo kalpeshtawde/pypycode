@@ -146,7 +146,7 @@ export default function PricingPage() {
   const canStartTrial = !!token && !!accessStatus && !accessStatus.trial.used && !hasSubscriptionAccess;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-emerald-50/30 py-16 px-6">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-emerald-50/30 dark:to-slate-900 py-10 sm:py-16 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-4">
@@ -158,7 +158,7 @@ export default function PricingPage() {
         </div>
 
         {isSuccess && (
-          <div className="mb-8 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-sm">
+          <div className="mb-8 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-500/10 dark:to-slate-800 p-6 sm:p-8 text-center shadow-sm">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15">
               <svg className="h-8 w-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -219,7 +219,7 @@ export default function PricingPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6 items-stretch">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-sm p-8">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-sm p-6 sm:p-8">
             <p className="inline-block rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
               FREE TRIAL
             </p>
@@ -280,7 +280,7 @@ export default function PricingPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 p-8">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 p-6 sm:p-8">
             <p className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-semibold tracking-wide px-3 py-1 mb-4">
               ALL ACCESS
             </p>

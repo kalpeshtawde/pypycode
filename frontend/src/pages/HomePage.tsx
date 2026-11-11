@@ -179,12 +179,12 @@ export default function HomePage() {
           problems, get instant sandboxed feedback, and climb the leaderboard.
         </p>
 
-        <div className={`flex items-center justify-center gap-4 ${FADE}`}
+        <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 px-2 ${FADE}`}
              style={{ animationDelay: "300ms" }}>
-          <Link to="/problems" className="btn-primary text-base px-7 py-3">
+          <Link to="/problems" className="btn-primary text-base px-7 py-3 justify-center">
             Start solving →
           </Link>
-          <Link to="/pricing" className="btn-ghost text-base px-7 py-3">
+          <Link to="/pricing" className="btn-ghost text-base px-7 py-3 justify-center">
             See pricing
           </Link>
         </div>
@@ -287,11 +287,11 @@ export default function HomePage() {
             Everything unlocked for {price}/year — a fraction of what LeetCode Premium charges.
             Start with a {trialDays}-day free trial.
           </p>
-          <div className="relative flex items-center justify-center gap-4">
-            <Link to="/pricing" className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-white text-emerald-800 font-medium text-base hover:bg-emerald-50 active:scale-95 transition-all duration-150">
+          <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
+            <Link to="/pricing" className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-lg bg-white text-emerald-800 font-medium text-base hover:bg-emerald-50 active:scale-95 transition-all duration-150">
               Start free trial →
             </Link>
-            <Link to="/problems" className="inline-flex items-center gap-2 px-7 py-3 rounded-lg border border-emerald-300/60 text-emerald-50 font-medium text-base hover:bg-white/10 transition-all duration-150">
+            <Link to="/problems" className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-lg border border-emerald-300/60 text-emerald-50 font-medium text-base hover:bg-white/10 transition-all duration-150">
               Browse problems
             </Link>
           </div>

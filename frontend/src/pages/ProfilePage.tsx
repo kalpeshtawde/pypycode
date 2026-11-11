@@ -191,7 +191,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900 px-6 py-12">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-slate-50 dark:to-slate-900 px-4 sm:px-6 py-8 sm:py-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
           <h1 className="font-display text-4xl font-semibold text-slate-900 dark:text-slate-100">My Profile</h1>
