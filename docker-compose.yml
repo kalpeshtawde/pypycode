@@ -58,6 +58,9 @@ services:
       - DATABASE_URL=postgresql://pypycode:pypycode@db:5432/pypycode
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=dev-secret-key-change-in-prod
+      # Flask-Admin (/admin) basic auth; unset = panel disabled
+      - ADMIN_PANEL_USERNAME=${ADMIN_PANEL_USERNAME:-}
+      - ADMIN_PANEL_PASSWORD=${ADMIN_PANEL_PASSWORD:-}
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}

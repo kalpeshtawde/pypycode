@@ -232,6 +232,14 @@ export default function Layout() {
             >
               Contact
             </NavLink>
+            {user?.isAdmin && (
+              <NavLink
+                to="/manage/users"
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                Admin
+              </NavLink>
+            )}
           </div>
 
           {/* Auth */}
@@ -336,6 +344,7 @@ export default function Layout() {
                 ...(billingEnabled ? [{ to: "/pricing", label: "Pricing" }] : []),
                 { to: "/contact", label: "Contact" },
                 ...(user ? [{ to: "/profile", label: "Profile" }] : []),
+                ...(user?.isAdmin ? [{ to: "/admin/users", label: "Admin · Users" }] : []),
               ].map((item) => (
                 <NavLink
                   key={item.to}

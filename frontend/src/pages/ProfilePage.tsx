@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../utils/api";
 import { useAuthStore } from "../hooks/useAuth";
-import type { BillingAccessStatus, UserProfile, FeatureFlag } from "../types";
+import type { AdminUsersResponse, BillingAccessStatus, UserProfile, FeatureFlag } from "../types";
 
 export default function ProfilePage() {
   const { token, setAuth, logout } = useAuthStore();
@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [billingStatus, setBillingStatus] = useState<BillingAccessStatus | null>(null);
   const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
   const [loadingFlags, setLoadingFlags] = useState(false);
+  const [userSummary, setUserSummary] = useState<AdminUsersResponse["summary"] | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -68,6 +69,11 @@ export default function ProfilePage() {
       .then((res) => setFeatureFlags(res.featureFlags))
       .catch(() => setFeatureFlags([]))
       .finally(() => setLoadingFlags(false));
+
+    api
+      .get<AdminUsersResponse>("/admin/users?per_page=1", token)
+      .then((res) => setUserSummary(res.summary))
+      .catch(() => setUserSummary(null));
   }, [token, profile?.isAdmin]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,6 +312,30 @@ export default function ProfilePage() {
 
             {profile.isAdmin && (
               <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h3 className="text-slate-900 dark:text-slate-100 font-semibold">User directory</h3>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Admin
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <AdminStat label="Users" value={userSummary?.totalUsers} />
+                  <AdminStat label="New / 7d" value={userSummary?.newThisWeek} />
+                  <AdminStat label="Trials" value={userSummary?.activeTrials} />
+                  <AdminStat label="Paid" value={userSummary?.activeSubscriptions} />
+                </div>
+                <Link
+                  to="/manage/users"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white
+                             hover:bg-emerald-700 transition-colors"
+                >
+                  View all users →
+                </Link>
+              </div>
+            )}
+
+            {profile.isAdmin && (
+              <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6">
                 <h3 className="text-slate-900 dark:text-slate-100 font-semibold mb-3">Feature Flags</h3>
                 {loadingFlags ? (
                   <p className="text-slate-500 dark:text-slate-400 text-sm">Loading feature flags...</p>
@@ -370,11 +400,19 @@ export default function ProfilePage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
-  return (
+function StatCard({ label, value }: { label: string; value: number | string }) {  return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
       <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-mono">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+    </div>
+  );
+}
+
+function AdminStat({ label, value }: { label: string; value: number | undefined }) {
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{value ?? "—"}</p>
     </div>
   );
 }

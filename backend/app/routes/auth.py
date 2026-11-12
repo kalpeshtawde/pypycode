@@ -81,6 +81,7 @@ def google_auth():
                 screenName=user.screen_name,
                 firstName=user.first_name,
                 lastName=user.last_name,
+                isAdmin=bool(user.is_admin),
                 is_new=False
             ), 200
         
@@ -123,6 +124,7 @@ def google_auth():
                 screenName=existing_user.screen_name,
                 firstName=existing_user.first_name,
                 lastName=existing_user.last_name,
+                isAdmin=bool(existing_user.is_admin),
                 is_new=False
             ), 200
         
@@ -168,6 +170,7 @@ def google_auth():
             screenName=new_user.screen_name,
             firstName=new_user.first_name,
             lastName=new_user.last_name,
+            isAdmin=bool(new_user.is_admin),
             is_new=True
         ), 201
         
@@ -300,7 +303,8 @@ def login():
         username=user.username,
         screenName=user.screen_name,
         firstName=user.first_name,
-        lastName=user.last_name
+        lastName=user.last_name,
+        isAdmin=bool(user.is_admin)
     ), 200
 
 
@@ -317,7 +321,8 @@ def me():
         email=user.email,
         firstName=user.first_name,
         lastName=user.last_name,
-        screenName=user.screen_name
+        screenName=user.screen_name,
+        isAdmin=bool(user.is_admin)
     )
 
 

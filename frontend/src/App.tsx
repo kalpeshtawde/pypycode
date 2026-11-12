@@ -13,6 +13,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ProblemIngestPage from "./pages/ProblemIngestPage";
 import PricingPage from "./pages/PricingPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import RequireAdmin from "./components/RequireAdmin";
 
 export default function App() {
   return (
@@ -32,6 +34,14 @@ export default function App() {
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="about" element={<AboutPage />} />
+          <Route
+            path="manage/users"
+            element={
+              <RequireAdmin>
+                <AdminUsersPage />
+              </RequireAdmin>
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

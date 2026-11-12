@@ -3,7 +3,9 @@ from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.fileadmin import FileAdmin
 from wtforms import StringField, BooleanField, DateTimeField, validators
 from flask_admin.form import BaseForm
-from flask import Response, jsonify
+from flask import Response, jsonify, request
+from functools import wraps
+import hmac
 import json
 import os
 from app import db
@@ -17,6 +19,67 @@ from app.models import (
     Subscription,
     StripeWebhookEvent,
 )
+
+ADMIN_PANEL_USERNAME = (os.environ.get("ADMIN_PANEL_USERNAME") or "").strip()
+ADMIN_PANEL_PASSWORD = (os.environ.get("ADMIN_PANEL_PASSWORD") or "").strip()
+_ADMIN_PANEL_REALM = 'Basic realm="PyPyCode Admin"'
+
+
+def _admin_panel_configured() -> bool:
+    return bool(ADMIN_PANEL_USERNAME and ADMIN_PANEL_PASSWORD)
+
+
+def _admin_panel_authorized() -> bool:
+    """HTTP basic auth against ADMIN_PANEL_USERNAME / ADMIN_PANEL_PASSWORD."""
+    if not _admin_panel_configured():
+        return False
+    auth = request.authorization
+    if not auth or (auth.type or "").lower() != "basic":
+        return False
+    return hmac.compare_digest(auth.username or "", ADMIN_PANEL_USERNAME) and hmac.compare_digest(
+        auth.password or "", ADMIN_PANEL_PASSWORD
+    )
+
+
+def _admin_panel_denied_response() -> Response:
+    if not _admin_panel_configured():
+        return Response(
+            "Admin panel is disabled. Set ADMIN_PANEL_USERNAME and ADMIN_PANEL_PASSWORD to enable it.\n",
+            status=503,
+            mimetype="text/plain",
+        )
+    return Response(
+        "Authentication required\n",
+        status=401,
+        headers={"WWW-Authenticate": _ADMIN_PANEL_REALM},
+        mimetype="text/plain",
+    )
+
+
+class AdminPanelProtected:
+    """Mixin that gates Flask-Admin views behind the panel credentials."""
+
+    def is_accessible(self):
+        return _admin_panel_authorized()
+
+    def inaccessible_callback(self, name, **kwargs):
+        return _admin_panel_denied_response()
+
+
+class ProtectedModelView(AdminPanelProtected, ModelView):
+    pass
+
+
+def admin_panel_required(fn):
+    """Decorator for plain Flask routes that live under /admin."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not _admin_panel_authorized():
+            return _admin_panel_denied_response()
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 class UserForm(BaseForm):
@@ -33,7 +96,7 @@ class UserForm(BaseForm):
     trial_ends_at = DateTimeField('Trial Ends At', format='%Y-%m-%d %H:%M:%S')
 
 
-class UserAdmin(ModelView):
+class UserAdmin(ProtectedModelView):
     column_list = [
         'id', 'username', 'email', 'first_name', 'last_name', 'screen_name', 'is_admin',
         'subscription_status', 'trial_used', 'trial_started_at', 'trial_ends_at',
@@ -51,7 +114,7 @@ class UserAdmin(ModelView):
     }
 
 
-class SubscriptionAdmin(ModelView):
+class SubscriptionAdmin(ProtectedModelView):
     column_list = [
         'id', 'user_id', 'status', 'amount_cents', 'currency', 'interval',
         'stripe_customer_id', 'stripe_subscription_id', 'created_at', 'updated_at'
@@ -75,7 +138,7 @@ class SubscriptionAdmin(ModelView):
     }
 
 
-class StripeWebhookEventAdmin(ModelView):
+class StripeWebhookEventAdmin(ProtectedModelView):
     column_list = [
         StripeWebhookEvent.id,
         StripeWebhookEvent.event_type,
@@ -90,7 +153,7 @@ class StripeWebhookEventAdmin(ModelView):
     can_delete = False
 
 
-class ProblemAdmin(ModelView):
+class ProblemAdmin(ProtectedModelView):
     column_list = ['id', 'slug', 'title', 'difficulty', 'tags', 'created_at']
     column_searchable_list = ['slug', 'title', 'description']
     column_sortable_list = ['difficulty', 'created_at', 'slug']
@@ -101,13 +164,13 @@ class ProblemAdmin(ModelView):
     form_excluded_columns = ['submissions']
 
 
-class ProjectAdmin(ModelView):
+class ProjectAdmin(ProtectedModelView):
     column_list = [Project.id, Project.user_id, Project.name, Project.is_default, Project.created_at]
     column_searchable_list = [Project.name]
     column_sortable_list = [Project.name, Project.is_default, Project.created_at]
 
 
-class SubmissionAdmin(ModelView):
+class SubmissionAdmin(ProtectedModelView):
     column_list = ['id', 'user_id', 'problem_id', 'project_id', 'status', 'passed_tests', 'total_tests', 'runtime_ms', 'memory_kb', 'created_at']
     column_searchable_list = ['status', 'user_id', 'problem_id']
     column_sortable_list = ['status', 'created_at', 'runtime_ms', 'memory_kb']
@@ -128,7 +191,7 @@ class SubmissionAdmin(ModelView):
     }
 
 
-class ContactAdmin(ModelView):
+class ContactAdmin(ProtectedModelView):
     column_list = [Contact.id, Contact.name, Contact.email, Contact.subject, Contact.status, Contact.created_at]
     column_searchable_list = [Contact.name, Contact.email, Contact.subject]
     column_sortable_list = [Contact.status, Contact.created_at]
@@ -142,7 +205,7 @@ class ContactAdmin(ModelView):
     }
 
 
-class PerfTestConfigAdmin(ModelView):
+class PerfTestConfigAdmin(ProtectedModelView):
     column_list = [
         PerfTestConfig.id,
         PerfTestConfig.name,
@@ -208,7 +271,7 @@ def _perf_config_snapshot(config: PerfTestConfig):
     }
 
 
-class DashboardView(AdminIndexView):
+class DashboardView(AdminPanelProtected, AdminIndexView):
     @expose('/')
     def index(self):
         from app.models import User, Problem, Submission, Subscription, Contact
@@ -248,6 +311,7 @@ def init_admin(app):
     admin.add_view(StripeWebhookEventAdmin(StripeWebhookEvent, db.session, name='Stripe Webhook Events', endpoint='stripe-webhook-events'))
 
     @app.get("/admin/perf/jmeter.properties")
+    @admin_panel_required
     def perf_jmeter_properties():
         config = (
             PerfTestConfig.query.filter_by(enabled=True)
@@ -265,6 +329,7 @@ def init_admin(app):
         return Response(_to_jmeter_properties(config), mimetype="text/plain")
 
     @app.get("/admin/perf/latest-run")
+    @admin_panel_required
     def perf_latest_run():
         config = (
             PerfTestConfig.query.filter_by(enabled=True)

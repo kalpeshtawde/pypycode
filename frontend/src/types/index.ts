@@ -42,6 +42,7 @@ export interface User {
   firstName?: string | null;
   lastName?: string | null;
   screenName?: string | null;
+  isAdmin?: boolean;
 }
 
 export interface ProfileStats {
@@ -129,4 +130,41 @@ export interface Project {
   level?: string | null;
   explanation?: string | null;
   aiMetadata?: Record<string, unknown> | null;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  screenName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  isAdmin: boolean;
+  provider: "google" | "password";
+  createdAt: string | null;
+  submissions: number;
+  solved: number;
+  lastActivityAt: string | null;
+  accessStatus: BillingAccessStatus["accessStatus"];
+  subscriptionStatus: string;
+  trial: BillingTrialStatus;
+  subscription: BillingSubscriptionSnapshot | null;
+}
+
+export interface AdminUsersSummary {
+  totalUsers: number;
+  newThisWeek: number;
+  activeTrials: number;
+  activeSubscriptions: number;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+  pagination: {
+    page: number;
+    perPage: number;
+    total: number;
+    totalPages: number;
+  };
+  summary: AdminUsersSummary;
 }
