@@ -12,6 +12,22 @@ SANDBOX_IMAGE = os.environ.get("SANDBOX_IMAGE", "pypycode-sandbox:latest")
 MEMORY_LIMIT = "256m"
 CPU_QUOTA = 50000  # 0.5 CPU
 
+SANDBOX_IMAGE_HINT = (
+    f"Sandbox image '{SANDBOX_IMAGE}' is not available on this host. "
+    f"Build it with: docker build -t {SANDBOX_IMAGE} ./sandbox"
+)
+
+
+def _missing_sandbox_image(client) -> str | None:
+    """Return a human-readable hint when the sandbox image has not been built."""
+    try:
+        client.images.get(SANDBOX_IMAGE)
+        return None
+    except docker.errors.ImageNotFound:
+        return SANDBOX_IMAGE_HINT
+    except docker.errors.APIError as exc:
+        return f"Unable to inspect sandbox image '{SANDBOX_IMAGE}': {exc}"
+
 
 def _parse_serialized_value(raw):
     if not isinstance(raw, str):
@@ -42,6 +58,11 @@ def _convert_test_cases(problem: Problem):
     return converted_test_cases
 
 def _run_tests_in_sandbox(client, code: str, problem_definition: dict) -> dict:
+    missing_image = _missing_sandbox_image(client)
+    if missing_image:
+        logger.error("[RUNNER] %s", missing_image)
+        return {"error": missing_image, "runtime_ms": 0}
+
     payload = json.dumps({
         "code": code,
         "problem": problem_definition,

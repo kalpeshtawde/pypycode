@@ -24,9 +24,22 @@ require_env_file() {
   fi
 }
 
+ensure_sandbox_image() {
+  # Code execution fails without this image, and it is not published to any
+  # registry, so every host has to build it locally.
+  if docker image inspect pypycode-sandbox:latest >/dev/null 2>&1; then
+    echo "→ Sandbox image present"
+  else
+    echo "→ Building sandbox image..."
+    docker build -t pypycode-sandbox:latest ./sandbox
+  fi
+}
+
 deploy_frontend_fast() {
   echo "⚡ Fast frontend deploy"
   echo "→ Using prebuilt frontend dist from CI..."
+
+  ensure_sandbox_image
 
   echo "→ Reloading nginx..."
   docker compose -f "$COMPOSE_FILE" up -d nginx
@@ -37,8 +50,7 @@ deploy_frontend_fast() {
 
 deploy_full_stack() {
   echo "🚀 Full-stack deploy"
-  echo "→ Building sandbox image..."
-  docker build -t pypycode-sandbox:latest ./sandbox
+  ensure_sandbox_image
 
   echo "→ Building and starting production services..."
   docker compose -f "$COMPOSE_FILE" up -d --build api worker vega nginx redis
