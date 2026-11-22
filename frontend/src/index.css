@@ -189,4 +189,18 @@
   .dark .noise-overlay {
     opacity: 0.035;
   }
+
+  /* Problem table rows — CSS-driven so hover states follow the theme */
+  .problem-row {
+    background: var(--bg-surface);
+  }
+  .problem-row:hover {
+    background: var(--bg-hover);
+  }
+  .problem-row.is-solved {
+    background: var(--row-solved-bg);
+  }
+  .problem-row.is-solved:hover {
+    background: var(--row-solved-hover-bg);
+  }
 }

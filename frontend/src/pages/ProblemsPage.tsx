@@ -1513,6 +1513,7 @@ export default function ProblemsPage() {
                   <Link
                     key={p.id}
                     to={problemLink}
+                    className={`problem-row ${isSolved ? "is-solved" : ""}`}
                     style={{
                       display: 'grid',
                       gridTemplateColumns: '30px 40px 60px 1fr 150px 120px',
@@ -1522,20 +1523,9 @@ export default function ProblemsPage() {
                       borderBottom: '1px solid var(--bg-raised)',
                       alignItems: 'center',
                       cursor: 'pointer',
-                      transition: 'all 150ms ease',
-                      background: isSolved ? 'var(--row-solved-bg)' : 'var(--bg-surface)',
+                      transition: 'background 150ms ease',
                       textDecoration: 'none',
                       color: 'inherit'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = isSolved
-                        ? 'var(--row-solved-hover-bg)'
-                        : 'var(--bg-sunken)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = isSolved
-                        ? 'var(--row-solved-bg)'
-                        : 'white';
                     }}
                     onClick={(e) => {
                       if (isLoggedIn && !hasActiveProject) {
