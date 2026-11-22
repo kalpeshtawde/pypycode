@@ -1,4 +1,5 @@
 import hmac
+import re
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
 from app.models import Problem, ProblemProjectStat, Submission, TestCase
@@ -324,14 +325,19 @@ def list_problems():
             tag_predicates = [db.cast(Problem.tags, db.String).ilike(f'%"{t}"%') for t in tags]
         q = q.filter(db.or_(*tag_predicates))
     if search:
-        pattern = f"%{search}%"
-        q = q.filter(
-            db.or_(
-                Problem.title.ilike(pattern),
-                Problem.slug.ilike(pattern),
-                db.cast(Problem.tags, db.String).ilike(pattern),
+        # Match term by term (all terms must hit) so multi-word queries work
+        # against both titles ("sum sorted") and tags ("two pointers" matches
+        # the stored "two-pointers" tag).
+        terms = [term for term in re.split(r"\s+", search) if term]
+        for term in terms:
+            pattern = f"%{term}%"
+            q = q.filter(
+                db.or_(
+                    Problem.title.ilike(pattern),
+                    Problem.slug.ilike(pattern),
+                    db.cast(Problem.tags, db.String).ilike(pattern),
+                )
             )
-        )
     
     # Apply sorting
     if sort_by == "difficulty":
