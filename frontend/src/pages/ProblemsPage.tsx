@@ -126,10 +126,24 @@ export default function ProblemsPage() {
     () => localStorage.getItem("selectedProjectId") ?? ""
   );
   const [problemSequence, setProblemSequence] = useState<Map<string, number>>(new Map());
-  const [filter, setFilter] = useState<typeof QUICK_FILTERS[number]>("all");
-  const [sortBy, setSortBy] = useState<"id" | "title" | "difficulty" | "created_at">("id");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+  const [filter, setFilter] = useState<typeof QUICK_FILTERS[number]>(() => {
+    const value = urlSearchParams.get("filter");
+    return QUICK_FILTERS.includes(value as typeof QUICK_FILTERS[number])
+      ? (value as typeof QUICK_FILTERS[number])
+      : "all";
+  });
+  const [sortBy, setSortBy] = useState<"id" | "title" | "difficulty" | "created_at">(() => {
+    const value = urlSearchParams.get("sort");
+    return value === "title" || value === "difficulty" || value === "created_at" ? value : "id";
+  });
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() =>
+    urlSearchParams.get("order") === "desc" ? "desc" : "asc"
+  );
+  const [currentPage, setCurrentPage] = useState(() => {
+    const value = Number(urlSearchParams.get("page"));
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
+  });
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [switchingDefault, setSwitchingDefault] = useState(false);
@@ -146,13 +160,16 @@ export default function ProblemsPage() {
   const [deletingProject, setDeletingProject] = useState(false);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [favoriteProblemIds, setFavoriteProblemIds] = useState<Set<string>>(new Set());
-  const [urlSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get("search") ?? "");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>(() => {
+    const raw = urlSearchParams.get("tags");
+    return raw ? raw.split(",").map((tag) => tag.trim()).filter(Boolean) : [];
+  });
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [tagSearchQuery, setTagSearchQuery] = useState("");
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const fetchRequestIdRef = useRef(0);
+  const prevFilterKeyRef = useRef<string | null>(null);
 
   const sortProjects = (items: Project[]) => {
     return [...items].sort((a, b) => {
@@ -432,8 +449,18 @@ export default function ProblemsPage() {
   };
 
   useEffect(() => {
-    fetchProblems(1, sortBy, sortOrder, filter);
-  }, []);
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("filter", filter);
+    if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+    if (sortBy !== "id") params.set("sort", sortBy);
+    if (sortOrder !== "asc") params.set("order", sortOrder);
+    if (currentPage > 1) params.set("page", String(currentPage));
+
+    const next = params.toString();
+    if (next === urlSearchParams.toString()) return;
+    setUrlSearchParams(params, { replace: true });
+  }, [filter, selectedTags, searchQuery, sortBy, sortOrder, currentPage, setUrlSearchParams, urlSearchParams]);
 
   useEffect(() => {
     const fetchAllProblemsForStats = async () => {
@@ -467,6 +494,18 @@ export default function ProblemsPage() {
   }, [selectedProjectId]);
 
   useEffect(() => {
+    // On first run, honour the page restored from the URL. Afterwards, any
+    // filter change resets to page 1. Comparing a key keeps this correct under
+    // StrictMode's double-invoked effects.
+    const filterKey = JSON.stringify([sortBy, sortOrder, filter, searchQuery, selectedProjectId, selectedTags]);
+    if (prevFilterKeyRef.current === filterKey) return;
+    const isFirstRun = prevFilterKeyRef.current === null;
+    prevFilterKeyRef.current = filterKey;
+
+    if (isFirstRun) {
+      fetchProblems(currentPage, sortBy, sortOrder, filter);
+      return;
+    }
     setCurrentPage(1);
     fetchProblems(1, sortBy, sortOrder, filter);
   }, [sortBy, sortOrder, filter, searchQuery, selectedProjectId, selectedTags]);
