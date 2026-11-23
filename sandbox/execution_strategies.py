@@ -9,12 +9,15 @@ def _convert_args(args: list, arg_types: list, namespace: dict) -> list:
     converted = []
     list_to_linked = namespace.get("list_to_linked")
     list_to_tree = namespace.get("list_to_tree")
+    list_to_nary_tree = namespace.get("list_to_nary_tree")
 
     for arg, atype in zip(args, arg_types + [None] * len(args)):
         if atype == "linked_list" and list_to_linked:
             converted.append(list_to_linked(arg))
         elif atype == "tree" and list_to_tree:
             converted.append(list_to_tree(arg))
+        elif atype == "nary_tree" and list_to_nary_tree:
+            converted.append(list_to_nary_tree(arg))
         else:
             converted.append(arg)
     return converted

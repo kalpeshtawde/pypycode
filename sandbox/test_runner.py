@@ -100,6 +100,38 @@ def tree_to_list(root):
     while result and result[-1] is None:
         result.pop()
     return result
+
+
+class NaryNode:
+    def __init__(self, val=None, children=None):
+        self.val = val
+        self.children = children if children else []
+
+    def __repr__(self):
+        return f"NaryNode({self.val})"
+
+
+
+def list_to_nary_tree(lst):
+    # Level order where None separates sibling groups (LeetCode N-ary format):
+    # [1, None, 3, 2, 4, None, 5, 6] -> root 1 with children 3,2,4 and 3 having 5,6.
+    if not lst or lst[0] is None:
+        return None
+    root = NaryNode(lst[0])
+    queue = [root]
+    i = 1
+    while queue and i < len(lst):
+        node = queue.pop(0)
+        if i < len(lst) and lst[i] is None:
+            i += 1  # separator before this node's children
+        children = []
+        while i < len(lst) and lst[i] is not None:
+            child = NaryNode(lst[i])
+            children.append(child)
+            queue.append(child)
+            i += 1
+        node.children = children
+    return root
 """
 
 
@@ -251,12 +283,15 @@ def _convert_args(args: list, arg_types: list, namespace: dict) -> list:
     converted = []
     list_to_linked = namespace.get("list_to_linked")
     list_to_tree = namespace.get("list_to_tree")
+    list_to_nary_tree = namespace.get("list_to_nary_tree")
 
     for arg, atype in zip(args, arg_types + [None] * len(args)):
         if atype == "linked_list" and list_to_linked:
             converted.append(list_to_linked(arg))
         elif atype == "tree" and list_to_tree:
             converted.append(list_to_tree(arg))
+        elif atype == "nary_tree" and list_to_nary_tree:
+            converted.append(list_to_nary_tree(arg))
         else:
             converted.append(arg)
     return converted
