@@ -15,6 +15,10 @@ Idempotent: re-running only reports what is already in place.
 Usage (inside the api container, from the repo root):
     docker compose exec -T api python fix_problem_solutions.py
     docker compose -f docker-compose.prod.yml exec -T api python fix_problem_solutions.py
+
+This script only writes to the database. To validate afterwards, use the
+worker service, which is the one with the Docker socket mounted:
+    docker compose -f docker-compose.prod.yml exec -T worker python validate_all_problems.py
 """
 
 import json

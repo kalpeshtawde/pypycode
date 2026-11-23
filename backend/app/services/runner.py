@@ -147,7 +147,23 @@ def _build_problem_definition(problem: Problem, test_cases: list[dict]) -> dict:
 
 def run_code_against_problem(problem: Problem, code: str, limit: int | None = None):
     try:
-        client = docker.from_env()
+        try:
+            client = docker.from_env()
+        except docker.errors.DockerException as exc:
+            active_count = len([tc for tc in problem.test_cases if tc.is_active]) if problem else 0
+            return {
+                "status": "runtime_error",
+                "passed_tests": 0,
+                "total_tests": active_count,
+                "runtime_ms": None,
+                "memory_kb": None,
+                "error_output": (
+                    "Cannot reach the Docker daemon from this container. Code execution runs "
+                    "in the worker service, which mounts /var/run/docker.sock - run this there "
+                    f"instead (e.g. docker compose exec -T worker ...). Underlying error: {exc}"
+                ),
+            }
+
         problem_slug = getattr(problem, 'slug', None) if problem else None
         logger.info(f"[RUNNER] Problem: {problem_slug or 'unknown'}, code length: {len(code) if code else 0}")
         test_cases = _convert_test_cases(problem)
