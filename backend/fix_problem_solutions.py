@@ -236,6 +236,68 @@ REFERENCE_SOLUTIONS = {
         level = [c for n in level for c in (n.left, n.right) if c]
     return out
 ''',
+    "subsets-enumerator": '''def subsetsEnumerator(nums):
+    out = []
+    n = len(nums)
+    for mask in range(1 << n):
+        idx = [i for i in range(n) if mask & (1 << i)]
+        out.append((len(idx), idx, [nums[i] for i in idx]))
+    out.sort(key=lambda item: (item[0], item[1]))
+    return [item[2] for item in out]
+''',
+    "permutation-generator": '''def permutationGenerator(nums):
+    from itertools import permutations
+
+    return [list(p) for p in permutations(nums)]
+''',
+    "combination-sum": '''def combinationSum(candidates, target):
+    out = []
+
+    def dfs(start, remaining, path):
+        if remaining == 0:
+            out.append(list(path))
+            return
+        for i in range(start, len(candidates)):
+            candidate = candidates[i]
+            if candidate > remaining:
+                continue
+            path.append(candidate)
+            dfs(i, remaining - candidate, path)
+            path.pop()
+
+    dfs(0, target, [])
+    return out
+''',
+    "word-path-search": '''def wordPathSearch(board, word):
+    if not board or not board[0]:
+        return word == ""
+
+    rows, cols = len(board), len(board[0])
+    visited = set()
+
+    def dfs(r, c, i):
+        if i == len(word):
+            return True
+        if not (0 <= r < rows and 0 <= c < cols):
+            return False
+        if (r, c) in visited or board[r][c] != word[i]:
+            return False
+        visited.add((r, c))
+        found = (
+            dfs(r + 1, c, i + 1)
+            or dfs(r - 1, c, i + 1)
+            or dfs(r, c + 1, i + 1)
+            or dfs(r, c - 1, i + 1)
+        )
+        visited.discard((r, c))
+        return found
+
+    for r in range(rows):
+        for c in range(cols):
+            if dfs(r, c, 0):
+                return True
+    return False
+''',
 }
 
 NARY_REFERENCE = '''def maxDepthNAry(root):
@@ -365,6 +427,40 @@ def apply_expected_fixes():
     return changed
 
 
+# Problems that have no active reference solution at all; created only when
+# missing so an existing (and possibly better) solution is never overwritten.
+MISSING_REFERENCE_SOLUTIONS = {
+    "combinations": '''def get_combinations(n, k):
+    from itertools import combinations
+
+    return [list(combo) for combo in combinations(range(1, n + 1), k)]
+''',
+}
+
+
+def apply_missing_reference_solutions():
+    changed = []
+    for slug, code in MISSING_REFERENCE_SOLUTIONS.items():
+        problem = Problem.query.filter_by(slug=slug).first()
+        if not problem:
+            print(f"  ! missing problem: {slug}")
+            continue
+        existing = ProblemSolution.query.filter_by(problem_id=problem.id, is_active=True).first()
+        if existing:
+            continue
+        db.session.add(
+            ProblemSolution(
+                problem_id=problem.id,
+                language="python",
+                function_name=problem.function_name or "solution",
+                code=code,
+                is_active=True,
+            )
+        )
+        changed.append(slug)
+    return changed
+
+
 def apply_two_sum_reference_keys():
     problem = Problem.query.filter_by(slug="two-sum-sorted").first()
     if not problem:
@@ -415,6 +511,7 @@ def main():
         cases = apply_test_case_fixes()
         expected = apply_expected_fixes()
         two_sum = apply_two_sum_reference_keys()
+        missing = apply_missing_reference_solutions()
         smallest = apply_smallest_missing_extras()
 
         db.session.commit()
@@ -425,6 +522,7 @@ def main():
             ("test case inputs", cases),
             ("expected values", expected),
             ("two-sum reference keys", two_sum),
+            ("created reference solutions", missing),
             ("smallest-missing extras", smallest),
         ):
             if items:
