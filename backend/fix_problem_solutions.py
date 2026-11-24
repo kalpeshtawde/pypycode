@@ -461,6 +461,107 @@ def apply_missing_reference_solutions():
     return changed
 
 
+# Problems whose function_name is a node class (TreeNode / ListNode / Node).
+# The harness then calls the class constructor, so real submissions never run:
+# they return a bogus node and normalisation fails with errors like
+# "'int' object has no attribute 'val'". Validation hid this because the
+# reference solution was a function with the same name.
+#
+# "arg_types" converts raw level-order input into node objects; "reference"
+# replaces the input-keyed lookup table with a real implementation (needed
+# once arguments stop being JSON-serialisable). When "reference" is None the
+# existing lookup table is kept and only its def name is corrected.
+NODE_FUNCTION_FIXES = {
+    "detect-cycle-list": {"function_name": "detectCycle", "arg_types": None, "reference": None},
+    "linked-list-cycle-start": {"function_name": "detectCycleStart", "arg_types": None, "reference": None},
+    "serialize-tree": {"function_name": "serialize", "arg_types": None, "reference": None},
+    "graph-clone": {
+        "function_name": "graphClone",
+        "arg_types": None,
+        "reference": '''def graphClone(node):
+    if node is None:
+        return []
+    return [list(neighbours) for neighbours in node]
+''',
+    },
+    "inorder-successor-bst": {
+        "function_name": "inorderSuccessor",
+        "arg_types": ["tree"],
+        "reference": '''def inorderSuccessor(root, p):
+    successor = None
+    node = root
+    while node:
+        if p < node.val:
+            successor = node
+            node = node.left
+        else:
+            node = node.right
+    return successor.val if successor else None
+''',
+    },
+    "flatten-binary-tree": {
+        "function_name": "flattenTree",
+        "arg_types": ["tree"],
+        "reference": '''def flattenTree(root):
+    if root is None:
+        return []
+
+    order, stack = [], [root]
+    while stack:
+        node = stack.pop()
+        order.append(node)
+        if node.right:
+            stack.append(node.right)
+        if node.left:
+            stack.append(node.left)
+
+    for i, node in enumerate(order):
+        node.left = None
+        node.right = order[i + 1] if i + 1 < len(order) else None
+
+    return tree_to_list(root)
+''',
+    },
+}
+
+
+def apply_node_function_fixes():
+    changed = []
+    for slug, fix in NODE_FUNCTION_FIXES.items():
+        problem = Problem.query.filter_by(slug=slug).first()
+        if not problem:
+            print(f"  ! missing problem: {slug}")
+            continue
+
+        old_name = problem.function_name
+        new_name = fix["function_name"]
+        if old_name != new_name:
+            problem.function_name = new_name
+            changed.append(f"{slug}:function_name")
+
+        if fix["arg_types"] is not None:
+            for test_case in problem.test_cases:
+                payload = dict(test_case.test_input or {})
+                if payload.get("arg_types") != fix["arg_types"]:
+                    payload["arg_types"] = fix["arg_types"]
+                    test_case.test_input = payload
+                    changed.append(f"{slug}#{test_case.serial_number}:arg_types")
+
+        solution = ProblemSolution.query.filter_by(problem_id=problem.id, is_active=True).first()
+        if not solution:
+            continue
+
+        if fix["reference"] is not None:
+            if solution.code != fix["reference"]:
+                solution.code = fix["reference"]
+                changed.append(f"{slug}:reference")
+        elif old_name != new_name and f"def {old_name}(" in solution.code:
+            solution.code = solution.code.replace(f"def {old_name}(", f"def {new_name}(", 1)
+            changed.append(f"{slug}:reference-name")
+
+    return changed
+
+
 def apply_two_sum_reference_keys():
     problem = Problem.query.filter_by(slug="two-sum-sorted").first()
     if not problem:
@@ -512,6 +613,7 @@ def main():
         expected = apply_expected_fixes()
         two_sum = apply_two_sum_reference_keys()
         missing = apply_missing_reference_solutions()
+        node_fns = apply_node_function_fixes()
         smallest = apply_smallest_missing_extras()
 
         db.session.commit()
@@ -523,6 +625,7 @@ def main():
             ("expected values", expected),
             ("two-sum reference keys", two_sum),
             ("created reference solutions", missing),
+            ("node-named functions", node_fns),
             ("smallest-missing extras", smallest),
         ):
             if items:
